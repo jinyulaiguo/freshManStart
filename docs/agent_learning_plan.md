@@ -60,6 +60,7 @@ W1─W5      W6─W9      W10─W15     W16─W18    W19─W21    W22─W24    W
 
 **学习内容**：
 - 面向对象：类、继承、多态、`__init__` / `__call__` / `__repr__`
+- **异常处理框架进阶**：自定义异常继承体系设计、异常链传递（`raise ... from ...`）、利用 `traceback` 提取与记录调用栈
 - 抽象基类（ABC）与 Protocol
 - 类型注解：typing 模块、Optional / Union / Literal / Annotated
 - **Pydantic**：BaseModel、Field、嵌套模型、validator、导出 JSON Schema

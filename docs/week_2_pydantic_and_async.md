@@ -57,14 +57,15 @@
 
 ---
 
-## Day 13：日志工程、回调与事件钩子机制（🌟 新增）
+## Day 13：日志与异常工程、回调与事件钩子机制（🌟 新增）
 *   **核心知识点**：
     *   `.env` 文件的规范与 `python-dotenv` 读取
     *   `logging` 模块的高级配置：Logger、Handler、Formatter、日志级别
+    *   **异常处理框架进阶**：自定义项目异常继承体系（如 `BaseAgentException`）、异常链传递（`raise ... from ...`）、利用 `traceback` 模块解析和记录调用栈
     *   **回调函数（Callable）与事件钩子（Hooks）**：设计通用的事件监听器/订阅者模式，监听 Agent 内部的关键生命周期（如 `on_agent_start`, `on_tool_end`）
     *   结构化日志输出（JSON 格式日志初步）
-*   **Agent 核心关联**：回调/钩子是实现 Agent 运行轨迹 Trace（如可视化看板、LangSmith 等）的基础底层。
-*   **🎯 过关验证标准**：实现一个 `AgentRunner` 类，它支持注册回调类（必须包含 `on_step_start` 和 `on_step_end` 方法）。在执行模拟步骤时，自动触发这些注册的回调，打印步骤开始和结束的时间戳与状态。
+*   **Agent 核心关联**：回调/钩子是实现 Agent 运行轨迹 Trace 的基础底层；而规范的自定义异常和 Traceback 堆栈捕获则是监控告警与系统防崩溃的必要构件。
+*   **🎯 过关验证标准**：实现一个 `AgentRunner` 类，它支持注册回调类（需包含 `on_step_start`、`on_step_end` 和 `on_step_error` 方法）。在执行模拟步骤时自动触发相应回调。特别地，当步骤执行抛出自定义的 `ToolExecuteError` 异常时，需使用 `raise ... from` 进行包装链式传递，并在 `on_step_error` 回调中，利用 `traceback` 格式化打印出完整的调用堆栈到日志中。
 
 ---
 
