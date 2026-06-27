@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Runner 异步工具调度器工作流与大作业要求</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: rgba(22, 27, 34, 0.7);
+            --border-color: rgba(48, 54, 61, 0.8);
+            --primary: #58a6ff;
+            --accent: #bc8cff;
+            --success: #3fb950;
+            --danger: #f85149;
+            --warning: #d29922;
+            --text-main: #c9d1d9;
+            --text-bright: #f0f6fc;
+            --text-muted: #8b949e;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(88, 166, 255, 0.04) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(188, 140, 255, 0.04) 0px, transparent 50%);
+        }
+
+        header {
+            padding: 24px 40px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-bright);
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 24px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0.8;
+        }
+
+        /* Top Overview Grid */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr;
+            gap: 20px;
+        }
+
+        .intro-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        .intro-text strong {
+            color: var(--text-bright);
+        }
+
+        /* Requirements Section */
+        .req-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .req-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .req-item {
+            background: rgba(30, 35, 44, 0.4);
+            border: 1px solid rgba(48, 54, 61, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .req-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .req-num {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--primary);
+            background: rgba(88, 166, 255, 0.15);
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .req-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 6px;
+        }
+
+        .req-desc {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Grid for Flow & Details */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 24px;
+        }
+
+        .flow-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 520px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            max-height: 580px;
+        }
+
+        /* SVG interactive styling */
+        .node {
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .node rect {
+            fill: #161b22;
+            stroke: var(--border-color);
+            stroke-width: 1.5;
+            rx: 8px;
+            transition: all 0.3s;
+        }
+
+        .node text {
+            fill: var(--text-main);
+            font-size: 13px;
+            font-weight: 500;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+
+        .node .day-tag {
+            fill: var(--text-muted);
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* Hover & Active Effects */
+        .node:hover rect {
+            fill: rgba(88, 166, 255, 0.1);
+            stroke: var(--primary);
+            filter: drop-shadow(0 0 8px rgba(88, 166, 255, 0.4));
+        }
+
+        .node:hover text {
+            fill: var(--text-bright);
+        }
+
+        .node.active rect {
+            fill: rgba(188, 140, 255, 0.15);
+            stroke: var(--accent);
+            stroke-width: 2.5;
+            filter: drop-shadow(0 0 12px rgba(188, 140, 255, 0.5));
+        }
+
+        .node.active text {
+            fill: var(--text-bright);
+            font-weight: 600;
+        }
+
+        .arrow-line {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 2;
+            marker-end: url(#arrow);
+            stroke-dasharray: 6 6;
+            animation: dash 30s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+
+        /* Info Display Section */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .step-title-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .day-badge {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.15) 0%, rgba(188, 140, 255, 0.15) 100%);
+            border: 1px solid var(--accent);
+            color: var(--text-bright);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .step-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-bright);
+        }
+
+        .info-section {
+            background: rgba(30, 35, 44, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid rgba(48, 54, 61, 0.4);
+        }
+
+        .info-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .info-section p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .code-block {
+            background-color: #090c10 !important;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11.5px;
+            overflow-x: auto;
+            white-space: pre;
+            color: #e6edf3;
+            line-height: 1.45;
+        }
+
+        .keyword { color: #ff7b72; }
+        .function { color: #d2a8ff; }
+        .string { color: #a5d6ff; }
+        .comment { color: #8b949e; font-style: italic; }
+        .type { color: #ff9b50; }
+        .decorator { color: #d2a8ff; }
+
+        .tips-panel {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(210, 153, 34, 0.08);
+            border: 1px solid rgba(210, 153, 34, 0.15);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            color: var(--warning);
+        }
+
+        .pulse {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>📅 Tool Runner 异步工具调度器工作流</h1>
+            <div class="subtitle">以终为始的架构闭环设计（点击流程图中的步骤查看详情）</div>
+        </div>
+        <div class="day-badge pulse">Week 2 综合实战图景</div>
+    </header>
+
+    <div class="container">
+        <!-- Top Overview Layout: Project Intro + Requirements -->
+        <div class="overview-grid">
+            <!-- Left Card: Project Intro -->
+            <div class="card" style="display: flex; flex-direction: column;">
+                <div class="req-title">
+                    <span>📖 什么是 Tool Runner？</span>
+                </div>
+                <div class="intro-text" style="flex: 1;">
+                    <p>在 AI Agent 架构中，大模型（LLM）不能直接运行代码或访问数据库。大模型必须通过 <strong>Function Calling</strong> 输出 JSON 参数来声明调用外部工具的意图。</p>
+                    <br>
+                    <p><strong>Tool Runner（工具调度器）</strong> 是本地系统的中央执行网关。它作为大模型与本地核心函数之间的接口，负责将大模型的文本意图<strong>转化为本地代码的运行结果</strong>，并保障整个运行过程的类型安全与可观测性。</p>
+                </div>
+            </div>
+
+            <!-- Right Card: Requirements -->
+            <div class="card">
+                <div class="req-title">
+                    <span>🎯 Day 14 终极实战交付标准</span>
+                </div>
+                <div class="req-grid">
+                    <div class="req-item">
+                        <span class="req-num">模块 1</span>
+                        <div class="req-name">工具定义与安全注册</div>
+                        <div class="req-desc">
+                            使用 Pydantic 声明参数，通过装饰器注册函数，利用 model_json_schema() 导出 JSON Schema。
+                        </div>
+                    </div>
+                    <div class="req-item">
+                        <span class="req-num">模块 2</span>
+                        <div class="req-name">入参拦截与安全校验</div>
+                        <div class="req-desc">
+                            解析并校验大模型返回的 JSON 参数，拦截类型不合规或多字段逻辑冲突的输入。
+                        </div>
+                    </div>
+                    <div class="req-item">
+                        <span class="req-num">模块 3</span>
+                        <div class="req-name">异步并发引擎</div>
+                        <div class="req-desc">
+                            调度流程和工具全面 async 化，遇到多工具调用时用 asyncio.gather 并发非阻塞执行。
+                        </div>
+                    </div>
+                    <div class="req-item">
+                        <span class="req-num">模块 4</span>
+                        <div class="req-name">可观测监控与异常处理</div>
+                        <div class="req-desc">
+                            暴露生命周期 Hook 回调，遇到异常用 raise ... from 包装并利用 traceback 记录到日志。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout: Diagram & Details -->
+        <div class="main-layout">
+            <!-- Left: Flowchart -->
+            <div class="card">
+                <div class="flow-container">
+                    <svg viewBox="0 0 500 620">
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="rgba(48, 54, 61, 0.8)"/>
+                            </marker>
+                        </defs>
+
+                        <!-- Flow connections -->
+                        <path d="M 250 70 L 250 110" class="arrow-line" />
+                        <path d="M 250 160 L 250 200" class="arrow-line" />
+                        <path d="M 250 250 L 250 290" class="arrow-line" />
+                        
+                        <!-- Branch fail path -->
+                        <path d="M 200 320 C 120 320, 120 380, 120 440" class="arrow-line" style="stroke: var(--danger); opacity: 0.7;" />
+                        <!-- Branch success path -->
+                        <path d="M 300 320 C 380 320, 380 380, 380 410" class="arrow-line" style="stroke: var(--success); opacity: 0.7;" />
+                        
+                        <path d="M 380 460 L 380 500" class="arrow-line" />
+                        <path d="M 380 550 C 380 590, 250 590, 250 590" class="arrow-line" />
+                        <path d="M 120 490 C 120 590, 250 590, 250 590" class="arrow-line" />
+
+                        <!-- Node 1: Input -->
+                        <g class="node active" id="node-input" onclick="selectStep('input')">
+                            <rect x="150" y="20" width="200" height="50" />
+                            <text x="250" y="45" text-anchor="middle">1. LLM 输入接入</text>
+                            <text x="340" y="32" class="day-tag" text-anchor="end">Day 9</text>
+                        </g>
+
+                        <!-- Node 2: Callback start -->
+                        <g class="node" id="node-start-callback" onclick="selectStep('start-callback')">
+                            <rect x="150" y="110" width="200" height="50" />
+                            <text x="250" y="135" text-anchor="middle">2. 开始生命周期回调</text>
+                            <text x="340" y="122" class="day-tag" text-anchor="end">Day 13</text>
+                        </g>
+
+                        <!-- Node 3: Validation -->
+                        <g class="node" id="node-validation" onclick="selectStep('validation')">
+                            <rect x="150" y="200" width="200" height="50" />
+                            <text x="250" y="225" text-anchor="middle">3. Pydantic 校验与解析</text>
+                            <text x="340" y="212" class="day-tag" text-anchor="end">Day 9/10</text>
+                        </g>
+
+                        <!-- Node 4: Decision diamond -->
+                        <g class="node" id="node-decision" onclick="selectStep('decision')">
+                            <rect x="180" y="290" width="140" height="60" style="rx: 6px;" />
+                            <text x="250" y="325" text-anchor="middle">4. 参数是否合法?</text>
+                        </g>
+
+                        <!-- Node 5a: Validation Fail -->
+                        <g class="node" id="node-fail" onclick="selectStep('fail')">
+                            <rect x="30" y="440" width="180" height="50" style="stroke: var(--danger);" />
+                            <text x="120" y="465" text-anchor="middle" style="fill: var(--danger);">异常捕获与 Traceback</text>
+                            <text x="200" y="452" class="day-tag" text-anchor="end">Day 13</text>
+                        </g>
+
+                        <!-- Node 5b: Exec Tools -->
+                        <g class="node" id="node-exec" onclick="selectStep('exec')">
+                            <rect x="290" y="410" width="180" height="50" style="stroke: var(--success);" />
+                            <text x="380" y="435" text-anchor="middle" style="fill: var(--success);">5. 异步并发执行</text>
+                            <text x="460" y="422" class="day-tag" text-anchor="end">Day 11/12</text>
+                        </g>
+
+                        <!-- Node 6: State merge -->
+                        <g class="node" id="node-merge" onclick="selectStep('merge')">
+                            <rect x="290" y="500" width="180" height="50" />
+                            <text x="380" y="525" text-anchor="middle">6. 状态 Reducer 合并</text>
+                            <text x="460" y="512" class="day-tag" text-anchor="end">Day 8</text>
+                        </g>
+
+                        <!-- Node 7: Output -->
+                        <circle cx="250" cy="590" r="10" fill="#f0f6fc" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Right: Details -->
+            <div class="card info-panel">
+                <div class="step-title-area">
+                    <span class="step-name" id="display-title">1. LLM 输入接入</span>
+                    <span class="day-badge" id="display-day">Day 9 & Day 10</span>
+                </div>
+
+                <div class="info-section">
+                    <h3>💡 对应知识点</h3>
+                    <p id="display-knowledge">Pydantic 基础定义、字段别名与 Field 配置，JSON 反序列化。</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>❓ 解决了什么痛点</h3>
+                    <p id="display-pain">大模型返回的 JSON 参数是未经验证的文本字符串，若直接传入本地函数执行，极易因类型不匹配或参数缺失而发生运行时崩溃。</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>🔬 核心逻辑本质</h3>
+                    <p id="display-principle">外部边界输入转换：将非结构化的大模型预测文本，转换为本地语言环境支持的、具有强类型约束的入参对象。</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>💻 核心逻辑伪代码</h3>
+                    <pre class="code-block" id="display-code">代码加载中...</pre>
+                </div>
+
+                <div class="tips-panel">
+                    <span style="font-size: 16px;">💡</span>
+                    <span>提示：点击左侧图表中的其他模块，可以查看各组件的串联细节与知识点映射。</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const stepsData = {
+            'input': {
+                title: '1. LLM 输入接入',
+                day: 'Day 9 & Day 10',
+                knowledge: 'Pydantic 基础定义、字段描述、model_json_schema()。',
+                pain: '大模型返回的参数是未经验证的 JSON 文本字符串。如果直接传给普通 Python 函数，可能会导致 KeyError 或 TypeError，使得调用过程不够健壮。',
+                principle: '边界类型映射：通过将 Pydantic 模型的内部字段定义一键导出为标准的 JSON Schema，使外部预测文本和本地强类型字段之间建立确定的契约关系。',
+                code: `<span class="keyword">class</span> <span class="type">CalculatorArgs</span>(<span class="type">BaseModel</span>):
+    x: <span class="type">float</span> = Field(description=<span class="string">"操作数A"</span>)
+    y: <span class="type">float</span> = Field(description=<span class="string">"操作数B"</span>)
+
+<span class="comment"># 导出给大模型的规范描述</span>
+tool_schema = CalculatorArgs.model_json_schema()`
+            },
+            'start-callback': {
+                title: '2. 开始生命周期回调',
+                day: 'Day 13',
+                knowledge: '事件钩子机制（Hooks）、回调设计模式、可观测性架构。',
+                pain: '在核心引擎执行任务时，外部无法获取中间阶段的状态变化，且在执行器内部直接嵌入打印代码会导致其难以解耦和复用。',
+                principle: '事件驱动设计：使用回调基类解耦核心调度行为，将关键执行节点（启动、成功、失败）以事件通知的形式分派出去。',
+                code: `<span class="keyword">class</span> <span class="type">BaseCallback</span>:
+    <span class="keyword">def</span> <span class="function">on_tool_start</span>(self, tool_name: <span class="type">str</span>, raw_args: <span class="type">str</span>):
+        <span class="keyword">pass</span>
+
+# 运行开始时触发
+await callback.on_tool_start(tool_name, raw_args)`
+            },
+            'validation': {
+                title: '3. Pydantic 校验与解析',
+                day: 'Day 9 & Day 10',
+                knowledge: 'model_validate_json()、@model_validator（模型级校验）。',
+                pain: '字段本身类型可能正确，但在业务语义上可能存在冲突（例如：起止时间倒置）。这种复杂的联合逻辑校验不能通过简单类型约束来防范。',
+                principle: '业务规则内聚：利用 Pydantic 联合模型校验器将结构类型校验与业务逻辑语义约束统一归纳于参数模型中，将异常数据完全阻断在执行函数之外。',
+                code: `<span class="keyword">class</span> <span class="type">WeatherArgs</span>(<span class="type">BaseModel</span>):
+    start_date: <span class="type">str</span>
+    end_date: <span class="type">str</span>
+
+    <span class="decorator">@model_validator(mode="after")</span>
+    <span class="keyword">def</span> <span class="function">check_dates</span>(self) -> <span class="string">"WeatherArgs"</span>:
+        <span class="keyword">if</span> self.start_date > self.end_date:
+            <span class="keyword">raise</span> <span class="type">ValueError</span>(<span class="string">"开始不能晚于结束"</span>)
+        <span class="keyword">return</span> self`
+            },
+            'decision': {
+                title: '4. 参数校验决策分支',
+                day: 'Day 10 & Day 13',
+                knowledge: 'ValidationError 捕获，条件流转控制。',
+                pain: '当大模型返回脏数据触发异常时，如果直接退出程序，系统将无法健壮地反馈错误细节给大模型进行自愈纠错。',
+                principle: '异常分流路由：在执行器入口处捕获数据结构或逻辑异常，将运行时硬崩溃转化为逻辑控制流分支，流向专门的错误响应模块。',
+                code: `<span class="keyword">try</span>:
+    clean_args = ArgsModel.model_validate_json(raw_json)
+    # 分流：校验成功 ─► 异步并发执行
+<span class="keyword">except</span> ValidationError <span class="keyword">as</span> e:
+    # 分流：校验失败 ─► 异常处理与包装`
+            },
+            'fail': {
+                title: '5a. 异常捕获与 Traceback',
+                day: 'Day 13',
+                knowledge: '异常链（raise ... from ...）、traceback 堆栈保存。',
+                pain: '工具内部发生网络错误或运行时异常时，简单的抛出常会丢失最底层的行号与初始错误源（Exception Swallowing），使 Debug 变得非常困难。',
+                principle: '因果链追踪：利用 __cause__ 属性关联外部自定义包装异常与内部底层真实异常，配合 traceback 库格式化出完整的错误上下文链条。',
+                code: `<span class="keyword">except</span> <span class="type">Exception</span> <span class="keyword">as</span> e:
+    wrapped = ToolExecuteError(<span class="string">"执行出错"</span>)
+    wrapped.__cause__ = e  # 绑定因果链
+    await callback.on_tool_error(tool_name, wrapped)
+    logging.error(traceback.format_exc())`
+            },
+            'exec': {
+                title: '5b. 异步并发执行',
+                day: 'Day 11 & Day 12',
+                knowledge: 'async/await 语法、asyncio.gather()、httpx.AsyncClient 异步非阻塞调用。',
+                pain: '在需要同时查询多个外部网络 API 工具时，若使用串行同步请求，主线程将被网络等待长时间阻塞挂起，响应时间呈线性增加。',
+                principle: '非阻塞多路复用：将工具函数定义为 async 协程，在网络 I/O 等待阶段释放 CPU 控制权让给其他协程执行，实现单线程下的多任务高并发调度。',
+                code: `<span class="keyword">async def</span> <span class="function">run_tools</span>(tasks):
+    # 并发分发网络请求，在网络等待期共享单线程 CPU 资源
+    results = <span class="keyword">await</span> asyncio.gather(*[
+        tool.execute(args) <span class="keyword">for</span> tool <span class="keyword">in</span> tasks
+    ])
+    <span class="keyword">return</span> results`
+            },
+            'merge': {
+                title: '6. 状态 Reducer 合并',
+                day: 'Day 8',
+                knowledge: 'TypedDict 状态契约、状态合并归约。',
+                pain: '多个并发协程返回工具执行结果时，如果随意地修改全局字典，容易产生状态覆盖冲突，且由于缺乏 Key 的约束，代码可维护性极差。',
+                principle: '单向状态流转：使用 TypedDict 规定状态格式，并通过 Annotated 绑定确定的合并函数（Reducer），规范化状态数据合并的操作。',
+                code: `<span class="keyword">def</span> <span class="function">message_reducer</span>(old_messages: List, new_messages: List):
+    <span class="keyword">return</span> old_messages + new_messages
+
+<span class="keyword">class</span> <span class="type">RunnerState</span>(TypedDict):
+    messages: Annotated[List[str], message_reducer]
+    steps: <span class="type">int</span>`
+            }
+        };
+
+        function selectStep(stepKey) {
+            document.querySelectorAll('.node').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            const nodeId = 'node-' + stepKey;
+            const nodeEl = document.getElementById(nodeId);
+            if (nodeEl) {
+                nodeEl.classList.add('active');
+            }
+
+            const data = stepsData[stepKey];
+            if (data) {
+                document.getElementById('display-title').textContent = data.title;
+                document.getElementById('display-day').textContent = data.day;
+                document.getElementById('display-knowledge').textContent = data.knowledge;
+                document.getElementById('display-pain').textContent = data.pain;
+                document.getElementById('display-principle').textContent = data.principle;
+                document.getElementById('display-code').innerHTML = data.code;
+            }
+        }
+
+        selectStep('input');
+    </script>
+</body>
+</html>
