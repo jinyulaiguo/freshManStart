@@ -1,6 +1,7 @@
 import asyncio
 import traceback
 from typing import Dict, List, Type, Annotated, Callable, Any, TypedDict
+# TODO: 导入用于异步 HTTP 请求的 httpx 库
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -122,3 +123,16 @@ class AsyncToolRunner:
         """
         # TODO: 使用 asyncio.gather 实现并发分发
         raise NotImplementedError("TODO")
+
+
+async def fetch_weather_api(args: WeatherArgs) -> str:
+    """
+    TODO: 使用 httpx 异步请求真实天气 API (建议使用 https://wttr.in/{city}?format=j1)。
+    要求：
+    1. 使用 httpx.AsyncClient 发起非阻塞 HTTP 请求并设置超时。
+    2. 当请求发生异常（网络不可达、超时、服务错误）时，捕获异常并返回 Mock/Fallback 数据作为兜底：
+       f"Weather in {args.city} from {args.start_date} to {args.end_date}: Sunny (Mock/Fallback)"
+    """
+    # TODO: 实现该异步网络 I/O 工具方法与异常兜底逻辑
+    raise NotImplementedError("TODO")
+
