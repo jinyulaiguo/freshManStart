@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Global workspace for freshmanStart projects"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "tiktoken>=0.13.0",
+]
 
 [tool.uv.workspace]
 # 自动将所有子目录识别为工作区成员（如果子目录中含有 pyproject.toml）
