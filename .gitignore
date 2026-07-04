@@ -159,3 +159,4 @@ docs/framework_teaching_methodology.md
 *.log
 weekly/w02_pydantic_and_async/project/大模型学习路线.html
 weekly/w02_pydantic_and_async/project/大模型理论知识.md
+weekly/w03_llm_and_api/project/audit_log.csv
