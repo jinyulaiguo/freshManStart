@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📅 Week 4: Prompt 工程进阶与结构化输出看板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f4; /* Bone Background */
+            --surface: #ffffff; /* Pure White Surface */
+            --border-color: #e9e8e3; /* Level 2 Subtle Stroke */
+            --border-hover: #767872; /* Outline for Active/Hover */
+            --primary: #141413; /* Charcoal */
+            --accent: #D97757; /* Apricot Clay Accent */
+            --accent-bg: rgba(217, 119, 87, 0.06);
+            --accent-border: rgba(217, 119, 87, 0.25);
+            --text-bright: #1b1c19; /* High Contrast On-Surface */
+            --text-main: #464742; /* On-Surface Variant */
+            --text-muted: #767872; /* Muted Outline Text */
+            --success: #2e623a; /* Organic Warm Green */
+            --success-bg: #edf6ef;
+            --success-border: rgba(46, 98, 58, 0.2);
+            --danger: #ba1a1a; /* Warm Red Error */
+            --danger-bg: #ffdad6;
+            --danger-border: rgba(186, 26, 26, 0.2);
+            
+            --radius-sm: 0.25rem; /* 4px shapes */
+            --radius-lg: 0.5rem;  /* 8px containers */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        header {
+            padding: 32px 40px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title-area h1 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-bright);
+            letter-spacing: -0.01em;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-weight: 400;
+        }
+
+        .header-badge {
+            background: var(--accent-bg);
+            border: 1px solid var(--accent-border);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .section-title {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            position: relative;
+            transition: all 0.25s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        /* Project Flow Diagram */
+        .flow-grid-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 24px 0 12px 0;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .flow-node {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .flow-node:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .flow-node.active {
+            border-color: var(--accent);
+            background: var(--accent-bg);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .node-num {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-bg);
+            border: 1px solid var(--accent-border);
+            padding: 1px 6px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            display: inline-block;
+        }
+
+        .node-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 4px;
+        }
+
+        .node-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 300;
+        }
+
+        @media (max-width: 900px) {
+            .flow-row {
+                flex-direction: column;
+            }
+            .flow-arrow {
+                transform: rotate(90deg);
+                margin: 8px 0;
+            }
+        }
+
+        /* Timeline Style */
+        .timeline {
+            position: relative;
+            padding-left: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 5px;
+            bottom: 5px;
+            width: 1px;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -28px;
+            top: 6px;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            z-index: 2;
+            transition: all 0.2s ease;
+        }
+
+        .timeline-item:hover .timeline-dot {
+            border-color: var(--accent);
+            background: var(--accent);
+            transform: scale(1.15);
+        }
+
+        .timeline-content {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all 0.25s ease;
+        }
+
+        .timeline-content:hover {
+            border-color: var(--border-hover);
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .day-badge {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--primary);
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .day-title {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-bright);
+        }
+
+        .day-keypoints {
+            font-size: 13px;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .day-relation {
+            font-size: 12px;
+            color: var(--text-main);
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+        }
+
+        .day-target {
+            font-size: 12.5px;
+            color: var(--success);
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+        }
+
+        .theory-focus {
+            margin-top: 10px;
+            border-left: 2px solid var(--accent);
+            padding-left: 12px;
+            font-size: 12.5px;
+            color: var(--text-bright);
+            margin-bottom: 10px;
+        }
+
+        /* Matrix Table Style */
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13.5px;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .matrix-table th {
+            color: var(--text-bright);
+            font-weight: 600;
+            background: var(--bg-color);
+        }
+
+        .matrix-table tr:hover td {
+            background: rgba(249, 248, 243, 0.5);
+        }
+
+        .matrix-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-core { background: #e9e8e3; color: var(--primary); border: 1px solid #c7c7c0; }
+        .badge-security { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+        .badge-network { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+
+        .pain-point {
+            color: #a13d2d; /* Softer organic red */
+        }
+        .resolution {
+            color: var(--success);
+        }
+
+        .interactive-info {
+            margin-top: 16px;
+            padding: 20px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-color);
+            border: 1px dashed var(--border-hover);
+            font-size: 13.5px;
+            color: var(--text-bright);
+            line-height: 1.6;
+            display: none;
+            transition: all 0.2s ease;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-area">
+            <h1>Week 4: Prompt 工程进阶与结构化输出</h1>
+            <div class="subtitle">通过防注入 Jinja2 模板、脏 JSON 自愈解析器及 HTTPX 熔断限流，构建企业级简历结构化抽取流水线</div>
+        </div>
+        <div class="header-badge">宏观总览 & 框架拆解看板</div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Section 1: Final Project -->
+        <div class="card">
+            <div class="section-title">Day 28 最终实战项目：高吞吐量简历结构化提取流水线</div>
+            <p style="margin-bottom: 24px; font-size: 14.5px; line-height: 1.6; color: var(--text-main);">
+                本周的终极目标是实现一个<strong>高吞吐量、具备反思自愈与熔断降级能力</strong>的生产级简历抽取与转换引擎。整个流水线整合了提示词工程、网络优化、防御性编程和微引擎拼装的完整链条，并在 Python 侧构建起强大的异常自愈环。
+            </p>
+
+            <div class="flow-grid-container">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                    💡 交互式架构流水线 (点击节点查看对应的每日课程与突破点)
+                </div>
+                
+                <!-- Row 1: Read & Request -->
+                <div class="flow-row">
+                    <div class="flow-node" onclick="showNodeInfo(1)" id="node-1">
+                        <span class="node-num">Step 1</span>
+                        <div class="node-title">Jinja2 模版渲染</div>
+                        <div class="node-desc">防注入过滤 & 模板解耦 (Day 25)</div>
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node" onclick="showNodeInfo(2)" id="node-2">
+                        <span class="node-num">Step 2</span>
+                        <div class="node-title">并发控制信号量</div>
+                        <div class="node-desc">asyncio.Semaphore &lt;= 3 (Day 28)</div>
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node" onclick="showNodeInfo(3)" id="node-3">
+                        <span class="node-num">Step 3</span>
+                        <div class="node-title">工具级熔断保护</div>
+                        <div class="node-desc">@circuit_breaker 装饰器 (Day 27)</div>
+                    </div>
+                </div>
+
+                <div class="flow-row" style="justify-content: center; padding: 6px 0;">
+                    <div class="flow-arrow" style="transform: rotate(90deg); margin: 0 100px;">➔</div>
+                </div>
+
+                <!-- Row 2: HTTPX & LLM -->
+                <div class="flow-row">
+                    <div class="flow-node" onclick="showNodeInfo(6)" id="node-6">
+                        <span class="node-num">Step 6</span>
+                        <div class="node-title">Pydantic 契约校验</div>
+                        <div class="node-desc">BaseModel 强校验 (Day 23)</div>
+                    </div>
+                    <div class="flow-arrow">⮠</div>
+                    <div class="flow-node" onclick="showNodeInfo(5)" id="node-5">
+                        <span class="node-num">Step 5</span>
+                        <div class="node-title">脏 JSON 容错修复</div>
+                        <div class="node-desc">栈解析与边界提取 (Day 24)</div>
+                    </div>
+                    <div class="flow-arrow">⮠</div>
+                    <div class="flow-node" onclick="showNodeInfo(4)" id="node-4">
+                        <span class="node-num">Step 4</span>
+                        <div class="node-title">HTTPX 连接池优化</div>
+                        <div class="node-desc">Keep-Alive TCP 复用 (Day 26)</div>
+                    </div>
+                </div>
+
+                <div class="flow-row" style="justify-content: center; padding: 6px 0;">
+                    <div class="flow-arrow" style="transform: rotate(90deg); margin: 0 100px;">➔</div>
+                </div>
+
+                <!-- Row 3: Result / Fallback -->
+                <div class="flow-row" style="justify-content: space-around;">
+                    <div class="flow-node" onclick="showNodeInfo(7)" id="node-7" style="border-color: var(--success); flex: 1.5;">
+                        <span class="node-num" style="background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border);">SUCCESS</span>
+                        <div class="node-title" style="color: var(--success);">输出高内聚结构化简历 (JSON)</div>
+                        <div class="node-desc">通过契约，入库或下游安全使用</div>
+                    </div>
+                    <div class="flow-arrow">➔ / ➔</div>
+                    <div class="flow-node" onclick="showNodeInfo(8)" id="node-8" style="border-color: var(--accent); flex: 1.5;">
+                        <span class="node-num" style="background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border);">SELF-CORRECT & FALLBACK</span>
+                        <div class="node-title" style="color: var(--accent);">格式纠错反思回路</div>
+                        <div class="node-desc">把 ValidationError 喂回给大模型重试</div>
+                    </div>
+                </div>
+
+                <!-- Interactive Info Box -->
+                <div class="interactive-info" id="info-box">
+                    点击上方任意步骤查看详细设计说明...
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Pain points mapping -->
+        <div class="card">
+            <div class="section-title">核心模块职责、核心理论与痛点对照</div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">组成模块</th>
+                        <th style="width: 27%;">核心 AI / 工程理论方向</th>
+                        <th style="width: 25%;">解决的痛点问题</th>
+                        <th style="width: 30%;">具体所做的工作（职责）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Self-Consistency 投票</strong> (Day 22)</td>
+                        <td><strong>CoT 注意力分配机制</strong>、<strong>Few-shot 隐式计算原理</strong>、<strong>Temperature 概率采样干预机制</strong></td>
+                        <td><span class="pain-point">复杂规划或选项路由时，单步 CoT 容易偏离逻辑；且 Temperature=0 导致自一致性投票失效。</span></td>
+                        <td><span class="resolution">高 Temperature 并发采样多条路径推理，在 Python 侧以多数票原则输出确定性结果。</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pydantic 运行时契约</strong> (Day 23)</td>
+                        <td><strong>Structured Outputs 词表 Logits 遮罩 (Logits Masking) 技术</strong>、<strong>静态与动态运行时契约</strong></td>
+                        <td><span class="pain-point">大模型输出格式不可控，容易发生字段缺失或类型溢出，导致下游程序崩溃。</span></td>
+                        <td><span class="resolution">使用 <code>BaseModel</code> 定义强类型契约引导严格输出，拦截不合规响应并提取结构化 ValidationError。</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>脏 JSON 容错修复</strong> (Day 24)</td>
+                        <td><strong>正则非贪婪边界寻址</strong>、<strong>语法解析状态机与栈式自愈算法</strong></td>
+                        <td><span class="pain-point">非严格模式或端侧模型常输出 Markdown 包裹、缺少尾大括号或包含尾逗号。</span></td>
+                        <td><span class="resolution">正则提取 boundaries，手写 Parsing Stack 模拟压栈寻找最佳闭合点原位修复，节省 API 调用成本。</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Jinja2 模板与防注入</strong> (Day 25)</td>
+                        <td><strong>指令逃逸劫持原理</strong>、<strong>提示词沙盒化与防注入过滤模型</strong></td>
+                        <td><span class="pain-point">提示词硬编码在 Python 代码中难维护；恶意用户在简历文本中夹带指令逃逸破坏 Agent 决策。</span></td>
+                        <td><span class="resolution">独立 <code>.jinja</code> 文件解耦；设计安全护栏检测敏感词并转义，进行拦截。</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>HTTPX 并发连接池</strong> (Day 26)</td>
+                        <td><strong>TCP 三次握手与 TLS 握手开销</strong>、<strong>HTTP/1.1 Keep-Alive 复用</strong>、<strong>网络异常链体系</strong></td>
+                        <td><span class="pain-point">高频网络请求频繁建立 TCP 套接字导致延迟高；底层网络网络波动导致系统异常中断。</span></td>
+                        <td><span class="resolution">调优 Limits 与 Keep-Alive；封装底层网络报错为自定义 <code>ToolNetworkException</code>。</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>熔断器与并发速率限制</strong> (Day 27)</td>
+                        <td><strong>熔断状态机模式</strong>、<strong>限流控频算法（令牌桶 vs 漏桶）</strong></td>
+                        <td><span class="pain-point">第三方 API 持续崩溃时，Agent 频繁自动重试导致线程卡死并产生巨额无用计费。</span></td>
+                        <td><span class="resolution">设计 <code>@circuit_breaker</code> 状态转移装饰器；配合令牌桶及 Semaphore 强制控频限速。</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 3: Learning Timeline -->
+        <div class="card">
+            <div class="section-title">Week 4 每日知识链路与 AI 理论学习方向</div>
+            <div class="timeline">
+                
+                <!-- Day 22 -->
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="day-badge">Day 22</span>
+                            <span class="day-title">CoT、Few-shot 样本库与 Self-Consistency 异步并行投票</span>
+                        </div>
+                        <div class="day-keypoints">
+                            <strong>核心要点</strong>：CoT注意力分配机制与思维链 Token 引导原理；In-Context Learning 上下文学习隐式优化；Temperature 温度参数作用于 Logits Softmax 的采样机制；Self-Consistency 多路径采样的多数票表决数学原理。
+                        </div>
+                        <div class="theory-focus">
+                            🔬 <strong>理论突破</strong>：深入理解为什么 Temperature 设为 0 会导致自一致性投票直接崩溃失效；如何利用向量库建立动态召回，削减静态 Example 引入的 Prior bias（先验偏好偏置）。
+                        </div>
+                        <div class="day-target">
+                            🎯 <strong>过关标准</strong>：实现 <code>SelfConsistencyEvaluator</code>，以异步并发（<code>asyncio.gather</code>）请求 5 次包含 CoT 推理的 Prompt，提取选项或核心数值，在 Python 中实现高效率多数票选择，并过滤非法响应。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Day 23 -->
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="day-badge">Day 23</span>
+                            <span class="day-title">大模型原生结构化输出与 Pydantic 边界类型契约</span>
+                        </div>
+                        <div class="day-keypoints">
+                            <strong>核心要点</strong>：JSON Mode与Strict严格模式差异；底层词表 logits 遮罩（Logits Masking）数学原理；Pydantic 运行时类型契约定义、校验与 ValidationError 解析。
+                        </div>
+                        <div class="theory-focus">
+                            🔬 <strong>理论突破</strong>：掌握 logits masking 的本质——解码器如何通过屏蔽非法词表 token 强制大模型只输出 100% 符合 JSON Schema 的串，理解运行时类型校验如何构成系统边界的安全哨兵。
+                        </div>
+                        <div class="day-target">
+                            🎯 <strong>过关标准</strong>：使用 Pydantic 声明包含嵌套结构和字段校验的 <code>UserInfo</code>。强制大模型输出此结构，故意注入非法参数触发 <code>ValidationError</code> 并解析格式化报错信息。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Day 24 -->
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="day-badge">Day 24</span>
+                            <span class="day-title">防御性 JSON 解析器与脏 JSON 格式化语法纠错引擎</span>
+                        </div>
+                        <div class="day-keypoints">
+                            <strong>核心要点</strong>：正则非贪婪检索与语法边界提取；基于 Parsing Stack（压栈/出栈）的状态机括号闭合补齐算法；尾逗号、非法单引号以及 Markdown 干扰的本地状态转移原位修复。
+                        </div>
+                        <div class="theory-focus">
+                            🔬 <strong>理论突破</strong>：理解编译原理中括号匹配压栈出栈对截断数据的恢复原理，掌握本地语法自愈对减少 API 重连延迟、压低系统成本的工程经济价值。
+                        </div>
+                        <div class="day-target">
+                            🎯 <strong>过关标准</strong>：手写 <code>robust_json_parser</code> 解析引擎，能够将故意被破坏的脏 JSON 字符串（包含缺失尾大括号、单引号包裹、包含 Markdown 干扰信息）全部自动修复并成功转换为合法的 Python 字典。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Day 25 -->
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="day-badge">Day 25</span>
+                            <span class="day-title">生产级 Prompt Jinja2 模版解耦与动态上下文防注入架构</span>
+                        </div>
+                        <div class="day-keypoints">
+                            <strong>核心要点</strong>：Jinja2 模版逻辑控制；提示词物理与逻辑解耦；提示词注入攻击（Prompt Injection）的逃逸机理与边界对抗安全护栏设计。
+                        </div>
+                        <div class="theory-focus">
+                            🔬 <strong>理论突破</strong>：剖析指令与数据混合架构下的安全缺陷——为什么外部传入的 Observation 能逃逸边界劫持决策流；建立沙盒式输入清洗模型。
+                        </div>
+                        <div class="day-target">
+                            🎯 <strong>过关标准</strong>：设计一个包含工具定义、历史记录及任务的 Jinja2 模板，编写 Python 渲染并过滤用户输入，输入恶意注入指令验证能成功安全拦截。
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showNodeInfo(step) {
+            const infoBox = document.getElementById('info-box');
+            infoBox.style.display = 'block';
+            
+            // Remove active classes
+            document.querySelectorAll('.flow-node').forEach(node => {
+                node.classList.remove('active');
+            });
+            
+            // Add active class
+            document.getElementById('node-' + step).classList.add('active');
+
+            let html = '';
+            switch(step) {
+                case 1:
+                    html = '<strong>Step 1: Jinja2 模版渲染与指令防注入 (Day 25)</strong><br>通过外部模板文件解耦 Prompt，理解指令逃逸攻击原理。在 Python 侧对动态数据做转义与敏感拦截，捍卫 Agent 的指令沙盒边界。';
+                    break;
+                case 2:
+                    html = '<strong>Step 2: 并发控制信号量机制 (Day 28)</strong><br>在高并发下使用 <code>asyncio.Semaphore(3)</code> 强行控频。防止瞬时网络请求突发，避免触发服务商接口的限制。';
+                    break;
+                case 3:
+                    html = '<strong>Step 3: 工具级熔断状态机保护 (Day 27)</strong><br>设计 <code>@circuit_breaker</code> 状态转移机制。当接口高频报错时，主动从 Closed 转移到 Open，直接阻断网络调用返回降级数据，冷却后进入 Half-Open 探测恢复。';
+                    break;
+                case 4:
+                    html = '<strong>Step 4: HTTPX 连接池调优 (Day 26)</strong><br>优化 <code>Limits</code>，使用 Keep-Alive 复用已建立的 TCP 连接。避免频繁三次握手与 TLS 校验开销，极大缩减网络延迟。';
+                    break;
+                case 5:
+                    html = '<strong>Step 5: 脏 JSON 括号栈自愈 (Day 24)</strong><br>本地通过编译原理中的栈式（Parsing Stack）补齐以及正则边界定位对受损 JSON 纠错自愈，避免网络二次重发开销。';
+                    break;
+                case 6:
+                    html = '<strong>Step 6: Pydantic 运行时类型强契约 (Day 23)</strong><br>理解严格模式下的 Logits Masking 底层干预词表原理，配合 Pydantic 运行时类进行自定义规则强校验拦截。';
+                    break;
+                case 7:
+                    html = '<strong>Step 7: 成功输出干净 JSON (Day 28)</strong><br>完成自底向上的数据提取，生成 100% 格式安全的结构化数据交付给下游存储或运行逻辑。';
+                    break;
+                case 8:
+                    html = '<strong>Step 8: 格式纠错反思自愈回路 (Day 28)</strong><br>捕获 <code>ValidationError</code> 中的错误位置与原值，拼装反思 Prompt 发回模型启动二次修复，构建具备容错控制流的主动防御自愈环。';
+                    break;
+            }
+            infoBox.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
