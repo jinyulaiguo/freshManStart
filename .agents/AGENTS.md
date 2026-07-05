@@ -85,5 +85,17 @@
 * **环境变量管理**：必须统一从项目根目录的 `.env` 配置文件读取 API credentials（如 `MINIMAX_API_KEY`、`MINIMAX_BASE_URL` 等）。
 * **配置加载与网络工具提取**：为了避免在每日练习中重复书写非核心配置和网络底层交互逻辑，统一将配置加载器与基础 LLM 请求客户端封装在公共工具模块 `weekly/w04_prompt_and_http/utils.py` 中。在具体练习或标准答案中直接通过 `import` 导入使用，以保持核心功能代码的高内聚与低认知负担。
 
+### 13. Git 提交信息（Commit Message）规范
+所有代码库中的修改和练习提交必须严格遵循本项目的历史 Git Commit 规范，格式要求如下：
+* **每日练习提交 (Daily Exercises)**：必须采用 `learn(wXX/dayYY):[中文说明]` 格式。
+  * `wXX` 表示星期（如 `w04`），`dayYY` 表示天数（如 `day22`）。
+  * 冒号 `:` 后面**紧跟中文说明，禁止加空格**。
+  * 示例：`learn(w04/day22):CoT思维链、Few-shot样本库与Self-Consistency异步并行投票机制`。
+* **每周大项目提交 (Weekly Project)**：必须采用 `project(wXX):[中文说明]` 格式。
+  * 示例：`project(w02):生产级异步多工具调度引擎`。
+* **其他工程配置提交 (Others)**：例如涉及工程基础环境配置变动，采用 `chore:[中文说明]` 格式。
+  * 示例：`chore:更新忽略文件规则`。
+
+
 
 
