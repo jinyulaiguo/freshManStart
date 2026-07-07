@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 5: 手写 ReAct 框架与 Function Calling 宏观总览</title>
+    <!-- 引入 Source Serif 4 和 Inter 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f4; /* 骨白 */
+            --surface-color: #ffffff; /* 纯白 */
+            --text-primary: #141413; /* 深炭黑 */
+            --text-secondary: #464742; /* 次级炭黑 */
+            --accent-color: #D97757; /* 杏粘土色 */
+            --border-color: #e9e8e3; /* 细线边框 */
+            --border-hover: #D97757; /* 悬停边框色 */
+            --error-bg: #ffdad6;
+            --error-text: #ba1a1a;
+            --success-bg: #edf6ef;
+            --success-text: #2e623a;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-serif: 'Source Serif 4', Georgia, serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            padding: 3rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 4rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 2rem;
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        section {
+            margin-bottom: 4rem;
+        }
+
+        h2 {
+            font-family: var(--font-serif);
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background-color: var(--accent-color);
+        }
+
+        /* 架构流程图样式 */
+        .flow-container {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            overflow-x: auto;
+        }
+
+        .flow-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-width: 900px;
+            position: relative;
+        }
+
+        .flow-step {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1.25rem 1rem;
+            width: 180px;
+            text-align: center;
+            transition: all 0.2s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .flow-step:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .flow-step h4 {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        .flow-step p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .flow-arrow {
+            color: var(--text-secondary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 1;
+        }
+
+        /* 每日链路卡片 */
+        .grid-days {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .day-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .day-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.05);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1rem;
+        }
+
+        .day-num {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .day-title {
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .day-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            flex-grow: 1;
+        }
+
+        .day-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .tag {
+            font-size: 0.7rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+
+        /* 痛点矩阵样式 */
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface-color);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-top: 1.5rem;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .matrix-table th {
+            background-color: var(--bg-color);
+            font-family: var(--font-serif);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .matrix-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .pain-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .solution-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        /* 引导交互按钮 */
+        .cta-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 4rem;
+        }
+
+        .cta-btn {
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--surface-color);
+            background-color: var(--accent-color);
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+        }
+
+        .cta-btn:hover {
+            background-color: #c46445;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📅 Week 5: 手写 ReAct 框架与 Function Calling</h1>
+        <p class="subtitle">从零构建不依赖框架的工业级单 Agent 闭环控制系统</p>
+    </header>
+
+    <!-- 1. 全景架构与流程图 -->
+    <section>
+        <h2>ReAct 决策闭环与核心状态转移图谱</h2>
+        <div class="flow-container" style="text-align: center; padding: 1.5rem;">
+            <svg width="100%" height="100%" viewBox="0 0 960 700" style="background-color: var(--surface-color); display: block; margin: 0 auto; max-width: 960px;">
+                <defs>
+                    <!-- 默认箭头 -->
+                    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#c4c3ba" />
+                    </marker>
+                    <!-- 红色错误流箭头 -->
+                    <marker id="arrow-error" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#ba1a1a" />
+                    </marker>
+                    <!-- 绿色成功流箭头 -->
+                    <marker id="arrow-success" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2e623a" />
+                    </marker>
+                    <!-- 橙色回环箭头 -->
+                    <marker id="arrow-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#D97757" />
+                    </marker>
+                </defs>
+
+                <!-- 连线定义 -->
+                <!-- 1. 用户输入 -> 初始化 -->
+                <path d="M 350,70 L 350,102" fill="none" stroke="#e9e8e3" stroke-width="1.5" marker-end="url(#arrow)" />
+                
+                <!-- 2. 初始化 -> StuckDetector -->
+                <path d="M 350,160 L 350,192" fill="none" stroke="#e9e8e3" stroke-width="1.5" marker-end="url(#arrow)" />
+                
+                <!-- 3. StuckDetector -> StuckError (红线) -->
+                <path d="M 445,225 L 577,225" fill="none" stroke="#ba1a1a" stroke-dasharray="4,3" stroke-width="1.5" marker-end="url(#arrow-error)" />
+                <text x="512" y="215" font-family="var(--font-sans)" font-size="10" fill="#ba1a1a" text-anchor="middle" font-weight="500">[连续3次相同Action拦截]</text>
+
+                <!-- 4. StuckDetector -> LLM决策 -->
+                <path d="M 350,250 L 350,282" fill="none" stroke="#e9e8e3" stroke-width="1.5" marker-end="url(#arrow)" />
+                <text x="360" y="271" font-family="var(--font-sans)" font-size="10" fill="#8c8b82">[检测安全]</text>
+
+                <!-- 5. LLM决策 -> 终止判定 -->
+                <path d="M 350,340 L 350,372" fill="none" stroke="#e9e8e3" stroke-width="1.5" marker-end="url(#arrow)" />
+
+                <!-- 6. 终止判定 -> 成功输出 (绿线) -->
+                <path d="M 255,405 L 173,405" fill="none" stroke="#2e623a" stroke-width="1.5" marker-end="url(#arrow-success)" />
+                <text x="210" y="395" font-family="var(--font-sans)" font-size="10" fill="#2e623a" text-anchor="middle" font-weight="500">[满足终止条件]</text>
+
+                <!-- 7. 终止判定 -> 反射注册 -->
+                <path d="M 350,430 L 350,462" fill="none" stroke="#e9e8e3" stroke-width="1.5" marker-end="url(#arrow)" />
+                <text x="360" y="451" font-family="var(--font-sans)" font-size="10" fill="#8c8b82">[执行工具]</text>
+
+                <!-- 8. 反射注册 -> 并发调度 -->
+                <path d="M 350,520 L 350,552" fill="none" stroke="#e9e8e3" stroke-width="1.5" marker-end="url(#arrow)" />
+
+                <!-- 9. 并发调度 -> 状态归约 -->
+                <path d="M 445,585 L 577,585" fill="none" stroke="#2e623a" stroke-width="1.5" marker-end="url(#arrow-success)" />
+                <text x="512" y="575" font-family="var(--font-sans)" font-size="10" fill="#2e623a" text-anchor="middle" font-weight="500">[并发部分/全部成功]</text>
+
+                <!-- 10. 并发调度 -> 异常自愈 (折红线) -->
+                <path d="M 350,610 L 350,640 L 680,640 L 680,483" fill="none" stroke="#ba1a1a" stroke-dasharray="4,3" stroke-width="1.5" marker-end="url(#arrow-error)" />
+                <text x="512" y="635" font-family="var(--font-sans)" font-size="10" fill="#ba1a1a" text-anchor="middle" font-weight="500">[捕获工具异常]</text>
+
+                <!-- 11. 异常自愈 -> LLM 决策 (折橙线 - 自愈反思环) -->
+                <path d="M 680,425 L 680,315 L 453,315" fill="none" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-loop)" />
+                <text x="562" y="305" font-family="var(--font-sans)" font-size="10" fill="#D97757" text-anchor="middle" font-weight="500">[自愈反思纠错环]</text>
+
+                <!-- 12. 状态归约 -> StuckDetector (大外环 - 状态归约更新环) -->
+                <path d="M 775,585 L 910,585 L 910,175 L 350,175 L 350,192" fill="none" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-loop)" />
+                <text x="842" y="575" font-family="var(--font-sans)" font-size="10" fill="#D97757" text-anchor="middle" font-weight="500">[更新状态与步数]</text>
+
+                <!-- 节点定义 -->
+                <!-- 1. 用户输入 -->
+                <g class="node">
+                    <rect x="255" y="20" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="48" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">用户输入 (Query)</text>
+                </g>
+
+                <!-- 2. 状态初始化 -->
+                <g class="node">
+                    <rect x="255" y="110" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="133" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">状态初始化与备份</text>
+                    <text x="350" y="148" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">深拷贝消息历史与状态快照</text>
+                </g>
+
+                <!-- 3. StuckDetector -->
+                <g class="node">
+                    <rect x="255" y="200" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="223" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">死循环检测 (StuckDetector)</text>
+                    <text x="350" y="238" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">对 Action 及其入参哈希拦截</text>
+                </g>
+
+                <!-- 4. StuckError (红色拦截) -->
+                <g class="node">
+                    <rect x="585" y="200" width="190" height="50" rx="4" ry="4" fill="#ffdad6" stroke="#ba1a1a" stroke-width="1.2" />
+                    <text x="680" y="223" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#ba1a1a" text-anchor="middle">AgentStuckError</text>
+                    <text x="680" y="238" font-family="var(--font-sans)" font-size="10" fill="#ba1a1a" text-anchor="middle">抛出异常，强制截断退出</text>
+                </g>
+
+                <!-- 5. LLM决策层 -->
+                <g class="node">
+                    <rect x="255" y="290" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="313" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">LLM 决策层</text>
+                    <text x="350" y="328" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">生成推理 Thought 与行动 Action</text>
+                </g>
+
+                <!-- 6. 终止判定 -->
+                <g class="node">
+                    <rect x="255" y="380" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="403" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">终止条件判定</text>
+                    <text x="350" y="418" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">判断 finish_reason 或 max_steps</text>
+                </g>
+
+                <!-- 7. 成功终止 (绿色退出) -->
+                <g class="node">
+                    <rect x="15" y="380" width="150" height="50" rx="4" ry="4" fill="#edf6ef" stroke="#2e623a" stroke-width="1.2" />
+                    <text x="90" y="403" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#2e623a" text-anchor="middle">成功终止</text>
+                    <text x="90" y="418" font-family="var(--font-sans)" font-size="10" fill="#2e623a" text-anchor="middle">向用户输出最终 Reply</text>
+                </g>
+
+                <!-- 8. 反射注册 -->
+                <g class="node">
+                    <rect x="255" y="470" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="493" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">反射分发与参数校验</text>
+                    <text x="350" y="508" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">利用 Pydantic 运行时类型契约拦截</text>
+                </g>
+
+                <!-- 9. 并发调度层 -->
+                <g class="node">
+                    <rect x="255" y="560" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="350" y="583" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">并发调度层 (asyncio.gather)</text>
+                    <text x="350" y="598" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">并发非阻塞执行与部分失败隔离</text>
+                </g>
+
+                <!-- 10. 状态归约 -->
+                <g class="node">
+                    <rect x="585" y="560" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="680" y="583" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">Observation 状态归约</text>
+                    <text x="680" y="598" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">归约合并为 tool 消息并追加历史</text>
+                </g>
+
+                <!-- 11. 异常自愈 -->
+                <g class="node">
+                    <rect x="585" y="425" width="190" height="50" rx="4" ry="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.2" />
+                    <text x="680" y="448" font-family="var(--font-serif)" font-size="13" font-weight="600" fill="#141413" text-anchor="middle">异常自愈反思 (Correction)</text>
+                    <text x="680" y="463" font-family="var(--font-sans)" font-size="10" fill="#464742" text-anchor="middle">捕获错误堆栈转化为反思提示词</text>
+                </g>
+            </svg>
+        </div>
+    </section>
+
+    <!-- 2. 知识链路卡片 -->
+    <section>
+        <h2>本周每日学习路线 (Knowledge Link)</h2>
+        <div class="grid-days">
+            <div class="day-card">
+                <div>
+                    <div class="day-header">
+                        <span class="day-num">Day 29</span>
+                    </div>
+                    <div class="day-title">ReAct 运行机制与死循环检测</div>
+                    <p class="day-desc">学习 ReAct 的状态转移，手写基于哈希窗口的 StuckDetector 强拦截算法，防止死循环产生巨额账单。</p>
+                </div>
+                <div class="day-tags">
+                    <span class="tag">FSM 状态机</span>
+                    <span class="tag">滑动哈希窗口</span>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div>
+                    <div class="day-header">
+                        <span class="day-num">Day 30</span>
+                    </div>
+                    <div class="day-title">反射注册中心与 Schema 提取</div>
+                    <p class="day-desc">使用 inspect 模块反射函数签名，用 pydantic.create_model 动态为 Python 函数生成 OpenAI 规范的 JSON Schema。</p>
+                </div>
+                <div class="day-tags">
+                    <span class="tag">inspect</span>
+                    <span class="tag">Pydantic 动态建模</span>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div>
+                    <div class="day-header">
+                        <span class="day-num">Day 31</span>
+                    </div>
+                    <div class="day-title">主控制流与状态深拷贝</div>
+                    <p class="day-desc">手写 max_steps 异步 while 控制环，实现历史状态的 deepcopy 备份，为人在回路及回滚奠定基础。</p>
+                </div>
+                <div class="day-tags">
+                    <span class="tag">异步控制环</span>
+                    <span class="tag">deepcopy 状态备份</span>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div>
+                    <div class="day-header">
+                        <span class="day-num">Day 32</span>
+                    </div>
+                    <div class="day-title">参数反序列化与状态归约</div>
+                    <p class="day-desc">解析 JSON 参数，调用反射注册中心进行强校验并动态 await 运行，将 Observation 状态归约追加至历史消息。</p>
+                </div>
+                <div class="day-tags">
+                    <span class="tag">动态调度</span>
+                    <span class="tag">State Reduction</span>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div>
+                    <div class="day-header">
+                        <span class="day-num">Day 33</span>
+                    </div>
+                    <div class="day-title">并行工具调用与部分失败隔离</div>
+                    <p class="day-desc">利用 asyncio.gather 并发调度多个 tool_calls，实现工具的非阻塞并发，并隔离部分执行失败，防止任务链中断。</p>
+                </div>
+                <div class="day-tags">
+                    <span class="tag">asyncio.gather</span>
+                    <span class="tag">异常隔离</span>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div>
+                    <div class="day-header">
+                        <span class="day-num">Day 34</span>
+                    </div>
+                    <div class="day-title">异常自愈与 Self-Correction 反思</div>
+                    <p class="day-desc">设计错误边界提示词，将运行期报错转化为反思 Prompt 喂回 LLM，引导其重新纠错并再次调用。</p>
+                </div>
+                <div class="day-tags">
+                    <span class="tag">Error-Boundary</span>
+                    <span class="tag">参数纠错自愈</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. 痛点问题矩阵 -->
+    <section>
+        <h2>核心模块痛点映射矩阵</h2>
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">组成模块</th>
+                    <th style="width: 35%;">具体做了什么</th>
+                    <th style="width: 40%;">解决了什么痛点问题</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>主控制环 & FSM</strong></td>
+                    <td>驱动异步 <code>while</code> 循环，调配 LLM 推理、工具分发和步数截断。</td>
+                    <td><span class="pain-badge">痛点</span> 缺乏生命周期管控，发生死循环或无边界运行，导致资源无限消耗。</td>
+                </tr>
+                <tr>
+                    <td><strong>反射注册中心 (ToolRegistry)</strong></td>
+                    <td>利用 <code>inspect</code> 与 Pydantic 动态提取函数参数，自动输出规范的 JSON Schema。</td>
+                    <td><span class="pain-badge">痛点</span> 手写 JSON Schema 繁琐易错；缺乏运行时类型拦截，导致传入无效参数破坏工具执行。</td>
+                </tr>
+                <tr>
+                    <td><strong>死循环检测器 (StuckDetector)</strong></td>
+                    <td>利用滑动窗口计算 Action 与参数的哈希值，检测重复调用频次。</td>
+                    <td><span class="pain-badge">痛点</span> 模型因参数或逻辑打转，在循环中连续请求相同工具（入参一致），造成极高 Token 费账单。</td>
+                </tr>
+                <tr>
+                    <td><strong>并发调度层</strong></td>
+                    <td>并发协程运行，隔离故障抛错，确保部分成功工具正常返回。</td>
+                    <td><span class="pain-badge">痛点</span> 串行执行导致严重延迟（TTFT 过高）；单个工具崩溃直接引起整个并发批次任务瓦解。</td>
+                </tr>
+                <tr>
+                    <td><strong>自愈反思模块</strong></td>
+                    <td>捕获运行时异常（ValueError、超时等），转化为格式化纠错 Observation 引导 LLM 自主订正。</td>
+                    <td><span class="pain-badge">痛点</span> 网络波动或参数格式微瑕，使得 Agent 遇到细微异常就直接中断退出，健壮性极差。</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <div class="cta-container">
+        <button class="cta-btn" onclick="alert('宏观架构总览已确认！接下来将进入 Day 29 的深入教学。')">确认并通过宏观拆解</button>
+    </div>
+
+</body>
+</html>
