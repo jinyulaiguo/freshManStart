@@ -74,3 +74,28 @@ class StuckDetector:
 *   **输入 A**：`{"file": "main.py", "details": {"line": 10, "column": 5}}`
 *   **输入 B**：`{"details": {"column": 5, "line": 10}, "file": "main.py"}`
 *   **规范化输出**：`{"details":{"column":5,"line":10},"file":"main.py"}` (二者哈希完全相同，防御乱序扰动)
+
+---
+
+## 5. 主流开源 Agent 框架的核心控制环与状态管理设计对比
+
+为更好地理解工业级 Agent 系统的架构模式，本节对比分析了四个具有代表性的开源 Agent 框架在核心控制环、状态迁移和工具调度层面的设计方案。
+
+### 5.1 LangGraph: 基于 Pregel 算法的有向图拓扑调度与状态合并 (Reducer)
+*   **状态容器 (State)**：通过定义 Pydantic 模型或 TypedDict 结构声明全局 State。节点执行后不直接修改 State，而是返回增量 update 字典，利用声明的 Reducer 函数（如 `operator.add`）进行状态合并与原子写入。
+*   **状态迁移与拓扑**：不支持简单的 while 循环，而是将控制流抽象为有向图。利用 `StateGraph` 构建节点（Nodes）与边（Edges）。通过条件边（Conditional Edges）计算跳转逻辑。
+*   **执行器 (Executor)**：基于分布式计算中的 Pregel 算法。在每一个“超级步 (Superstep)”中，并发激活图中的活跃节点，节点间通过 Channels（信道）传递状态变化，在步末执行状态归约。非常适合拓扑结构复杂、带回环多分支的复杂 Agent 工作流调度。
+
+### 5.2 OpenAI Agents SDK: 事件驱动流式循环 (Event-Driven Stream Loop)
+*   **Agent 抽象与 Runner**：将 Agent 抽象为具备 Instructions、Tools 与 Model 属性的高内聚实体。由 `Runner` 托管推理生命周期，并不直接暴露底层的 `while`，而是封装在事件循环内。
+*   **事件驱动设计**：`Runner` 的控制流采用流式事件总线设计，运行时会向下游派发一系列状态事件（如 `text.delta`、`tool_call.delta`、`run.step.completed` 等）。
+*   **Tool 调度机制**：一旦在事件流中识别到 `tool_call` 信号，立即挂起文本生成通道，调用内置的工具执行器并发或串行运行本地函数，并将 Observation 作为 `tool` 类型的消息载荷追加回上下文，驱动下一轮迭代。这种异步事件循环对于需要高频向前端输出打字机流式渲染的系统极其契合。
+
+### 5.3 OpenManus: 模块化 Runtime 调度与安全工具沙箱 (Agent Runtime & Tool Manager)
+*   **Runtime 调度**：将复杂的“Plan -> Execute -> Reflect”决策链路封装在统一的 `ManusRuntime` 执行器中。Runtime 负责维持 Agent 的短期记忆栈与消息总线，使算法策略层与网络 IO 驱动层物理分离。
+*   **工具管理与安全隔离**：核心提供 `ToolManager` 负责工具的插件化动态加载与元数据 schema 映射。针对带有高副作用的工具（如执行 Bash 脚本、运行 Python 解释器），OpenManus 主张在独立的隔离环境（沙箱）中运行工具，有效隔离了本地系统被异常代码损毁的安全隐患。
+
+### 5.4 smolagents: 极简控制环与 Code-as-Action 执行器 (Lightweight Interpreter Engine)
+*   **核心控制流设计**：`smolagents`（Hugging Face 开发）贯彻了极简主义设计哲学，其核心的 ReAct 循环收拢在单个 `run()` 方法中。没有任何多余的状态机框架包装，仅利用基本的 `while` 控制结构、`max_steps` 阈值以及标准的 Try-Except 异常捕获机制，可读性极高。
+*   **Code-as-Action 范式**：区别于其他框架通过 JSON 表达 Tool Calls 的方式，其特色在于让模型直接输出 Python 代码片段 (Code Action)。框架内置了一个沙箱 Python 解释器 (`LocalPythonInterpreter`)，在受限的变量作用域内动态解析并 await 运行大模型输出的代码，这能以极低的网络往返次数完成多步骤的工具嵌套组合。
+
