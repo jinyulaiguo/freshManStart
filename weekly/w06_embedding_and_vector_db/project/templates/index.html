@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Assistant Knowledge Engine - Observability Dashboard</title>
+    
+    <!-- 引入衬线体 Source Serif 4 和无衬线体 Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (用于快速扁平网格布局控制，配色由自定义 CSS 严格覆盖) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* 💡 严格遵循 Warm Intellectual Minimalism (温润知性极简主义) 配色与排版 */
+        :root {
+            --color-bg: #faf9f4;                  /* 主背景：骨白色 */
+            --color-surface: #ffffff;             /* 卡片/容器背景：纯白 */
+            --color-primary: #141413;             /* 主字色/边框：深炭黑 */
+            --color-secondary: #464742;           /* 辅字色：暖灰 */
+            --color-accent: #D97757;              /* CTA/高亮：杏粘土色 */
+            --color-border: #e9e8e3;              /* 细边框线颜色 */
+            --color-success-bg: #edf6ef;          /* 成功浅绿底 */
+            --color-success-text: #2e623a;        /* 成功有机绿 */
+            --color-error-bg: #ffdad6;            /* 错误浅红底 */
+            --color-error-text: #ba1a1a;          /* 错误暖红 */
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-primary);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-weight: 600;
+        }
+
+        /* 统一的扁平化无阴影细线卡片 */
+        .tonal-card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px; /* 大容器 0.5rem */
+            padding: 24px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .tonal-card:hover {
+            border-color: var(--color-primary);
+        }
+
+        /* 按钮与输入表单：圆角 4px (0.25rem)，1px 炭黑边框 */
+        .flat-input {
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .flat-input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: #ffffff;
+            border: 1px solid var(--color-primary);
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(20, 20, 19, 0.04);
+            border-color: var(--color-primary);
+        }
+
+        /* Tabs 面板导航 */
+        .tab-btn {
+            font-family: 'Source Serif 4', serif;
+            font-size: 18px;
+            border-bottom: 2px solid transparent;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--color-secondary);
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .tab-btn.active {
+            border-color: var(--color-accent);
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        /* SVG RRF 融合连线绝对定位层 */
+        #connection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* 连接线的微动画 */
+        .rrf-path {
+            stroke: var(--color-border);
+            stroke-width: 1.5;
+            fill: none;
+            transition: stroke 0.2s ease, stroke-width 0.2s ease;
+        }
+
+        .rrf-path.active-path {
+            stroke: var(--color-accent);
+            stroke-width: 3.0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 顶部极简导航栏 -->
+    <header class="border-b border-[var(--color-border)] py-4 bg-white">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-[var(--color-accent)] font-semibold text-xl">✦</span>
+                <span class="text-xl tracking-tight text-[var(--color-primary)] font-bold font-serif">AI Research Assistant Knowledge Engine</span>
+            </div>
+            <div class="flex space-x-1">
+                <button class="tab-btn active" onclick="switchTab('sandbox')">检索沙盒</button>
+                <button class="tab-btn" onclick="switchTab('ingest')">数据导入</button>
+                <button class="tab-btn" onclick="switchTab('observability')">质量评估 & 压测</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主展示面板 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+        
+        <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+             模块 1：检索沙盒 (Retrieval Sandbox)
+             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+        <section id="panel-sandbox" class="space-y-6">
+            <!-- 顶搜索输入区 -->
+            <div class="tonal-card space-y-4">
+                <h2 class="text-2xl text-[var(--color-primary)]">Explore hybrid query ranking and RRF fusion</h2>
+                <div class="flex gap-4">
+                    <input type="text" id="search-query" class="flat-input flex-grow text-lg py-3" placeholder="输入您的 RAG 查询问题，例如: attention mechanism parameters..." value="Attention mechanism parameters">
+                    <button class="btn-primary px-8 text-lg" onclick="triggerSearch()">执行联合检索</button>
+                </div>
+            </div>
+
+            <!-- 核心检索区域 -->
+            <div class="grid grid-cols-4 gap-6">
+                
+                <!-- 左边栏：元数据 Pre-Filtering 条件配置 -->
+                <div class="tonal-card h-fit space-y-6 col-span-1">
+                    <h3 class="text-lg font-serif border-b pb-2">Filter by Metadata</h3>
+                    
+                    <!-- 租户限制 -->
+                    <div class="flex flex-col space-y-2">
+                        <label class="text-sm text-[var(--color-secondary)]">租户限制 (User ID)</label>
+                        <input type="text" id="filter-user-id" class="flat-input" placeholder="不限 (如 user_1)" value="">
+                    </div>
+                    
+                    <!-- 权限级别 -->
+                    <div class="flex flex-col space-y-2">
+                        <label class="text-sm text-[var(--color-secondary)]">最大阅读权限等级</label>
+                        <select id="filter-permission-level" class="flat-input">
+                            <option value="4" selected>4 - RESTRICTED (不限)</option>
+                            <option value="3">3 - CONFIDENTIAL (保密)</option>
+                            <option value="2">2 - INTERNAL (内部)</option>
+                            <option value="1">1 - PUBLIC (公开)</option>
+                        </select>
+                    </div>
+
+                    <!-- 检索策略 -->
+                    <div class="flex flex-col space-y-2">
+                        <label class="text-sm text-[var(--color-secondary)]">检索模式</label>
+                        <select id="search-strategy" class="flat-input">
+                            <option value="hybrid" selected>Hybrid (向量 + 倒排 RRF 融合)</option>
+                            <option value="dense">Dense Only (仅向量检索)</option>
+                            <option value="sparse">Sparse Only (仅 BM25 检索)</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4 text-xs text-[var(--color-secondary)] leading-relaxed border-t">
+                        💡 <b>Pre-Filtering 机制</b>：修改过滤条件后检索，系统直接在底层 HNSW 图和内存倒排执行联合过滤，防止权限数据泄露与 Recall Drop。
+                    </div>
+                </div>
+
+                <!-- 右侧：多路融合可视化展示舱 (含 SVG 连线相对定位) -->
+                <div class="col-span-3 tonal-card relative min-h-[500px] flex flex-col justify-between" id="visualizer-container">
+                    
+                    <!-- SVG 画布层 -->
+                    <svg id="connection-overlay"></svg>
+
+                    <!-- 三列排位图 -->
+                    <div class="grid grid-cols-3 gap-8 relative z-20 h-full">
+                        
+                        <!-- 第一列：Dense 检索 -->
+                        <div class="flex flex-col space-y-4">
+                            <h4 class="text-md text-[var(--color-secondary)] border-b pb-2 text-center uppercase tracking-wider font-semibold">Dense Retrieval</h4>
+                            <div class="flex flex-col space-y-3" id="col-dense-list">
+                                <!-- JS 渲染 -->
+                                <div class="text-center text-sm py-8 text-[var(--color-secondary)]">执行混合检索后渲染...</div>
+                            </div>
+                        </div>
+
+                        <!-- 第二列：Sparse 检索 -->
+                        <div class="flex flex-col space-y-4">
+                            <h4 class="text-md text-[var(--color-secondary)] border-b pb-2 text-center uppercase tracking-wider font-semibold">Sparse (BM25)</h4>
+                            <div class="flex flex-col space-y-3" id="col-sparse-list">
+                                <div class="text-center text-sm py-8 text-[var(--color-secondary)]">执行混合检索后渲染...</div>
+                            </div>
+                        </div>
+
+                        <!-- 第三列：Hybrid RRF Fusion 融合重排 -->
+                        <div class="flex flex-col space-y-4">
+                            <h4 class="text-md text-[var(--color-secondary)] border-b pb-2 text-center uppercase tracking-wider font-semibold text-[var(--color-accent)]">Hybrid RRF Fusion</h4>
+                            <div class="flex flex-col space-y-3" id="col-hybrid-list">
+                                <div class="text-center text-sm py-8 text-[var(--color-secondary)]">执行混合检索后渲染...</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Context Prompt 拼接预览卡片 -->
+            <div class="tonal-card space-y-3 hidden" id="card-context-preview">
+                <h3 class="text-lg font-serif">RAG Context Prompt Builder Preview</h3>
+                <pre id="context-preview-text" class="bg-[var(--color-bg)] p-4 rounded text-xs overflow-x-auto text-[var(--color-secondary)] border border-[var(--color-border)] leading-relaxed"></pre>
+            </div>
+        </section>
+
+        <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+             模块 2：数据导入 (Data Ingestion)
+             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+        <section id="panel-ingest" class="space-y-6 hidden">
+            <div class="grid grid-cols-3 gap-6">
+                <!-- 上传配置卡片 -->
+                <div class="tonal-card space-y-6 col-span-1">
+                    <h3 class="text-xl font-serif">Upload Documents</h3>
+                    
+                    <div id="drop-zone" class="border-2 border-dashed border-[var(--color-border)] rounded-lg p-8 text-center cursor-pointer hover:border-[var(--color-primary)] transition">
+                        <span class="text-3xl">📁</span>
+                        <p class="mt-2 text-sm text-[var(--color-secondary)]">拖拽文件到这里，或点击选择文件</p>
+                        <p class="text-xs text-[var(--color-secondary)] mt-1">支持 .pdf, .md, .html, .txt, .py</p>
+                        <input type="file" id="file-input" class="hidden" multiple>
+                    </div>
+
+                    <div id="file-list-preview" class="space-y-2 hidden">
+                        <h4 class="text-sm font-semibold">待上传文件：</h4>
+                        <div id="preview-items" class="space-y-1 text-xs text-[var(--color-secondary)] max-h-40 overflow-y-auto"></div>
+                    </div>
+
+                    <button class="btn-primary w-full py-3 text-md" id="btn-upload" onclick="startIngest()">启动 Ingestion 流水线</button>
+                </div>
+
+                <!-- 导入过程及微引擎管道监视 -->
+                <div class="tonal-card col-span-2 space-y-6">
+                    <h3 class="text-xl font-serif">Ingestion Pipeline Monitor</h3>
+                    
+                    <!-- 后台运行状态 -->
+                    <div id="ingest-status-box" class="p-4 rounded border text-sm flex items-center justify-between hidden">
+                        <span id="ingest-status-text">就绪中，等待数据上传...</span>
+                        <span id="ingest-timer" class="font-mono text-xs">0.00s</span>
+                    </div>
+
+                    <!-- Ingest 状态机节点 -->
+                    <div class="relative pl-6 border-l border-[var(--color-border)] space-y-8" id="pipeline-nodes">
+                        <!-- Node 1 -->
+                        <div class="relative" id="node-parse">
+                            <span class="absolute -left-[31px] top-0 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full w-4 h-4 flex items-center justify-center text-xs" id="dot-parse"></span>
+                            <h4 class="font-semibold text-sm">DocumentParser (异构格式解析)</h4>
+                            <p class="text-xs text-[var(--color-secondary)]">自动路由文件格式并进行结构化解析，保留 Markdown 章节及 Python 代码块结构。</p>
+                            <div class="text-[11px] text-[var(--color-success-text)] font-semibold mt-1 hidden" id="out-parse"></div>
+                        </div>
+                        <!-- Node 2 -->
+                        <div class="relative" id="node-clean">
+                            <span class="absolute -left-[31px] top-0 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full w-4 h-4 flex items-center justify-center text-xs" id="dot-clean"></span>
+                            <h4 class="font-semibold text-sm">TextCleaner (格式去噪与规范化)</h4>
+                            <p class="text-xs text-[var(--color-secondary)]">剔除控制字符及 HTML 冗余编码，提取纯净文本，并输出噪声清洗率。</p>
+                            <div class="text-[11px] text-[var(--color-success-text)] font-semibold mt-1 hidden" id="out-clean"></div>
+                        </div>
+                        <!-- Node 3 -->
+                        <div class="relative" id="node-chunk">
+                            <span class="absolute -left-[31px] top-0 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full w-4 h-4 flex items-center justify-center text-xs" id="dot-chunk"></span>
+                            <h4 class="font-semibold text-sm">ChunkEngine (语义滑动窗口分块)</h4>
+                            <p class="text-xs text-[var(--color-secondary)]">执行基于 Token 颗粒度的智能滑动切片，并对内容计算唯一 SHA-256 哈希指纹。</p>
+                            <div class="text-[11px] text-[var(--color-success-text)] font-semibold mt-1 hidden" id="out-chunk"></div>
+                        </div>
+                        <!-- Node 4 -->
+                        <div class="relative" id="node-embed">
+                            <span class="absolute -left-[31px] top-0 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full w-4 h-4 flex items-center justify-center text-xs" id="dot-embed"></span>
+                            <h4 class="font-semibold text-sm">EmbeddingPipeline (限流 API 向量化)</h4>
+                            <p class="text-xs text-[var(--color-secondary)]">进行多协程并发拉取向量。包含客户端信号量控制，防 429 报错自适应退避自愈。</p>
+                            <div class="text-[11px] text-[var(--color-success-text)] font-semibold mt-1 hidden" id="out-embed"></div>
+                        </div>
+                        <!-- Node 5 -->
+                        <div class="relative" id="node-db">
+                            <span class="absolute -left-[31px] top-0 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full w-4 h-4 flex items-center justify-center text-xs" id="dot-db"></span>
+                            <h4 class="font-semibold text-sm">Qdrant VectorStore (多集合写入与索引构建)</h4>
+                            <p class="text-xs text-[var(--color-secondary)]">将向量批量 upsert 入库，并在底层创建 Payload 元数据索引及 HNSW 检索树。</p>
+                            <div class="text-[11px] text-[var(--color-success-text)] font-semibold mt-1 hidden" id="out-db"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+             模块 3：质量评估 & 压测 (Observability Metrics & Bench)
+             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+        <section id="panel-observability" class="space-y-6 hidden">
+            <div class="grid grid-cols-2 gap-6">
+                
+                <!-- 黄金集质量评估舱 -->
+                <div class="tonal-card space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-serif">RAG Retrieval Quality Evaluation</h3>
+                        <button class="btn-primary" onclick="runQualityEvaluation()">执行指标评估</button>
+                    </div>
+                    <p class="text-xs text-[var(--color-secondary)] leading-relaxed">
+                        基于标定的黄金标注集 <code>eval_dataset.json</code> 中的测试问题执行检索，比对 Dense、Sparse 和 Hybrid (RRF) 三路策略在 <b>K=5</b> 深度下的四维度量化指标：
+                    </p>
+
+                    <!-- 质量表格 -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-[var(--color-primary)]">
+                                    <th class="py-2">检索策略</th>
+                                    <th class="py-2">Recall@5</th>
+                                    <th class="py-2">Precision@5</th>
+                                    <th class="py-2">MRR</th>
+                                    <th class="py-2">NDCG@5</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metrics-table-body">
+                                <tr>
+                                    <td class="py-3 text-[var(--color-secondary)]" colspan="5" style="text-align: center;">暂无评测数据，点击按钮开始...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="bg-[var(--color-bg)] p-4 rounded text-xs text-[var(--color-secondary)] border border-[var(--color-border)] leading-relaxed">
+                        💡 <b>信息检索指标解释</b>：
+                        <br>• <b>Recall@K</b>：召回率，衡量"找全了多少"，是 RAG 最核心指标。
+                        <br>• <b>MRR (Mean Reciprocal Rank)</b>：平均倒数排名，衡量"首个正确答案出现的排位高度"。
+                    </div>
+                </div>
+
+                <!-- 性能并发压力测试舱 -->
+                <div class="tonal-card space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-serif">全链路并发性能压力测试</h3>
+                        <button class="btn-primary" onclick="runBenchmark()">运行性能压测</button>
+                    </div>
+                    
+                    <!-- 压测参数配置 -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="flex flex-col space-y-1">
+                            <label class="text-xs text-[var(--color-secondary)]">压测 Chunk 数</label>
+                            <input type="number" id="bench-chunks" class="flat-input text-xs" value="200">
+                        </div>
+                        <div class="flex flex-col space-y-1">
+                            <label class="text-xs text-[var(--color-secondary)]">查询样本数</label>
+                            <input type="number" id="bench-queries" class="flat-input text-xs" value="30">
+                        </div>
+                        <div class="flex flex-col space-y-1">
+                            <label class="text-xs text-[var(--color-secondary)]">并发协程数</label>
+                            <input type="number" id="bench-concurrency" class="flat-input text-xs" value="5">
+                        </div>
+                    </div>
+
+                    <!-- 压测状态显示 -->
+                    <div id="bench-loading" class="p-4 border rounded text-xs text-[var(--color-secondary)] hidden">
+                        ⚡ 正在并行生成合成数据，执行冷启动导入吞吐测算和并发检索时延分析，请稍候...
+                    </div>
+
+                    <!-- 压测报告显示卡片 -->
+                    <div class="grid grid-cols-2 gap-4 text-xs" id="bench-report-grid">
+                        <div class="tonal-card p-4 space-y-2 border-dashed">
+                            <span class="text-[var(--color-secondary)]">Ingestion / 写吞吐</span>
+                            <div class="text-lg font-mono font-bold" id="bench-val-tps">-- chunks/s</div>
+                            <span class="text-[var(--color-secondary)]" id="bench-val-write">Write: -- pts/s</span>
+                        </div>
+                        <div class="tonal-card p-4 space-y-2 border-dashed">
+                            <span class="text-[var(--color-secondary)]">并发检索吞吐 (QPS)</span>
+                            <div class="text-lg font-mono font-bold text-[var(--color-accent)]" id="bench-val-qps">-- queries/s</div>
+                            <span class="text-[var(--color-secondary)]" id="bench-val-avg">Avg Latency: -- ms</span>
+                        </div>
+                    </div>
+
+                    <div class="tonal-card p-4 text-xs space-y-3" id="bench-latencies-box">
+                        <h4 class="font-bold border-b pb-1 font-serif text-sm">查询时延分布图 (Quantiles)</h4>
+                        <div class="space-y-2 font-mono">
+                            <div class="flex justify-between items-center">
+                                <span>P50 Latency (中位数)</span>
+                                <span class="font-bold" id="bench-val-p50">-- ms</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>P95 Latency</span>
+                                <span class="font-bold text-[var(--color-accent)]" id="bench-val-p95">-- ms</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>P99 Latency (极端延时)</span>
+                                <span class="font-bold text-red-600" id="bench-val-p99">-- ms</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="border-t border-[var(--color-border)] py-6 text-center text-xs text-[var(--color-secondary)] bg-white mt-12">
+        <p>© 2026 AI Research Assistant. Built with Warm Intellectual Minimalism aesthetics.</p>
+    </footer>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         JavaScript 交互逻辑 (单文件无包构建)
+         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <script>
+        // 选项卡切换控制
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('header button').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(`panel-${tabId}`).classList.remove('hidden');
+            event.target.classList.add('active');
+            
+            // 如果切换到 sandbox，且已有检索结果，需要重绘 SVG 连线
+            if (tabId === 'sandbox') {
+                setTimeout(drawConnections, 100);
+            }
+        }
+
+        // 文件拖拽上传选择
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewItems = document.getElementById('preview-items');
+        const fileListPreview = document.getElementById('file-list-preview');
+        let selectedFiles = [];
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--color-primary)';
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = 'var(--color-border)';
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--color-border)';
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        function handleFileSelect() {
+            selectedFiles = Array.from(fileInput.files);
+            if (selectedFiles.length === 0) return;
+            
+            previewItems.innerHTML = '';
+            selectedFiles.forEach(file => {
+                const item = document.createElement('div');
+                item.textContent = `• ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                previewItems.appendChild(item);
+            });
+            fileListPreview.classList.remove('hidden');
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 1. 数据导入 (Ingest) 流水线执行
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        async function startIngest() {
+            if (selectedFiles.length === 0) {
+                alert("请先选择或拖入文件！");
+                return;
+            }
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            // 禁用按钮并重置节点状态为就绪
+            document.getElementById('btn-upload').disabled = true;
+            const statusBox = document.getElementById('ingest-status-box');
+            const statusText = document.getElementById('ingest-status-text');
+            const timer = document.getElementById('ingest-timer');
+            
+            statusBox.className = "p-4 rounded border text-sm flex items-center justify-between bg-yellow-50 text-yellow-800 border-yellow-200";
+            statusBox.classList.remove('hidden');
+            statusText.textContent = "⚙️ Ingestion 管道执行中，正在解析与清洗文档...";
+
+            // 重置状态圆圈与输出结果容器
+            const dots = ['parse', 'clean', 'chunk', 'embed', 'db'];
+            dots.forEach(d => {
+                const dot = document.getElementById(`dot-${d}`);
+                dot.style.backgroundColor = 'var(--color-bg)';
+                dot.style.borderColor = 'var(--color-border)';
+                dot.textContent = '';
+                
+                const out = document.getElementById(`out-${d}`);
+                if (out) {
+                    out.textContent = '';
+                    out.classList.add('hidden');
+                }
+            });
+
+            let elapsed = 0.0;
+            const interval = setInterval(() => {
+                elapsed += 0.05;
+                timer.textContent = `${elapsed.toFixed(2)}s`;
+            }, 50);
+
+            // 模拟进度动画（让节点依次高亮，最终与后端物理返回时间对齐）
+            const nodeProgress = async () => {
+                const setDotSuccess = (id) => {
+                    const dot = document.getElementById(`dot-${id}`);
+                    if (dot) {
+                        dot.style.backgroundColor = 'var(--color-success-bg)';
+                        dot.style.borderColor = 'var(--color-success-text)';
+                        dot.style.color = 'var(--color-success-text)';
+                        dot.textContent = '✓';
+                    }
+                };
+
+                await new Promise(r => setTimeout(r, 400));
+                setDotSuccess('parse');
+                await new Promise(r => setTimeout(r, 400));
+                setDotSuccess('clean');
+                await new Promise(r => setTimeout(r, 400));
+                setDotSuccess('chunk');
+            };
+            nodeProgress();
+
+            try {
+                const response = await fetch('/api/ingest', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                clearInterval(interval);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 全节点渲染成功
+                    dots.forEach(d => setDotSuccess(d));
+                    
+                    statusBox.className = "p-4 rounded border text-sm flex items-center justify-between bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]";
+                    statusText.textContent = `🎉 ${data.message} (总用时: ${data.duration_s}s)`;
+
+                    // 展示各阶段输出结果
+                    if (data.metrics) {
+                        const m = data.metrics;
+                        
+                        // Parser
+                        const outParse = document.getElementById('out-parse');
+                        outParse.textContent = `▶ 输出：解析文档数: ${m.parser.files_count} | 提取原始字符数: ${m.parser.total_raw_chars} 个`;
+                        outParse.classList.remove('hidden');
+                        
+                        // Cleaner
+                        const outClean = document.getElementById('out-clean');
+                        outClean.textContent = `▶ 输出：去噪后规范文本字符数: ${m.cleaner.total_cleaned_chars} | 平均去噪比例: ${(m.cleaner.avg_noise_ratio * 100).toFixed(2)}%`;
+                        outClean.classList.remove('hidden');
+                        
+                        // Chunker
+                        const outChunk = document.getElementById('out-chunk');
+                        outChunk.textContent = `▶ 输出：生成唯一知识分块 (Chunks) 数: ${m.chunker.total_chunks} | 平均 Token/Chunk: ${m.chunker.avg_tokens_per_chunk}`;
+                        outChunk.classList.remove('hidden');
+                        
+                        // Embedder
+                        const outEmbed = document.getElementById('out-embed');
+                        outEmbed.textContent = `▶ 输出：并发向量化 Chunks 数: ${m.embedder.embedded_count} | 向量特征维度: ${m.embedder.vector_dim}`;
+                        outEmbed.classList.remove('hidden');
+                        
+                        // VectorStore
+                        const outDb = document.getElementById('out-db');
+                        outDb.textContent = `▶ 输出：写入 Qdrant 集合 "${m.vector_store.collection_name}" | 物理点 (Points) 数量: ${m.vector_store.points_written}`;
+                        outDb.classList.remove('hidden');
+                    }
+                } else {
+                    throw new Error(data.detail || "网络请求报错");
+                }
+            } catch (err) {
+                clearInterval(interval);
+                statusBox.className = "p-4 rounded border text-sm flex items-center justify-between bg-[var(--color-error-bg)] text-[var(--color-error-text)] border-[var(--color-error-text)]";
+                statusText.textContent = `❌ Ingest 失败: ${err.message}`;
+            } finally {
+                document.getElementById('btn-upload').disabled = false;
+            }
+
+            function setDotSuccess(id) {
+                const dot = document.getElementById(`dot-${id}`);
+                if (dot) {
+                    dot.style.backgroundColor = 'var(--color-success-bg)';
+                    dot.style.borderColor = 'var(--color-success-text)';
+                    dot.style.color = 'var(--color-success-text)';
+                    dot.textContent = '✓';
+                }
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 2. 检索沙盒 (Search) 逻辑
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        let lastSearchData = null;
+
+        async function triggerSearch() {
+            const queryText = document.getElementById('search-query').value.trim();
+            if (!queryText) {
+                alert("请输入查询文本！");
+                return;
+            }
+
+            const userId = document.getElementById('filter-user-id').value.trim() || null;
+            const maxLevel = parseInt(document.getElementById('filter-permission-level').value);
+            const strategy = document.getElementById('search-strategy').value;
+
+            // 清理原有的 SVG 连接线
+            document.getElementById('connection-overlay').innerHTML = '';
+
+            // 渲染加载占位
+            const placeholder = `<div class="text-center text-sm py-12 text-[var(--color-secondary)]">正在加载数据...</div>`;
+            document.getElementById('col-dense-list').innerHTML = placeholder;
+            document.getElementById('col-sparse-list').innerHTML = placeholder;
+            document.getElementById('col-hybrid-list').innerHTML = placeholder;
+
+            try {
+                // 如果是 hybrid，我们传递 compare_all 以便让后端将 Dense 和 Sparse 的前 10 名列表也取回来
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query_text: queryText,
+                        strategy: strategy === 'hybrid' ? 'compare_all' : strategy,
+                        top_k: 5,
+                        user_id: userId,
+                        max_permission_level: maxLevel
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "检索失败");
+
+                lastSearchData = data;
+                
+                // 渲染结果与分支控制
+                if (strategy === 'hybrid') {
+                    renderResultColumn('col-dense-list', data.dense_results, 'dense');
+                    renderResultColumn('col-sparse-list', data.sparse_results, 'sparse');
+                    renderResultColumn('col-hybrid-list', data.results, 'hybrid');
+                    
+                    // 在重排列表完全渲染到 DOM 后，开始计算并绘制 RRF 连接线
+                    setTimeout(drawConnections, 150);
+                } else if (strategy === 'dense') {
+                    renderResultColumn('col-dense-list', data.results, 'dense');
+                    document.getElementById('col-sparse-list').innerHTML = `<div class="text-center text-xs py-12 text-[var(--color-secondary)]">未启用稀疏检索<br>(已选择 Dense Only 模式)</div>`;
+                    document.getElementById('col-hybrid-list').innerHTML = `<div class="text-center text-xs py-12 text-[var(--color-secondary)]">未启用混合检索<br>(已选择 Dense Only 模式)</div>`;
+                } else if (strategy === 'sparse') {
+                    document.getElementById('col-dense-list').innerHTML = `<div class="text-center text-xs py-12 text-[var(--color-secondary)]">未启用向量检索<br>(已选择 Sparse Only 模式)</div>`;
+                    renderResultColumn('col-sparse-list', data.results, 'sparse');
+                    document.getElementById('col-hybrid-list').innerHTML = `<div class="text-center text-xs py-12 text-[var(--color-secondary)]">未启用混合检索<br>(已选择 Sparse Only 模式)</div>`;
+                }
+
+                // 显示 Context 预览
+                const contextCard = document.getElementById('card-context-preview');
+                const contextText = document.getElementById('context-preview-text');
+                if (data.context_preview) {
+                    contextText.textContent = data.context_preview;
+                    contextCard.classList.remove('hidden');
+                } else {
+                    contextCard.classList.add('hidden');
+                }
+
+            } catch (err) {
+                const errHtml = `<div class="text-center text-sm py-12 text-[var(--color-error-text)] bg-[var(--color-error-bg)] rounded border p-4">${err.message}</div>`;
+                document.getElementById('col-dense-list').innerHTML = errHtml;
+                document.getElementById('col-sparse-list').innerHTML = errHtml;
+                document.getElementById('col-hybrid-list').innerHTML = errHtml;
+            }
+        }
+
+        function renderResultColumn(containerId, results, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = `<div class="text-center text-xs py-12 text-[var(--color-secondary)]">未召回候选分块 (被 Pre-Filter 截断或分数 <= 0)</div>`;
+                return;
+            }
+
+            results.forEach((r, idx) => {
+                const item = document.createElement('div');
+                // 以 chunk_id 作为 DOM ID 以便通过 JS 精准定位元素计算坐标
+                item.id = `node-${type}-${r.chunk_id}`;
+                item.className = "p-3 rounded border border-[var(--color-border)] text-xs space-y-1 relative bg-white transition hover:border-[var(--color-primary)] cursor-default";
+                
+                // 根据排位赋予不同的背景色/高亮
+                const scoreLabel = type === 'hybrid' ? `RRF Score: ${r.score}` : `Score: ${r.score}`;
+                
+                item.innerHTML = `
+                    <div class="flex justify-between items-center font-bold">
+                        <span class="text-[var(--color-primary)] font-serif">#${idx + 1}</span>
+                        <span class="text-[var(--color-accent)] font-mono">${scoreLabel}</span>
+                    </div>
+                    <div class="text-[var(--color-secondary)] leading-relaxed line-clamp-2">${r.content || ''}</div>
+                    <div class="text-[9px] text-[var(--color-secondary)] font-mono truncate" title="${r.chunk_id}">${r.chunk_id}</div>
+                `;
+                
+                // 如果是最终融合列表项，挂载鼠标悬浮监听
+                if (type === 'hybrid') {
+                    item.addEventListener('mouseenter', () => highlightPaths(r.chunk_id, true));
+                    item.addEventListener('mouseleave', () => highlightPaths(r.chunk_id, false));
+                }
+
+                container.appendChild(item);
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // RRF 排名连接线绘制算法 (SVG Bezier Path Generator)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function drawConnections() {
+            const svg = document.getElementById('connection-overlay');
+            svg.innerHTML = ''; // 清空上一轮的线
+            
+            if (!lastSearchData || !lastSearchData.results) return;
+
+            const containerRect = document.getElementById('visualizer-container').getBoundingClientRect();
+            
+            svg.setAttribute('width', containerRect.width);
+            svg.setAttribute('height', containerRect.height);
+
+            // 遍历最终 RRF 融合里的每一个元素，寻找它在 Dense 和 Sparse 原始排名中的坐标并连线
+            lastSearchData.results.forEach(hybridItem => {
+                const c_id = hybridItem.chunk_id;
+                
+                const hybridEl = document.getElementById(`node-hybrid-${c_id}`);
+                if (!hybridEl) return;
+                
+                const hybridRect = hybridEl.getBoundingClientRect();
+                // 终点定位：连接线接入 Hybrid 卡片的左侧中心边缘
+                const endX = hybridRect.left - containerRect.left;
+                const endY = hybridRect.top - containerRect.top + (hybridRect.height / 2);
+
+                // --- 1. 连接 Dense 到 Hybrid ---
+                const denseEl = document.getElementById(`node-dense-${c_id}`);
+                if (denseEl) {
+                    const denseRect = denseEl.getBoundingClientRect();
+                    // 起点定位：Dense 卡片的右侧中心边缘
+                    const startX = denseRect.right - containerRect.left;
+                    const startY = denseRect.top - containerRect.top + (denseRect.height / 2);
+                    
+                    createBezierPath(svg, startX, startY, endX, endY, c_id, 'dense-link');
+                }
+
+                // --- 2. 连接 Sparse 到 Hybrid ---
+                const sparseEl = document.getElementById(`node-sparse-${c_id}`);
+                if (sparseEl) {
+                    const sparseRect = sparseEl.getBoundingClientRect();
+                    const startX = sparseRect.right - containerRect.left;
+                    const startY = sparseRect.top - containerRect.top + (sparseRect.height / 2);
+
+                    // 注意：因为 Sparse 列在中间，Dense 在左边。
+                    // Dense 线穿过 Sparse 列可能会有视觉交叠，所以连线采用半透明和轻微弯曲
+                    // 终点是 Hybrid 的左边，起点是 Sparse 的右边
+                    createBezierPath(svg, startX, startY, endX, endY, c_id, 'sparse-link');
+                }
+                
+                // --- 3. 连接 Dense 到 Sparse (如果该 Chunk 两路均命中) ---
+                if (denseEl && sparseEl) {
+                    const denseRect = denseEl.getBoundingClientRect();
+                    const sparseRect = sparseEl.getBoundingClientRect();
+                    
+                    const startX = denseRect.right - containerRect.left;
+                    const startY = denseRect.top - containerRect.top + (denseRect.height / 2);
+                    
+                    const midEndX = sparseRect.left - containerRect.left;
+                    const midEndY = sparseRect.top - containerRect.top + (sparseRect.height / 2);
+                    
+                    createBezierPath(svg, startX, startY, midEndX, midEndY, c_id, 'cross-link');
+                }
+            });
+        }
+
+        function createBezierPath(svg, sx, sy, ex, ey, chunkId, className) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            // 计算贝塞尔控制点，使线条具有平滑知性的三次贝塞尔 S 弯曲
+            const deltaX = Math.abs(ex - sx);
+            const cp1x = sx + (deltaX * 0.4);
+            const cp1y = sy;
+            const cp2x = ex - (deltaX * 0.4);
+            const cp2y = ey;
+
+            const dAttribute = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${ex} ${ey}`;
+            
+            path.setAttribute('d', dAttribute);
+            path.setAttribute('class', `rrf-path ${className} path-${chunkId}`);
+            
+            svg.appendChild(path);
+        }
+
+        // 交互高亮控制
+        function highlightPaths(chunkId, isHighlight) {
+            document.querySelectorAll(`.path-${chunkId}`).forEach(path => {
+                if (isHighlight) {
+                    path.classList.add('active-path');
+                } else {
+                    path.classList.remove('active-path');
+                }
+            });
+            
+            // 同时对左右两侧命中的原始卡片边框进行加粗变色高亮
+            const denseCard = document.getElementById(`node-dense-${chunkId}`);
+            const sparseCard = document.getElementById(`node-sparse-${chunkId}`);
+            if (denseCard) {
+                if (isHighlight) denseCard.style.borderColor = 'var(--color-accent)';
+                else denseCard.style.borderColor = 'var(--color-border)';
+            }
+            if (sparseCard) {
+                if (isHighlight) sparseCard.style.borderColor = 'var(--color-accent)';
+                else sparseCard.style.borderColor = 'var(--color-border)';
+            }
+        }
+
+        // 当窗口改变大小时，自动重绘 SVG 线条以防拉伸变形
+        window.addEventListener('resize', () => {
+            if (document.getElementById('panel-sandbox').classList.contains('hidden') === false) {
+                drawConnections();
+            }
+        });
+
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 3. 质量评估与压测
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        // 3.1 质量评估
+        async function runQualityEvaluation() {
+            const tbody = document.getElementById('metrics-table-body');
+            tbody.innerHTML = `<tr><td class="py-3 text-[var(--color-secondary)]" colspan="5" style="text-align: center;">⚡ 正在对黄金对进行批量跑测，请稍候...</td></tr>`;
+
+            try {
+                const response = await fetch('/api/metrics');
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "评估跑测失败");
+
+                tbody.innerHTML = '';
+                const m = data.metrics;
+                
+                const strategies = ['dense_only', 'sparse_only', 'hybrid'];
+                strategies.forEach(strat => {
+                    const row = document.createElement('tr');
+                    row.className = "border-b border-[var(--color-border)] hover:bg-gray-50 transition";
+                    
+                    const isHybrid = strat === 'hybrid';
+                    const stratText = isHybrid ? `<b>${strat}</b>` : strat;
+                    const colorClass = isHybrid ? "text-[var(--color-accent)] font-bold" : "text-[var(--color-primary)]";
+
+                    row.innerHTML = `
+                        <td class="py-3 ${colorClass}">${stratText}</td>
+                        <td class="py-3 font-mono">${m[strat].recall.toFixed(4)}</td>
+                        <td class="py-3 font-mono">${m[strat].precision.toFixed(4)}</td>
+                        <td class="py-3 font-mono">${m[strat].mrr.toFixed(4)}</td>
+                        <td class="py-3 font-mono">${m[strat].ndcg.toFixed(4)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+            } catch (err) {
+                tbody.innerHTML = `<tr><td class="py-3 text-[var(--color-error-text)] bg-[var(--color-error-bg)]" colspan="5" style="text-align: center;">❌ 评测失败: ${err.message}</td></tr>`;
+            }
+        }
+
+        // 3.2 压力测试 (Benchmark)
+        async function runBenchmark() {
+            const numChunks = parseInt(document.getElementById('bench-chunks').value);
+            const numQueries = parseInt(document.getElementById('bench-queries').value);
+            const concurrency = parseInt(document.getElementById('bench-concurrency').value);
+
+            // 显示加载框，隐藏上一次的结果
+            document.getElementById('bench-loading').classList.remove('hidden');
+            document.getElementById('bench-report-grid').style.opacity = '0.3';
+            document.getElementById('bench-latencies-box').style.opacity = '0.3';
+
+            try {
+                const response = await fetch('/api/benchmark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        num_chunks: numChunks,
+                        num_queries: numQueries,
+                        concurrency: concurrency,
+                        memory: true // 强制在压测中使用 SQLite 进程内存
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "并发压测失败");
+
+                // 填入数值
+                document.getElementById('bench-val-tps').textContent = `${data.import_tps} chunks/s`;
+                document.getElementById('bench-val-write').textContent = `Write: ${data.qdrant_write_tps} pts/s`;
+                
+                document.getElementById('bench-val-qps').textContent = `${data.qps} queries/s`;
+                document.getElementById('bench-val-avg').textContent = `Avg Latency: ${data.avg_latency_ms} ms`;
+
+                document.getElementById('bench-val-p50').textContent = `${data.p50_latency_ms} ms`;
+                document.getElementById('bench-val-p95').textContent = `${data.p95_latency_ms} ms`;
+                document.getElementById('bench-val-p99').textContent = `${data.p99_latency_ms} ms`;
+
+            } catch (err) {
+                alert(`压测失败: ${err.message}`);
+            } finally {
+                document.getElementById('bench-loading').classList.add('hidden');
+                document.getElementById('bench-report-grid').style.opacity = '1.0';
+                document.getElementById('bench-latencies-box').style.opacity = '1.0';
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 4. 冷启动自动检测并恢复数据导入状态
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        async function checkIngestStatus() {
+            try {
+                const response = await fetch('/api/ingest/status');
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'ready') {
+                    const statusBox = document.getElementById('ingest-status-box');
+                    const statusText = document.getElementById('ingest-status-text');
+                    const timer = document.getElementById('ingest-timer');
+                    
+                    statusBox.className = "p-4 rounded border text-sm flex items-center justify-between bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-text)]";
+                    statusBox.classList.remove('hidden');
+                    statusText.textContent = `🎉 ${data.message}`;
+                    timer.textContent = "已就绪";
+                    
+                    // 标记所有小圆点成功
+                    const dots = ['parse', 'clean', 'chunk', 'embed', 'db'];
+                    dots.forEach(id => {
+                        const dot = document.getElementById(`dot-${id}`);
+                        if (dot) {
+                            dot.style.backgroundColor = 'var(--color-success-bg)';
+                            dot.style.borderColor = 'var(--color-success-text)';
+                            dot.style.color = 'var(--color-success-text)';
+                            dot.textContent = '✓';
+                        }
+                    });
+                    
+                    // 渲染各个阶段指标输出
+                    if (data.metrics) {
+                        const m = data.metrics;
+                        
+                        const outParse = document.getElementById('out-parse');
+                        if (outParse && m.parser) {
+                            outParse.textContent = `▶ 缓存输出：解析文档数: ${m.parser.files_count} | 提取原始字符数: ${m.parser.total_raw_chars} 个`;
+                            outParse.classList.remove('hidden');
+                        }
+                        
+                        const outClean = document.getElementById('out-clean');
+                        if (outClean && m.cleaner) {
+                            outClean.textContent = `▶ 缓存输出：去噪后规范文本字符数: ${m.cleaner.total_cleaned_chars} | 平均去噪比例: ${(m.cleaner.avg_noise_ratio * 100).toFixed(2)}%`;
+                            outClean.classList.remove('hidden');
+                        }
+                        
+                        const outChunk = document.getElementById('out-chunk');
+                        if (outChunk && m.chunker) {
+                            outChunk.textContent = `▶ 缓存输出：已生成知识分块 (Chunks) 数: ${m.chunker.total_chunks} | 平均 Token/Chunk: ${m.chunker.avg_tokens_per_chunk}`;
+                            outChunk.classList.remove('hidden');
+                        }
+                        
+                        const outEmbed = document.getElementById('out-embed');
+                        if (outEmbed && m.embedder) {
+                            outEmbed.textContent = `▶ 缓存输出：已向量化 Chunks 数: ${m.embedder.embedded_count} | 向量特征维度: ${m.embedder.vector_dim}`;
+                            outEmbed.classList.remove('hidden');
+                        }
+                        
+                        const outDb = document.getElementById('out-db');
+                        if (outDb && m.vector_store) {
+                            outDb.textContent = `▶ 缓存输出：连接 Qdrant 集合 "${m.vector_store.collection_name}" | 物理点数: ${m.vector_store.points_written}`;
+                            outDb.classList.remove('hidden');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("检测知识库 Ingest 状态失败:", err);
+            }
+        }
+
+        // 页面 DOM 加载完毕后自动执行检测
+        window.addEventListener('DOMContentLoaded', checkIngestStatus);
+    </script>
+</body>
+</html>

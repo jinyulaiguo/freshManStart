@@ -1,0 +1,5 @@
+Reciprocal Rank Fusion (RRF) algorithm definition:
+RRF is a simple and effective ranking algorithm for combining search results from multiple information retrieval strategies.
+RRF works by calculating a score based on the reciprocal of the rank of a document in each strategy.
+RRF score = sum( 1 / (60 + rank_i) ) where 60 is a smoothing constant.
+It is highly robust because it does not depend on the absolute score values from dense and sparse retrievers.

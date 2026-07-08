@@ -1,0 +1,27 @@
+[
+  {
+    "question": "Attention is all you need and how does transformer model attention work",
+    "expected_chunk_ids": ["bench_chunk_000000", "bench_chunk_000006"],
+    "category": "AI"
+  },
+  {
+    "question": "What parameters control graph accuracy in HNSW index for vector databases",
+    "expected_chunk_ids": ["bench_chunk_000001", "bench_chunk_000007"],
+    "category": "Database"
+  },
+  {
+    "question": "Explain Reciprocal Rank Fusion RRF algorithm score formula",
+    "expected_chunk_ids": ["bench_chunk_000003", "bench_chunk_000009"],
+    "category": "AI"
+  },
+  {
+    "question": "What is multi-tenant database isolation filter check",
+    "expected_chunk_ids": ["bench_chunk_000005"],
+    "category": "Security"
+  },
+  {
+    "question": "How to configure pre-filtering payload indexing to avoid recall drop",
+    "expected_chunk_ids": ["bench_chunk_000006"],
+    "category": "Database"
+  }
+]
