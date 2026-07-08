@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 6 — Embedding 与现代 RAG 技术体系总结（2026 版）</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Design Tokens: Warm Intellectual Minimalism ── */
+  :root {
+    --bone-bg: #faf9f4;
+    --pure-white: #ffffff;
+    --charcoal: #141413;
+    --on-surface-variant: #464742;
+    --clay-accent: #D97757;
+    --border: #e9e8e3;
+    --surface-dim: #dbdad5;
+    --surface-container: #efeee9;
+    --radius-sm: 0.25rem;
+    --radius-lg: 0.5rem;
+    --success-bg: #edf6ef;
+    --success-text: #2e623a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bone-bg);
+    color: var(--charcoal);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* ── Header Section ── */
+  .header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header .meta-tag {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--clay-accent);
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  .header h1 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--charcoal);
+    margin-bottom: 12px;
+  }
+  .header .lead-text {
+    font-size: 16px;
+    color: var(--on-surface-variant);
+    max-width: 900px;
+  }
+
+  /* ── Core Thought Banner (Golden Rule) ── */
+  .core-thought-card {
+    background: var(--pure-white);
+    border-left: 4px solid var(--clay-accent);
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 40px;
+  }
+  .core-thought-card h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .core-thought-card p {
+    color: var(--on-surface-variant);
+    font-size: 15px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  .core-thought-card .quote-highlight {
+    font-family: 'Source Serif 4', serif;
+    font-size: 16px;
+    font-style: italic;
+    color: var(--charcoal);
+    padding: 8px 16px;
+    background: var(--bone-bg);
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    margin: 8px 0;
+  }
+  .core-thought-card .comparison-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .comparison-item {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+  }
+  .comparison-item.old {
+    background: #fdf2f2;
+    border: 1px solid #f9d5d5;
+    color: #9b1c1c;
+  }
+  .comparison-item.new {
+    background: var(--success-bg);
+    border: 1px solid #d1ebd6;
+    color: var(--success-text);
+  }
+
+  /* ── Main App Workspace ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* ── Sidebar Navigation ── */
+  .sidebar {
+    position: sticky;
+    top: 24px;
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--on-surface-variant);
+    margin-bottom: 12px;
+    padding-left: 8px;
+  }
+  .nav-list {
+    list-style: none;
+  }
+  .nav-item {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav-item:hover {
+    background: var(--bone-bg);
+    color: var(--charcoal);
+  }
+  .nav-item.active {
+    background: var(--charcoal);
+    color: var(--pure-white);
+  }
+  .nav-item .step-num {
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    background: var(--surface-container);
+    color: var(--on-surface-variant);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+  .nav-item.active .step-num {
+    background: var(--clay-accent);
+    color: var(--pure-white);
+  }
+
+  /* ── Content Area ── */
+  .content-panel {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    min-height: 500px;
+  }
+
+  .phase-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  .phase-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--charcoal);
+  }
+  .phase-subtitle {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    margin-top: 4px;
+  }
+
+  /* ── Rich Text Blocks ── */
+  .section-subtitle {
+    font-family: 'Source Serif 4', serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 24px 0 12px 0;
+    color: var(--charcoal);
+  }
+  .paragraph {
+    color: var(--on-surface-variant);
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+
+  /* ── Flow Visualizers (Timeline/Stepper) ── */
+  .flow-stepper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    background: var(--bone-bg);
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    margin: 16px 0;
+    border: 1px solid var(--border);
+  }
+  .step-capsule {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--charcoal);
+  }
+  .step-arrow {
+    color: var(--clay-accent);
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  /* ── Concept Grid ── */
+  .concept-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .concept-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    background: var(--pure-white);
+    transition: border-color 0.2s ease;
+  }
+  .concept-card:hover {
+    border-color: var(--clay-accent);
+  }
+  .concept-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--charcoal);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .concept-desc {
+    font-size: 13.5px;
+    color: var(--on-surface-variant);
+    line-height: 1.5;
+  }
+  .concept-meta {
+    font-size: 12px;
+    color: var(--clay-accent);
+    margin-top: 8px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* ── Visual Flowcharts ── */
+  .pipeline-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0;
+    background: var(--bone-bg);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+  }
+  .pipeline-step {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    width: 320px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--charcoal);
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .pipeline-step:hover {
+    transform: translateY(-2px);
+    border-color: var(--clay-accent);
+  }
+
+  /* ── Decision Tree (Agentic RAG) ── */
+  .decision-tree {
+    background: var(--bone-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .decision-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 650px;
+  }
+  .decision-node {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .decision-node.decision {
+    border-color: var(--clay-accent);
+    background: #fffcfb;
+  }
+  .decision-node.end-action {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: #d1ebd6;
+  }
+  .branch-row {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    margin-top: 10px;
+  }
+  .branch-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+  .branch-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--on-surface-variant);
+    margin-bottom: 6px;
+  }
+
+  /* ── Full RAG Pipeline Diagram ── */
+  .full-diagram-container {
+    background: var(--bone-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    overflow-x: auto;
+    margin-top: 24px;
+    border: 1px solid var(--border);
+  }
+  .flow-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 700px;
+    gap: 12px;
+  }
+  .flow-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+  }
+  .flow-node {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--charcoal);
+    min-width: 180px;
+  }
+  .flow-node.highlight {
+    border-color: var(--clay-accent);
+    background: #fffcfb;
+    font-weight: 600;
+  }
+
+  /* ── Knowledge Tree Component ── */
+  .tree-node {
+    margin-left: 20px;
+    border-left: 1px dashed var(--border);
+    padding-left: 16px;
+    margin-top: 8px;
+  }
+  .tree-root {
+    margin-left: 0;
+    border-left: none;
+    padding-left: 0;
+  }
+  .tree-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--charcoal);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+  }
+  .tree-label::before {
+    content: '▼';
+    font-size: 9px;
+    color: var(--on-surface-variant);
+    transition: transform 0.2s;
+  }
+  .tree-node.collapsed > .tree-label::before {
+    transform: rotate(-90deg);
+  }
+  .tree-node.collapsed > .tree-children {
+    display: none;
+  }
+  .tree-leaf {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    padding: 4px 0;
+    list-style-type: square;
+    margin-left: 16px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+  }
+
+  @media (max-width: 900px) {
+    .workspace {
+      grid-template-columns: 1fr;
+    }
+    .sidebar {
+      position: static;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <span class="meta-tag">知识体系总结 · 2026版</span>
+    <h1>Week 6：Embedding 与现代 RAG 技术体系总结</h1>
+    <div class="lead-text">
+      本周核心主线：<strong>知识如何表示（Embedding）→ 知识如何存储（Vector DB）→ 知识如何检索（Retrieval）→ 知识如何优化（Modern RAG）→ Agent 如何使用知识（Agentic RAG）</strong>
+    </div>
+  </div>
+
+  <!-- ── Core Thought Banner ── -->
+  <div class="core-thought-card">
+    <h2>最核心的思想</h2>
+    <p>现代 RAG 已经不是简单的 "Embedding → 向量检索 → LLM" 静态流程。而是通过 <strong>Embedding、Chunking、Hybrid Search、Reranker 和 Agent 推理</strong> 共同构建最适合 LLM 推理的 Context（上下文）。</p>
+    
+    <div class="comparison-row">
+      <div class="comparison-item old">
+        <strong>传统 RAG 目标：</strong><br>
+        "找到最相似的文档 (Find the Most Similar Documents)"
+      </div>
+      <div class="comparison-item new">
+        <strong>现代 RAG 目标：</strong><br>
+        "构造最适合模型推理的上下文 (Construct the Best Context for Reasoning)"
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Workspace ── -->
+  <div class="workspace">
+
+    <!-- ── Sidebar ── -->
+    <div class="sidebar">
+      <div class="sidebar-title">知识阶段导航</div>
+      <ul class="nav-list">
+        <li class="nav-item active" onclick="switchPhase(1, this)">
+          <span class="step-num">01</span> 知识表示
+        </li>
+        <li class="nav-item" onclick="switchPhase(2, this)">
+          <span class="step-num">02</span> 为什么需要 Chunk？
+        </li>
+        <li class="nav-item" onclick="switchPhase(3, this)">
+          <span class="step-num">03</span> 知识存储 (Vector DB)
+        </li>
+        <li class="nav-item" onclick="switchPhase(4, this)">
+          <span class="step-num">04</span> 现代检索 (Retrieval)
+        </li>
+        <li class="nav-item" onclick="switchPhase(5, this)">
+          <span class="step-num">05</span> 为什么需要 Reranker？
+        </li>
+        <li class="nav-item" onclick="switchPhase(6, this)">
+          <span class="step-num">06</span> Agentic RAG
+        </li>
+        <li class="nav-item" onclick="switchPhase(7, this)">
+          <span class="step-num">07</span> 现代 RAG 全景图
+        </li>
+        <li class="nav-item" onclick="switchPhase(8, this)">
+          <span class="step-num">08</span> 最终知识树
+        </li>
+      </ul>
+    </div>
+
+    <!-- ── Content Panel ── -->
+    <div class="content-panel" id="content-panel">
+      <!-- 默认展示 Phase 1 -->
+      <div class="phase-header">
+        <span class="meta-tag">Phase 01</span>
+        <h2 class="phase-title">第一阶段：知识表示 (Knowledge Representation)</h2>
+        <p class="phase-subtitle">问题：计算机如何理解一段文本？</p>
+      </div>
+      <p class="paragraph">在进入 RAG 之前，首要问题是计算机如何理解并计算一段自然语言文本。文本向量化的核心链路如下：</p>
+      
+      <div class="pipeline-visual">
+        <div class="pipeline-step">文本 (Text)</div>
+        <div class="pipeline-arrow">↓</div>
+        <div class="pipeline-step">Tokenizer (分词) → Token 序列</div>
+        <div class="pipeline-arrow">↓</div>
+        <div class="pipeline-step">Transformer Encoder (语义提取)</div>
+        <div class="pipeline-arrow">↓</div>
+        <div class="pipeline-step">Hidden States (每个 Token 的上下文表示)</div>
+        <div class="pipeline-arrow">↓</div>
+        <div class="pipeline-step">Pooling (池化压缩)</div>
+        <div class="pipeline-arrow">↓</div>
+        <div class="pipeline-step">Sentence Embedding (句向量)</div>
+        <div class="pipeline-arrow">↓</div>
+        <div class="pipeline-step">高维语义空间 (Semantic Space)</div>
+      </div>
+
+      <div class="core-thought-card" style="margin-bottom: 24px; background: var(--bone-bg);">
+        <p><strong>关键认知</strong>：Embedding 并不是一句话的"压缩版"。而是 <strong>一句话在高维语义空间中的坐标 (Coordinate)</strong>。之后的所有检索，本质上都是在比较这些坐标之间的位置关系。</p>
+      </div>
+
+      <h3 class="section-subtitle">核心概念定义</h3>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="concept-name">Embedding (嵌入向量)</div>
+          <div class="concept-desc">文本映射后的固定维度向量，作用是将自然语言转换为数学高维空间中的坐标点。</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name">Semantic Space (语义空间)</div>
+          <div class="concept-desc">高维向量空间。相似的语义会聚集在相近的邻域。</div>
+          <div class="concept-meta">示例: Car → Automobile → Vehicle 对应的向量在这个高维空间中距离极其邻近。</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name">Pooling (池化)</div>
+          <div class="concept-desc">将 Token 序列的多个隐藏层向量压缩凝聚成单个句向量。常见方法包括 Mean Pooling、CLS Pooling、Attention Pooling。</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name">Cosine Similarity (余弦相似度)</div>
+          <div class="concept-desc">计算并比较两个向量在高维空间中方向的偏角余弦。不关心向量长度（文本长度带来的长模长），只关心方向，是语义检索的首选。</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name">L2 Distance (欧氏距离)</div>
+          <div class="concept-desc">比较两个高维空间点之间的绝对位移直线距离，会同时受方向与向量模长（长度）的影响。</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name">Representation Dilution (表征稀释)</div>
+          <div class="concept-desc">如果一个文本块（Chunk）中混杂了多个主题，Embedding 只能被迫拟合表示这多个主题的平均中间方向。因此，Chunk 越杂乱，Embedding 表征就越不准确。</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    Week 6: Embedding & Modern RAG System · Warm Intellectual Minimalism Layout
+  </div>
+</div>
+
+<script>
+  // ── 知识点数据定义 ──
+  const phaseData = {
+    1: {
+      tag: "Phase 01",
+      title: "第一阶段：知识表示 (Knowledge Representation)",
+      subtitle: "问题：计算机如何理解一段文本？",
+      html: `
+        <p class="paragraph">在进入 RAG 之前，首要问题是计算机如何理解并计算一段自然语言文本。文本向量化的核心链路如下：</p>
+        
+        <div class="pipeline-visual">
+          <div class="pipeline-step">文本 (Text)</div>
+          <div class="pipeline-arrow">↓</div>
+          <div class="pipeline-step">Tokenizer (分词) → Token 序列</div>
+          <div class="pipeline-arrow">↓</div>
+          <div class="pipeline-step">Transformer Encoder (语义提取)</div>
+          <div class="pipeline-arrow">↓</div>
+          <div class="pipeline-step">Hidden States (每个 Token 的上下文表示)</div>
+          <div class="pipeline-arrow">↓</div>
+          <div class="pipeline-step">Pooling (池化压缩)</div>
+          <div class="pipeline-arrow">↓</div>
+          <div class="pipeline-step">Sentence Embedding (句向量)</div>
+          <div class="pipeline-arrow">↓</div>
+          <div class="pipeline-step">高维语义空间 (Semantic Space)</div>
+        </div>
+
+        <div class="core-thought-card" style="margin-bottom: 24px; background: var(--bone-bg);">
+          <p><strong>关键认知</strong>：Embedding 并不是一句话的"压缩版"。而是 <strong>一句话在高维语义空间中的坐标 (Coordinate)</strong>。之后的所有检索，本质上都是在比较这些坐标之间的位置关系。</p>
+        </div>
+
+        <h3 class="section-subtitle">核心概念定义</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <div class="concept-name">Embedding (嵌入向量)</div>
+            <div class="concept-desc">文本映射后的固定维度向量，作用是将自然语言转换为数学高维空间中的坐标点。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Semantic Space (语义空间)</div>
+            <div class="concept-desc">高维向量空间。相似的语义会聚集在相近的邻域。</div>
+            <div class="concept-meta">示例: Car → Automobile → Vehicle 对应的向量在这个高维空间中距离极其邻近。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Pooling (池化)</div>
+            <div class="concept-desc">将 Token 序列的多个隐藏层向量压缩凝聚成单个句向量。常见方法包括 Mean Pooling、CLS Pooling、Attention Pooling。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Cosine Similarity (余弦相似度)</div>
+            <div class="concept-desc">计算并比较两个向量在高维空间中方向的偏角余弦。不关心向量长度（文本长度带来的长模长），只关心方向，是语义检索的首选。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">L2 Distance (欧氏距离)</div>
+            <div class="concept-desc">比较两个高维空间点之间的绝对位移直线距离，会同时受方向与向量模长（长度）的影响。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Representation Dilution (表征稀释)</div>
+            <div class="concept-desc">如果一个文本块（Chunk）中混杂了多个主题，Embedding 只能被迫拟合表示这多个主题的平均中间方向。因此，Chunk 越杂乱，Embedding 表征就越不准确。</div>
+          </div>
+        </div>
+      `
+    },
+    2: {
+      tag: "Phase 02",
+      title: "第二阶段：为什么需要 Chunk？",
+      subtitle: "拆分过长文档以保护高维空间表征精度的核心技术",
+      html: `
+        <p class="paragraph">在实践早期，很多人直接将整本书送去生成 Embedding 向量。结果发现，文档过长导致表征稀释，几乎丧失了检索检索检索能力。为了保护语义密度，切块（Chunking）成为了现代 RAG 的标配。</p>
+        
+        <h3 class="section-subtitle">切块机制的演进历程</h3>
+        <div class="flow-stepper">
+          <div class="step-capsule">Fixed Chunk (固定长度)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Semantic Chunk (语义边界)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Overlap (交叠窗口)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Parent-Child Chunk (父子块)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Late Chunking (延迟切块)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Contextual Retrieval (上下文化检索)</div>
+        </div>
+
+        <h3 class="section-subtitle">核心技术定义</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <div class="concept-name">Chunking (切块)</div>
+            <div class="concept-desc">把长文档拆分为多个高内聚的知识单元，目标是让每一个 Chunk 只表达一个单一的主题，而非强行满足固定字数限制。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Semantic Chunk (语义切块)</div>
+            <div class="concept-desc">不使用机械的字符数截断，而是按照语义边界（如自然章节、段落标题、特定 Topic 的突变阈值）进行智能切分。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Overlap (重叠)</div>
+            <div class="concept-desc">相邻 Chunk 之间有意保留一部分重叠的共同内容，作用是避免切分断点切断核心长句，导致临界处的语义撕裂。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Parent-Child Chunk (父子块)</div>
+            <div class="concept-desc">Parent 代表内容丰富的大章节，Child 代表切分的小知识块。检索比对时用 Child 匹配以提高精确度，召回填充上下文给 LLM 时换回 Parent，保证语义环境的完整性。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Late Chunking (延迟切块)</div>
+            <div class="concept-desc">先对整篇完整文档进行编码提取 Hidden States，然后再根据切分区间划定 Pooling 的范围，使生成的每个 Chunk 先天具备全局的上下文信息。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Contextual Retrieval (上下文化检索)</div>
+            <div class="concept-desc">在对 Chunk 向量化之前，通过小模型或 LLM 自动为每一个子块补充一段所属文档的背景大意摘要，以防类似 "Attention..." 这样的内容丢失其发生环境（改为 "Transformer Attention..."）。</div>
+          </div>
+        </div>
+      `
+    },
+    3: {
+      tag: "Phase 03",
+      title: "第三阶段：知识存储 (Vector Database)",
+      subtitle: "从机械的逐一扫描到多层图近似搜索",
+      html: `
+        <p class="paragraph">将文本向量化之后，如何快速存储和索引是核心问题。如果面对 100 万个高维向量使用传统的暴力线性遍历比对，检索速度将奇慢无比。现代向量数据库通过近似最近邻搜索（ANN）图索引，解决了这个性能天花板问题。</p>
+        
+        <div class="pipeline-visual" style="flex-direction: row; justify-content: space-around; flex-wrap: wrap;">
+          <div class="pipeline-step" style="width: 140px;">Embedding 向量</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 140px;">向量数据库 (DB)</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 140px;">ANN 快速搜索</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 140px;">召回 Top-K</div>
+        </div>
+
+        <h3 class="section-subtitle">核心技术定义</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <div class="concept-name">Vector Database (向量数据库)</div>
+            <div class="concept-desc">专门针对高维密集浮点向量而设计的存储引擎，内置高度优化的近似最近邻索引管理模块，如 Qdrant。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">ANN (近似最近邻搜索)</div>
+            <div class="concept-desc">不谋求数学上的绝对最优解，而是采用权衡召回精度的方式，在极其短暂的时延限制下找到近似答案。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">HNSW (分层导航小世界)</div>
+            <div class="concept-desc">现代向量库最主流的图索引算法。借鉴了跳表的思想，通过多层导航逼近查找，将搜索复杂度降低为 O(log N)。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">IVF (倒排文件索引)</div>
+            <div class="concept-desc">采用 K-Means 算法在高维空间对向量进行聚类分桶。检索时，先锁定最邻近的几个“簇”，再在簇内做局部比较，适合海量低内存场景。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Metadata Filtering (元数据过滤)</div>
+            <div class="concept-desc">配合向量属性在底层数据库内同时进行的属性条件过滤（如过滤创建日期、作者、分类标识或安全级别）。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Pre-Filtering (前置过滤)</div>
+            <div class="concept-desc">在 HNSW 检索之前或期间进行元数据过滤。适合严苛的权限约束控制，可防止不必要的数据越权。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Post-Filtering (后置过滤)</div>
+            <div class="concept-desc">先执行向量最近邻检索召回 Top-K 结果，然后再使用 Python 等外部代码按元数据筛选。实现简单，但过滤条件苛刻时容易导致最后的结果变空。</div>
+          </div>
+        </div>
+      `
+    },
+    4: {
+      tag: "Phase 04",
+      title: "第四阶段：现代 Retrieval (现代检索)",
+      subtitle: "语义模糊泛化与精确字符查找的强强联手",
+      html: `
+        <p class="paragraph">大家在实践中逐渐发现：单纯使用 Embedding 进行语义向量检索（稠密检索）存在硬伤。在查找特定错误码、特定函数名或专有版本号时容易失灵；而基于倒排索引的稀疏检索（关键词匹配）则又无法理解同义改写。混合检索（Hybrid Search）因此应运而生。</p>
+        
+        <h3 class="section-subtitle">检索演进链路</h3>
+        <div class="flow-stepper">
+          <div class="step-capsule">Dense Retrieval (稠密)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Sparse Retrieval (稀疏)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Hybrid Search (混合)</div>
+          <div class="step-arrow">→</div>
+          <div class="step-capsule">Reranker (重排)</div>
+        </div>
+
+        <h3 class="section-subtitle">核心检索技术定义</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <div class="concept-name">Dense Retrieval (稠密检索)</div>
+            <div class="concept-desc">利用高维 Embedding 向量进行余弦距离度量。同义词拓展与语义意图捕捉强，但在专业缩写或精确短语上匹配度较低。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Sparse Retrieval (稀疏检索)</div>
+            <div class="concept-desc">基于关键词匹配构建的超高维稀疏向量表示，利用经典倒排索引进行文本匹配。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Hybrid Search (混合检索)</div>
+            <div class="concept-desc">同时调度 Dense 和 Sparse 两条路径进行检索，将两者的不同评分融合（如利用 Reciprocal Rank Fusion, RRF）后整合输出。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Inverted Index (倒排索引)</div>
+            <div class="concept-desc">核心数据结构。记录 "单词 (Word) → 文档列表 (Docs)" 的检索结构，可实现 O(1) 的超高速关键词碰撞定位。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">BM25 算法</div>
+            <div class="concept-desc">传统的统计学关键词打分算法。综合考量词频（TF）、逆文档频率（IDF）和文档长度补偿，是稀疏检索的灵魂。</div>
+          </div>
+        </div>
+      `
+    },
+    5: {
+      tag: "Phase 05",
+      title: "第五阶段：为什么还需要 Reranker？",
+      subtitle: "多角度检索的大池中粗筛与精排的两级过滤策略",
+      html: `
+        <p class="paragraph">在初筛召回阶段，我们的核心策略是<strong>“不要漏”</strong>，这就需要保证极高的召回率（Recall）。但是过多的文档会导致上下文充满了噪音，降低准确率（Precision）。这就要求在最终输入 LLM 前，通过重排序模型（Reranker）进行精挑细选。</p>
+        
+        <div class="pipeline-visual" style="flex-direction: row; justify-content: space-around; flex-wrap: wrap;">
+          <div class="pipeline-step" style="width: 110px;">100 万 Chunks</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 110px;">Embedding 召回</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 110px;">Top 100</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 110px;">Reranker 重排</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 110px;">Top 5 精简块</div>
+          <div class="step-arrow">→</div>
+          <div class="pipeline-step" style="width: 110px;">LLM 推理</div>
+        </div>
+
+        <h3 class="section-subtitle">核心概念定义</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <div class="concept-name">Recall (召回率)</div>
+            <div class="concept-desc">在库中真正相关的目标文档里，我们通过系统找回了多少。核心目标是不要漏。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Precision (准确率)</div>
+            <div class="concept-desc">在我们检索并返回的 Top-K 结果集合中，真正相关的内容所占的比例。核心目标是不要错。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Reranker (重排序模型)</div>
+            <div class="concept-desc">不直接查询数据库，而是对已经检索出来的少量候选子集（如 Top-100）使用高性能深度模型重新计算 Query 与每一条 Chunk 的相关性并排序。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Bi-Encoder (双编码器)</div>
+            <div class="concept-desc">Query 与 Document 物理物理隔离，各自生成向量。检索时仅计算两向量点积。计算速度极快，适合作为第一阶段大规模召回。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Cross-Encoder (交叉编码器)</div>
+            <div class="concept-desc">将 Query 与 Document 合并为一行同时输入大模型，让两边的 Token 在多层 Attention 中进行深度语义碰撞打分。速度极其慢，但准确度极高，适合用于第二阶段重排。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">ColBERT (Late Interaction)</div>
+            <div class="concept-desc">折中设计，利用延迟交互机制，在保障高速运算的前提下尽可能恢复两端多向量的对应关系和检索精度。</div>
+          </div>
+        </div>
+      `
+    },
+    6: {
+      tag: "Phase 06",
+      title: "第六阶段：Agentic RAG",
+      subtitle: "将固定线性流程转变为主动推理回路",
+      html: `
+        <p class="paragraph">在过去，RAG 只是一个机械的静态“搜索拼装”前置步骤。而在现代智能体架构中，知识检索成为了 Agent 决策环路中一个随时按需使用的 Tool，具备自主推理、错误重试与自适应改写的能力。</p>
+        
+        <h3 class="section-subtitle">Agentic RAG 主动决策流向</h3>
+        <div class="decision-tree">
+          <div class="decision-box">
+            <div class="decision-node">Question (提出问题)</div>
+            <div class="pipeline-arrow">↓</div>
+            <div class="decision-node">Planning (规划分析)</div>
+            <div class="pipeline-arrow">↓</div>
+            <div class="decision-node decision">Need Retrieval? (需要知识库检索吗?)</div>
+            <div class="branch-row">
+              <div class="branch-column" style="border-right: 1px dashed var(--border);">
+                <span class="branch-label">No</span>
+                <div class="decision-node end-action">Direct Answer (直接回复)</div>
+              </div>
+              <div class="branch-column">
+                <span class="branch-label">Yes</span>
+                <div class="decision-node">Query Rewrite (查询改写)</div>
+                <div class="pipeline-arrow">↓</div>
+                <div class="decision-node">Hybrid Search (混合检索召回)</div>
+                <div class="pipeline-arrow">↓</div>
+                <div class="decision-node">Reranker (相关性二次排序)</div>
+                <div class="pipeline-arrow">↓</div>
+                <div class="decision-node decision">Enough Info? (信息充足可回答吗?)</div>
+                <div class="branch-row" style="width: 110%; margin-top: 8px;">
+                  <div class="branch-column">
+                    <span class="branch-label" style="color: var(--error-text);">No</span>
+                    <div class="decision-node" style="border-color: var(--error-text);">Search Again (二次多跳循环)</div>
+                  </div>
+                  <div class="branch-column">
+                    <span class="branch-label" style="color: var(--success-text);">Yes</span>
+                    <div class="decision-node end-action">LLM Generation (最终回答)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="section-subtitle">核心技术定义</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <div class="concept-name">Query Rewrite (查询改写)</div>
+            <div class="concept-desc">在把问题送往检索前，用 LLM 去除无意义代词，扩充相关专有名词，从而使检索词更契合向量库索引。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Query Decomposition (查询拆解)</div>
+            <div class="concept-desc">复杂长问题拆解为多个简单的并列子 Query，各自并发去库中检索，然后把分散的信息进行合流。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Multi-Hop Retrieval (多跳检索)</div>
+            <div class="concept-desc">迭代检索机制。基于前一步检索发现的线索或参考链接，自动改写 Query 发起二次检索以补充拼图。</div>
+          </div>
+          <div class="concept-card">
+            <div class="concept-name">Tool Decision (工具决策)</div>
+            <div class="concept-desc">Agent 不会盲目对所有问题使用 RAG。它会主动判断：是否需要知识库、是否应上网搜索、执行 SQL 提取数字还是执行 Python 脚本。</div>
+          </div>
+        </div>
+      `
+    },
+    7: {
+      tag: "Phase 07",
+      title: "第七阶段：现代 RAG 全景拓扑图",
+      subtitle: "全链路 Pipeline 构成最适合大模型推理的上下文",
+      html: `
+        <p class="paragraph">现代 RAG 检索流水线不再是单一的“向量查找”。以下为完整的系统拓扑演进流向，支持用户触发各种查询路由与反馈自愈：</p>
+        
+        <div class="full-diagram-container">
+          <div class="flow-chart">
+            <div class="flow-node highlight">User (提出意图)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node">Query Rewrite (查询改写)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node highlight">Agent Planning (智能体决策规划)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node">Tool Decision (工具决策：是否需要检索？)</div>
+            <div class="pipeline-arrow">├──(需要检索)──┐</div>
+            <div class="flow-row">
+              <div class="flow-node">Dense Retrieval (稠密向量语义检索)</div>
+              <div class="flow-node">Sparse Retrieval (基于关键词 BM25)</div>
+            </div>
+            <div class="pipeline-arrow">└──┬───────────┘</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node">Merge Results (结果排序融合/合流)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node highlight">Reranker (相关性交叉注意力重排)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node">Context Construction (上下文裁剪与拼装)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node">Context Window (受限上下文窗口)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node highlight">LLM (大模型生成)</div>
+            <div class="pipeline-arrow">│</div>
+            <div class="flow-node">Final Answer (最终回复)</div>
+          </div>
+        </div>
+      `
+    },
+    8: {
+      tag: "Phase 08",
+      title: "Week 6 最终知识树",
+      subtitle: "可折叠、分层级的全景知识图谱大纲",
+      html: `
+        <p class="paragraph">点击带三角形箭头的文件夹分类名可以折叠/展开子模块名词：</p>
+        
+        <div class="tree-node tree-root">
+          <div class="tree-label" onclick="toggleTreeNode(this)">Knowledge Representation (知识表示)</div>
+          <div class="tree-children">
+            <div class="tree-leaf">Embedding (高维稠密空间向量表征)</div>
+            <div class="tree-leaf">Semantic Space (相似语义聚集邻域)</div>
+            <div class="tree-leaf">Cosine Similarity (方向偏角匹配，不受文本长度干扰)</div>
+            <div class="tree-leaf">Pooling (隐藏状态归一压缩 Mean/CLS)</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="tree-label" onclick="toggleTreeNode(this)">Chunking (切块与预处理)</div>
+          <div class="tree-children">
+            <div class="tree-leaf">Semantic Chunk (基于断点突变的语义块)</div>
+            <div class="tree-leaf">Overlap (临界重叠缓冲)</div>
+            <div class="tree-leaf">Parent-Child (大章节召回，细粒度子块索引)</div>
+            <div class="tree-leaf">Late Chunking (基于整文注意力 Hidden States 池化)</div>
+            <div class="tree-leaf">Contextual Retrieval (为每一个 Chunk 自动填充大意上下文)</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="tree-label" onclick="toggleTreeNode(this)">Vector Database (向量数据库)</div>
+          <div class="tree-children">
+            <div class="tree-leaf">ANN (近似最近邻高并发快速搜索)</div>
+            <div class="tree-leaf">HNSW (跳表分层逼近导航小世界图)</div>
+            <div class="tree-leaf">IVF (倒排分桶，减少海量搜索耗时)</div>
+            <div class="tree-leaf">Metadata Filtering (Pre-Filtering / Post-Filtering 对比)</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="tree-label" onclick="toggleTreeNode(this)">Retrieval & Reranker (检索优化)</div>
+          <div class="tree-children">
+            <div class="tree-leaf">Dense Retrieval (向量稠密语义匹配)</div>
+            <div class="tree-leaf">Sparse Retrieval (BM25 精确符号倒排索引)</div>
+            <div class="tree-leaf">Hybrid Search (稠密与稀疏融合)</div>
+            <div class="tree-leaf">BM25 (基于词频/IDF/长度比值的经典打分)</div>
+            <div class="tree-leaf">Recall (召回率优先，不要漏)</div>
+            <div class="tree-leaf">Precision (准确率卡控，不要错)</div>
+            <div class="tree-leaf">Reranker (基于 Cross-Encoder 注意力重排)</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="tree-label" onclick="toggleTreeNode(this)">Agentic RAG (主动检索环路)</div>
+          <div class="tree-children">
+            <div class="tree-leaf">Query Rewrite (查询智能改写与扩充)</div>
+            <div class="tree-leaf">Query Decomposition (大问题并列化拆解并行执行)</div>
+            <div class="tree-leaf">Multi-Hop Retrieval (迭代追寻检索线索)</div>
+            <div class="tree-leaf">Tool Decision (自路由决策)</div>
+            <div class="tree-leaf">Retrieval Loop (带足够判定和信息饱合度评估的检索闭环)</div>
+          </div>
+        </div>
+      `
+    }
+  };
+
+  // ── 切换 Phase 处理器 ──
+  function switchPhase(phaseId, element) {
+    // 移除所有 active 样式
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    // 为当前项添加 active
+    element.classList.add('active');
+
+    // 更新内容区
+    const panel = document.getElementById('content-panel');
+    const data = phaseData[phaseId];
+
+    panel.innerHTML = `
+      <div class="phase-header">
+        <span class="meta-tag">${data.tag}</span>
+        <h2 class="phase-title">${data.title}</h2>
+        <p class="phase-subtitle">${data.subtitle}</p>
+      </div>
+      ${data.html}
+    `;
+  }
+
+  // ── 知识树折叠/展开处理器 ──
+  function toggleTreeNode(element) {
+    const parentNode = element.parentElement;
+    parentNode.classList.toggle('collapsed');
+  }
+</script>
+</body>
+</html>

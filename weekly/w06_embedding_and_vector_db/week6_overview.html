@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 6 — Embedding 与向量数据库 · 宏观总览</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Design Tokens: Warm Intellectual Minimalism ── */
+  :root {
+    --bone-bg: #faf9f4;
+    --pure-white: #ffffff;
+    --charcoal: #141413;
+    --on-surface-variant: #464742;
+    --clay-accent: #D97757;
+    --border: #e9e8e3;
+    --surface-dim: #dbdad5;
+    --success-bg: #edf6ef;
+    --success-text: #2e623a;
+    --error-bg: #ffdad6;
+    --error-text: #ba1a1a;
+    --surface-container: #efeee9;
+    --radius-sm: 0.25rem;
+    --radius-lg: 0.5rem;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bone-bg);
+    color: var(--charcoal);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header .week-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clay-accent);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--charcoal);
+    margin-bottom: 12px;
+  }
+  .header .subtitle {
+    font-size: 16px;
+    color: var(--on-surface-variant);
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* ── Section Titles ── */
+  h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--charcoal);
+  }
+  h3 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--charcoal);
+  }
+
+  /* ── Project Overview Card ── */
+  .project-card {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    margin-bottom: 40px;
+  }
+  .project-card .goal-tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--pure-white);
+    background: var(--charcoal);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+  }
+  .project-card p {
+    color: var(--on-surface-variant);
+    margin-bottom: 12px;
+  }
+
+  /* ── Architecture Flow ── */
+  .arch-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 24px 0 32px 0;
+    overflow-x: auto;
+  }
+  .arch-node {
+    flex: 1;
+    min-width: 140px;
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 16px;
+    text-align: center;
+    position: relative;
+    transition: border-color 0.2s ease;
+  }
+  .arch-node:hover {
+    border-color: var(--clay-accent);
+  }
+  .arch-node .node-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .arch-node .node-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--charcoal);
+    margin-bottom: 4px;
+  }
+  .arch-node .node-desc {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    line-height: 1.4;
+  }
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    color: var(--clay-accent);
+    font-size: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* ── Day Cards (Knowledge Chain) ── */
+  .day-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .day-card {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.15s ease;
+  }
+  .day-card:hover {
+    border-color: var(--clay-accent);
+    background: #fdfcf8;
+  }
+  .day-card.active {
+    border-color: var(--clay-accent);
+    border-width: 2px;
+  }
+  .day-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .day-badge .day-num {
+    font-family: 'Source Serif 4', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+  .day-badge .day-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--on-surface-variant);
+    margin-top: 2px;
+  }
+  .day-content h3 {
+    margin-bottom: 8px;
+  }
+  .day-content p {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    margin-bottom: 10px;
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-container);
+    color: var(--on-surface-variant);
+  }
+  .tag.core {
+    background: var(--clay-accent);
+    color: var(--pure-white);
+  }
+
+  /* ── Pain Point Table ── */
+  .pain-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  .pain-table th {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--on-surface-variant);
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface-container);
+  }
+  .pain-table td {
+    font-size: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .pain-table tr:last-child td { border-bottom: none; }
+  .pain-table .pain-icon { color: var(--error-text); font-weight: 600; }
+  .pain-table .solve-icon { color: var(--success-text); font-weight: 600; }
+
+  /* ── Dependency Chain ── */
+  .dep-chain {
+    background: var(--pure-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 16px 0 40px 0;
+  }
+  .dep-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .dep-row + .dep-row {
+    border-top: 1px solid var(--border);
+  }
+  .dep-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    color: var(--pure-white);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .dep-text {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+  }
+  .dep-text strong {
+    color: var(--charcoal);
+  }
+  .dep-arrow-down {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+    color: var(--clay-accent);
+    font-size: 16px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+
+  @media (max-width: 768px) {
+    .container { padding: 20px; }
+    .header h1 { font-size: 28px; }
+    .arch-flow { flex-direction: column; gap: 8px; }
+    .arch-arrow { transform: rotate(90deg); justify-content: center; }
+    .day-card { grid-template-columns: 1fr; }
+    .day-badge { flex-direction: row; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="week-label">Week 6 · 宏观总览</div>
+    <h1>Embedding 与向量数据库</h1>
+    <p class="subtitle">精通文本向量化的底层数学表征，掌握 HNSW 索引构建与优化，设计高吞吐并发向量化导入流水线，具备元数据 Pre-Filtering 检索系统的开发能力。</p>
+  </div>
+
+  <!-- ── 贯穿性项目 ── -->
+  <div class="project-card">
+    <span class="goal-tag">贯穿性项目</span>
+    <h2>AI 研究助手 — 底层知识存储与联合检索服务</h2>
+    <p>本周的核心交付物是为"AI 研究助手"搭建一套完整的知识库向量化存储与相似度联合检索系统。该系统需要完成从"非结构化文本清洗 → 并发批量向量化导入 → HNSW 索引构建 → 元数据联合 Pre-Filtering 检索"的全链路闭环。</p>
+    <p>最终交付标准：在高并发下，系统能稳定在 <strong>15ms 内</strong>完成带元数据约束的 Top-K 相似度检索。</p>
+  </div>
+
+  <!-- ── 系统架构全景（数据流向） ── -->
+  <h2>系统数据流全景</h2>
+  <div class="arch-flow">
+    <div class="arch-node">
+      <div class="node-icon">📄</div>
+      <div class="node-title">非结构化文本</div>
+      <div class="node-desc">HTML / PDF / Markdown 等原始文件</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <div class="node-icon">🧹</div>
+      <div class="node-title">CleanTextPipeline</div>
+      <div class="node-desc">正则清洗 + 分段 + SHA-256 去重</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <div class="node-icon">🔢</div>
+      <div class="node-title">Embedding API</div>
+      <div class="node-desc">批量向量化 + 信号量限流 + 指数退避</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <div class="node-icon">🗄️</div>
+      <div class="node-title">Qdrant (HNSW)</div>
+      <div class="node-desc">向量索引 + Payload 元数据字段索引</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <div class="node-icon">🔍</div>
+      <div class="node-title">Pre-Filter 检索</div>
+      <div class="node-desc">向量 + 元数据联合过滤 · 15ms SLA</div>
+    </div>
+  </div>
+
+  <!-- ── 每日知识链路 ── -->
+  <h2>每日知识链路与模块定位</h2>
+  <div class="day-grid">
+
+    <div class="day-card active">
+      <div class="day-badge">
+        <div class="day-num">36</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>文本向量化数学直觉与表征限制</h3>
+        <p>掌握余弦相似度与欧氏距离的底层数学公式与几何物理意义。理解维度裁剪（Matryoshka）技术的存储优化原理。量化分析反讽/转折等语义在高维空间的表征退化现象。</p>
+        <div class="tag-row">
+          <span class="tag core">数学基石</span>
+          <span class="tag">Cosine Similarity</span>
+          <span class="tag">L2 Distance</span>
+          <span class="tag">Matryoshka</span>
+          <span class="tag">numpy 离线计算</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-card">
+      <div class="day-badge">
+        <div class="day-num">37</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>Qdrant 向量数据库原理与本地 HNSW 索引部署</h3>
+        <p>部署 Qdrant 本地 Docker 实例。掌握 HNSW 分层导航小世界索引的多层图检索原理。通过 Python SDK 管理 Collection 生命周期，并发写入 10,000 条向量进行索引构建时间基准测试。</p>
+        <div class="tag-row">
+          <span class="tag core">索引引擎</span>
+          <span class="tag">HNSW</span>
+          <span class="tag">IVF</span>
+          <span class="tag">Docker</span>
+          <span class="tag">qdrant-client</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-card">
+      <div class="day-badge">
+        <div class="day-num">38</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>相似度检索与元数据联合过滤</h3>
+        <p>对比 Post-Filtering 与 Pre-Filtering 两种路径的性能差异。掌握 Qdrant Payload Indexing 机制，实现 category / read_level / created_at 三字段联合过滤。</p>
+        <div class="tag-row">
+          <span class="tag core">检索质量</span>
+          <span class="tag">Pre-Filtering</span>
+          <span class="tag">Post-Filtering</span>
+          <span class="tag">Payload Index</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-card">
+      <div class="day-badge">
+        <div class="day-num">39</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>分批向量化、批量插入与限流自适应保护</h3>
+        <p>设计并发批量嵌入模块。利用 asyncio.Semaphore 控制 QPS，实现带 Jitter 的指数退避重试策略拦截 429 限流报错。将 50 万字符文本平稳导入 Qdrant。</p>
+        <div class="tag-row">
+          <span class="tag core">高可用导入</span>
+          <span class="tag">Batch Embedding</span>
+          <span class="tag">Semaphore</span>
+          <span class="tag">Exponential Backoff</span>
+          <span class="tag">tenacity</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-card">
+      <div class="day-badge">
+        <div class="day-num">40</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>非结构化文本清洗、规范化与字段分流</h3>
+        <p>实现 CleanTextPipeline 类，完成正则清洗（乱码/控制字符/多余空格）、段落分段、SHA-256 去重哈希等全链路文本预处理。</p>
+        <div class="tag-row">
+          <span class="tag core">数据预处理</span>
+          <span class="tag">正则清洗</span>
+          <span class="tag">SHA-256</span>
+          <span class="tag">字段分流</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-card">
+      <div class="day-badge">
+        <div class="day-num">41</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>跨语言检索与 Embedding 表征漂移检测</h3>
+        <p>使用多语言 Embedding 模型（multilingual-e5）实现中英跨语言语义对齐检索。量化分析不同领域文本的表征漂移（Representation Drift）现象。</p>
+        <div class="tag-row">
+          <span class="tag core">跨语言</span>
+          <span class="tag">multilingual-e5</span>
+          <span class="tag">Representation Drift</span>
+          <span class="tag">语义对齐</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-card">
+      <div class="day-badge">
+        <div class="day-num">42</div>
+        <div class="day-label">Day</div>
+      </div>
+      <div class="day-content">
+        <h3>综合实战：高吞吐知识检索引擎</h3>
+        <p>将 Day 36-41 的所有模块拼装为完整的"AI 研究助手"知识底座：文件监听 → 清洗 → 批量向量化 → Qdrant 索引 → Pre-Filtering 检索，全链路 15ms SLA。</p>
+        <div class="tag-row">
+          <span class="tag core">最终集成</span>
+          <span class="tag">文件监听</span>
+          <span class="tag">全链路闭环</span>
+          <span class="tag">15ms SLA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 各模块解决的痛点 ── -->
+  <h2>各模块解决的系统痛点</h2>
+  <div class="project-card">
+    <table class="pain-table">
+      <thead>
+        <tr>
+          <th>模块</th>
+          <th>无此模块时的系统痛点</th>
+          <th>引入后的解决方案</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Day 36</strong><br>向量化数学</td>
+          <td class="pain-icon">对距离度量选择盲目，反讽/转折文本召回结果完全偏离语义</td>
+          <td class="solve-icon">定量理解余弦/L2 适用场景，在表征退化边界处设置人工兜底策略</td>
+        </tr>
+        <tr>
+          <td><strong>Day 37</strong><br>HNSW 索引</td>
+          <td class="pain-icon">暴力扫描 10万+ 向量，单次检索耗时 200ms+，Agent 决策卡死</td>
+          <td class="solve-icon">HNSW 图索引 O(log N) 近邻查找，检索延迟降至 5ms 以内</td>
+        </tr>
+        <tr>
+          <td><strong>Day 38</strong><br>Pre-Filtering</td>
+          <td class="pain-icon">Post-Filter 后有效结果为零，多租户场景发生越权数据泄露</td>
+          <td class="solve-icon">Payload 索引 + Pre-Filtering 在引擎层同步过滤，杜绝空结果和越权</td>
+        </tr>
+        <tr>
+          <td><strong>Day 39</strong><br>限流保护</td>
+          <td class="pain-icon">暴力并发调用 Embedding API，触发 429 封锁，全量导入任务中断</td>
+          <td class="solve-icon">Semaphore + 指数退避 + Jitter，自适应降速自愈，零中断完成导入</td>
+        </tr>
+        <tr>
+          <td><strong>Day 40</strong><br>文本清洗</td>
+          <td class="pain-icon">HTML 标签/控制字符直接送入 Embedding 模型，向量几何方向被噪声扭曲</td>
+          <td class="solve-icon">CleanTextPipeline 规范化 + SHA-256 去重，向量表征精度提升</td>
+        </tr>
+        <tr>
+          <td><strong>Day 41</strong><br>跨语言检索</td>
+          <td class="pain-icon">中文 Query 无法匹配英文文档，Agent 全球化部署检索召回率为零</td>
+          <td class="solve-icon">多语言 Embedding 模型实现跨语种语义对齐，量化表征漂移边界</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 知识依赖链 ── -->
+  <h2>知识依赖链（自底向上）</h2>
+  <div class="dep-chain">
+    <div class="dep-row">
+      <div class="dep-num">1</div>
+      <div class="dep-text"><strong>Day 36 向量化数学基石</strong> — 余弦 / L2 / 维度裁剪，为后续所有检索提供距离度量的数学基础</div>
+    </div>
+    <div class="dep-arrow-down">↓</div>
+    <div class="dep-row">
+      <div class="dep-num">2</div>
+      <div class="dep-text"><strong>Day 37 HNSW 索引引擎</strong> — 将暴力扫描升级为 O(log N) 图索引，依赖 Day 36 的距离计算能力</div>
+    </div>
+    <div class="dep-arrow-down">↓</div>
+    <div class="dep-row">
+      <div class="dep-num">3</div>
+      <div class="dep-text"><strong>Day 38 Pre-Filtering 检索</strong> — 在索引层叠加元数据约束，依赖 Day 37 的 Qdrant Collection</div>
+    </div>
+    <div class="dep-arrow-down">↓</div>
+    <div class="dep-row">
+      <div class="dep-num">4</div>
+      <div class="dep-text"><strong>Day 39 限流批量导入</strong> — 大规模数据安全写入索引，依赖 Day 36 的向量化 + Day 37 的存储</div>
+    </div>
+    <div class="dep-arrow-down">↓</div>
+    <div class="dep-row">
+      <div class="dep-num">5</div>
+      <div class="dep-text"><strong>Day 40 文本清洗预处理</strong> — 为导入流水线提供干净输入，与 Day 39 串联组成完整的写入链路</div>
+    </div>
+    <div class="dep-arrow-down">↓</div>
+    <div class="dep-row">
+      <div class="dep-num">6</div>
+      <div class="dep-text"><strong>Day 41 跨语言 + 漂移检测</strong> — 扩展检索维度（多语言）并监控向量质量退化</div>
+    </div>
+    <div class="dep-arrow-down">↓</div>
+    <div class="dep-row">
+      <div class="dep-num">7</div>
+      <div class="dep-text"><strong>Day 42 综合集成</strong> — 将上述全部模块拼装为"AI 研究助手"的完整知识底座</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Week 6 · Embedding 与向量数据库 · AI 研究助手知识底座建设
+  </div>
+
+</div>
+</body>
+</html>
