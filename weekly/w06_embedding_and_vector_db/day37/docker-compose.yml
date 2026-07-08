@@ -1,0 +1,20 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-local
+    restart: unless-stopped
+    ports:
+      - "6333:6333"  # HTTP Web API & Web UI
+      - "6334:6334"  # gRPC API
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+    environment:
+      # 限制检索线程数，避免高并发查询时挤爆宿主机所有 CPU
+      - QDRANT__STORAGE__PERFORMANCE__MAX_SEARCH_THREADS=4
+      # 限制优化器线程数，防止后台 HNSW 索引合并占用过多计算资源影响前端查询
+      - QDRANT__STORAGE__PERFORMANCE__MAX_OPTIMIZERS_THREADS=2
+    # 限制容器最大内存使用，符合 Qdrant 内存调优最佳实践
+    deploy:
+      resources:
+        limits:
+          memory: 2g
