@@ -152,12 +152,25 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-*.swo
+*.o
+
+# AI Tutor System Rules & Customizations (Keep local custom instructions ignored if necessary)
 docs/six_step_learning_method.md
 docs/framework_teaching_methodology.md
 .agents/AGENTS.md
+.agents/DESIGN.md
+
+# Application Runtime Logs
 *.log
+weekly/w03_llm_and_api/project/audit_log.csv
+
+# Temporary Ingest Data & Local Generated Content
 weekly/w02_pydantic_and_async/project/大模型学习路线.html
 weekly/w02_pydantic_and_async/project/大模型理论知识.md
-weekly/w03_llm_and_api/project/audit_log.csv
-.agents/DESIGN.md
+
+# Large Binary PDF research papers (except already tracked baseline files)
+weekly/**/test_data/*.pdf
+
+# Local Qdrant Engine Storage
+qdrant_storage/
+
