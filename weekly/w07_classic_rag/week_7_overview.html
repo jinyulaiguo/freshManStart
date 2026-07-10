@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 7: 经典 RAG 架构 - 知识体系与演进深度思考</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f4;
+            --surface-color: #ffffff;
+            --text-primary: #141413;
+            --text-secondary: #464742;
+            --accent-color: #D97757;
+            --border-color: #e9e8e3;
+            --border-color-hover: #c7c7c0;
+            --success-color: #2e623a;
+            --success-bg: #edf6ef;
+            --info-bg: #f5f4ef;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            margin-bottom: 48px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 24px;
+        }
+
+        h1 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 38px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 900px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+        }
+
+        @media (min-width: 1024px) {
+            .grid {
+                grid-template-columns: 7fr 5fr;
+            }
+        }
+
+        /* Card base style */
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* SVG Data Flow Flowchart */
+        .flowchart-container {
+            overflow-x: auto;
+            text-align: center;
+            background-color: var(--surface-color);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .flow-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .flow-node:hover rect {
+            stroke: var(--accent-color);
+            fill: var(--info-bg);
+        }
+
+        .flow-node.active rect {
+            stroke: var(--accent-color);
+            stroke-width: 2px;
+            fill: var(--info-bg);
+        }
+
+        /* Architecture Section */
+        .arch-badge-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .arch-badge {
+            background-color: var(--info-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Evolution Panel Styling */
+        .evolution-tab-container {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .evolution-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-weight: 500;
+            font-size: 16px;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .evolution-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .evolution-tab.active {
+            border-bottom-color: var(--accent-color);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .evolution-content {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .evolution-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .evolution-step-box {
+            background-color: var(--info-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .evolution-step-title {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .evolution-arrow {
+            text-align: center;
+            color: var(--accent-color);
+            font-size: 20px;
+            margin: 8px 0;
+            font-weight: bold;
+        }
+
+        /* Interactive Timeline Links */
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+            border-left: 2px solid var(--border-color);
+            margin: 20px 0;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .timeline-item:hover {
+            background-color: var(--info-bg);
+            border-color: var(--border-color);
+        }
+
+        .timeline-item.active {
+            background-color: var(--info-bg);
+            border-color: var(--accent-color);
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -27px;
+            top: 15px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            border: 2px solid var(--bg-color);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item.active .timeline-marker {
+            background-color: var(--accent-color);
+        }
+
+        .day-num {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .day-title {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Details Panel */
+        .details-panel {
+            position: sticky;
+            top: 40px;
+        }
+
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .details-day {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .details-badge {
+            background-color: var(--info-bg);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-color);
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+
+        .details-text {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        .pain-point {
+            background-color: #ffdad6;
+            color: #93000a;
+            border-left: 4px solid var(--error-color);
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .solution {
+            background-color: var(--success-bg);
+            color: var(--success-color);
+            border-left: 4px solid var(--success-color);
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* Overview Matrix Table */
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+            font-size: 14px;
+        }
+
+        .matrix-table th {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .matrix-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            vertical-align: top;
+        }
+
+        .matrix-table tr:hover td {
+            background-color: var(--info-bg);
+        }
+
+        .badge-day {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            background-color: var(--accent-color);
+            color: white;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Week 7: 经典 RAG 知识体系与演进深度思考</h1>
+            <div class="subtitle">本周的核心思想是通过“<b>自底向上 (Bottom-Up)</b>”的拼装哲学，构建一个解决企业扫描件/表格提取失真、字符与语义自适应分块、长文本注意力遗忘（Lost in the Middle）以及无匹配事实生成幻觉的高可靠经典 RAG 管道。</div>
+        </header>
+
+        <!-- New Section: Top-level Architectural Evolution -->
+        <div class="card" style="margin-bottom: 32px;">
+            <div class="card-title">
+                <span>周知识体系与演进哲学 (Architecture & Evolution Philosophy)</span>
+                <span style="font-size: 12px; font-weight: normal; color: var(--text-secondary);">（切换下方标签页，探索各知识模块的化学反应）</span>
+            </div>
+            
+            <div class="evolution-tab-container">
+                <div class="evolution-tab active" onclick="switchTab('evolution-ingestion')">1. 文档切片子系统的演进 (Day 48 → 43 → 44)</div>
+                <div class="evolution-tab" onclick="switchTab('evolution-generation')">2. 检索与可信生成子系统 (Day 45 → 47 → 46)</div>
+                <div class="evolution-tab" onclick="switchTab('evolution-integration')">3. 自底向上的拼装哲学 (Day 49)</div>
+            </div>
+
+            <!-- Tab 1 -->
+            <div id="evolution-ingestion" class="evolution-content active">
+                <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 16px;">
+                    在文档准备阶段，我们的目标是将非结构化的原始介质转换为向量数据库能够完美索引的高保真“语义块”。这一过程经历了以下三个演进阶段：
+                </p>
+                
+                <div class="evolution-step-box">
+                    <div class="evolution-step-title">
+                        <span class="badge-day">第一步 (Day 48)</span> 多模态解析与元数据富集
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        <b>具体做了什么</b>：利用 <code>pdfplumber</code> 提取 PDF 中的多列排版文本与表格，将其转为 Markdown 表格，并富集 <code>doc_id</code> 与 <code>page</code> 等文件级元数据。<br>
+                        <b>演进关联</b>：这是整个系统的水源。如果这里将表格解析成了碎字符，后续的所有分块与向量匹配都将彻底失效。
+                    </p>
+                </div>
+                <div class="evolution-arrow">↓ 解决物理结构破坏后，进入字符级分层切分</div>
+                <div class="evolution-step-box">
+                    <div class="evolution-step-title">
+                        <span class="badge-day">第二步 (Day 43)</span> 递归字符切片与 Overlap 平滑
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        <b>具体做了什么</b>：根据 <code>['\n\n', '\n', ' ', '']</code> 优先级递归寻找最自然的物理断句点，并回溯收集重叠片段。<br>
+                        <b>演进关联</b>：对于有明确语法缩进的代码文档（如 Python 函数），Day 43 能最大程度保持函数体结构的物理完整；但对于长篇的业务合规说明，它依然无法识别真正的话题突变边界。
+                    </p>
+                </div>
+                <div class="evolution-arrow">↓ 解决字符切分无视语义的盲区，进入相似度自适应切分</div>
+                <div class="evolution-step-box">
+                    <div class="evolution-step-title">
+                        <span class="badge-day">第三步 (Day 44)</span> 基于向量突变点的语义分块 (Semantic Chunking)
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        <b>具体做了什么</b>：将文档降级到句子级计算 Embedding 相似度，寻找相似度差值大于平均值加标准差的“语义突变点”进行物理切分。<br>
+                        <b>演进关联</b>：这是分块技术的终极演进。它让每个 Chunk 都成为了一个高度纯净、不夹杂冗余话题的“独立语义事实”，直接决定了向量库的精准召回上限。
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tab 2 -->
+            <div id="evolution-generation" class="evolution-content">
+                <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 16px;">
+                    当用户提出查询时，系统如何确保生成的回复既不包含模型自身的“幻觉”，又不会因为长上下文信息过载而遗漏关键事实？这三个模块相互支撑，共同解决该痛点：
+                </p>
+                <div class="evolution-step-box">
+                    <div class="evolution-step-title">
+                        <span class="badge-day">召回与拦截 (Day 45)</span> RAG 经典编排与空检索 Fallback
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        当向量库检索出的 Top-K 相似度全部低于阈值（如 0.6）时，说明参考知识库中根本不存在该事实。此时直接抛出 Null Fallback 拦截模型调用，防止模型在没有参考依据时瞎编。
+                    </p>
+                </div>
+                <div class="evolution-arrow">↓ 若匹配成功，为了应对大模型处理长上下文的注意力衰减问题</div>
+                <div class="evolution-step-box">
+                    <div class="evolution-step-title">
+                        <span class="badge-day">信息排布优化 (Day 47)</span> 黄金位置重排序 (Golden Position Reordering)
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        大模型在极长上下文的中间部分会发生严重的注意力流失（Lost in the Middle）。我们将最相似的几个 Chunk 交叉分布在 Prompt 上下文的最开头和最末尾，中等相关性的放在正中间，实现 U 型排布，迫使模型最先关注核心事实。
+                    </p>
+                </div>
+                <div class="evolution-arrow">↓ 解决完注意力分布，还需要确保生成的每一句论点都有铁证支持</div>
+                <div class="evolution-step-box">
+                    <div class="evolution-step-title">
+                        <span class="badge-day">溯源证据链 (Day 46)</span> 可信来源引用与脚注生成机制
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        在 System Prompt 中构建强契约限制，要求模型生成的每个事实都必须紧跟 <code>[doc_id:page_number]</code>。在 Python 侧流式捕捉并用正则还原原始 Chunk 对照。这使得生成的最终答案具备了可被人类二次核验的“铁证”，彻底解决了企业级落地时，RAG 系统被认为不可信的痛点。
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tab 3 -->
+            <div id="evolution-integration" class="evolution-content">
+                <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 16px;">
+                    在 Day 49，我们将上面所有的独立微引擎集成在一起，这不仅是代码的简单拼接，更是对<b>自底向上（Bottom-Up）软件工程思想</b>的绝佳实践：
+                </p>
+                
+                <div style="background-color: var(--info-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+                    <h4 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; margin-bottom: 12px;">“拼装积木墙”架构设计</h4>
+                    <ul style="list-style-type: disc; margin-left: 20px; font-size: 14px; color: var(--text-secondary);">
+                        <li style="margin-bottom: 8px;"><b>物理隔离</b>：多格式解析器（Ingestor）、分块拆分器（Splitter）、重排处理器（Reorderer）和可信引用提取器（CitationParser）被封装在完全独立的文件和类中。</li>
+                        <li style="margin-bottom: 8px;"><b>单兵作战与单元测试</b>：在将它们拼装成完整的 RAG 控制管道之前，每一个微引擎都已经通过了各自的单元测试（例如，确保分块器在 <code>chunk_overlap >= chunk_size</code> 时能主动报错拦截，而不是死锁；确保重排器输出符合 U 型位置契约）。这保障了在拼装时，底层的基石是 100% 坚固的。</li>
+                        <li style="margin-bottom: 8px;"><b>主入口无策略化</b>：主运行控制程序（如 <code>app.py</code> 或 <code>main.py</code>）只负责协调实例的生命周期、数据流方向（Pipeline routing）以及提供命令行交互 REPL 界面，不承担任何算法逻辑的实现，使得系统具备极高的演进与维护效率。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Left Column: Business Flow & Timeline -->
+            <div>
+                <!-- Business Flow Card -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>业务数据流与系统架构图</span>
+                        <span style="font-size: 12px; font-weight: normal; color: var(--text-secondary);">（点击节点查看每日详情）</span>
+                    </div>
+                    <div class="flowchart-container">
+                        <!-- Custom SVG Flowchart -->
+                        <svg viewBox="0 0 700 360" width="100%" height="360" style="background-color: #ffffff;">
+                            <!-- Definitions of markers -->
+                            <defs>
+                                <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#767872"/>
+                                </marker>
+                            </defs>
+                            
+                            <!-- Legend -->
+                            <text x="10" y="20" font-size="11" font-weight="600" fill="#141413">数据流向阶段：</text>
+                            <rect x="100" y="10" width="12" height="12" rx="2" fill="#f5f4ef" stroke="#e9e8e3"/>
+                            <text x="117" y="20" font-size="10" fill="#464742">1. 摄入与切分</text>
+                            
+                            <rect x="220" y="10" width="12" height="12" rx="2" fill="#ffffff" stroke="#D97757" stroke-dasharray="3,3"/>
+                            <text x="237" y="20" font-size="10" fill="#464742">2. 检索与重排</text>
+
+                            <!-- Ingestion pipeline -->
+                            <!-- Group 1: Files Ingestion -->
+                            <g class="flow-node" id="node-d48" onclick="selectDay(48)">
+                                <rect x="20" y="60" width="130" height="45" rx="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.5"/>
+                                <text x="85" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">多格式文档解析</text>
+                                <text x="85" y="95" text-anchor="middle" font-size="9" fill="#D97757">Day 48 (元数据富集)</text>
+                            </g>
+                            
+                            <path d="M 150 82.5 L 180 82.5" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <!-- Group 2: Splitter / Chunking -->
+                            <g class="flow-node" id="node-d43" onclick="selectDay(43)">
+                                <rect x="190" y="60" width="130" height="45" rx="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.5"/>
+                                <text x="255" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">递归字符切片</text>
+                                <text x="255" y="95" text-anchor="middle" font-size="9" fill="#D97757">Day 43 (文本块重叠)</text>
+                            </g>
+
+                            <path d="M 320 82.5 L 350 82.5" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <g class="flow-node" id="node-d44" onclick="selectDay(44)">
+                                <rect x="360" y="60" width="130" height="45" rx="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.5"/>
+                                <text x="425" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">基于语义的切块</text>
+                                <text x="425" y="95" text-anchor="middle" font-size="9" fill="#D97757">Day 44 (相似度突变)</text>
+                            </g>
+
+                            <path d="M 490 82.5 L 520 82.5" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <!-- DB Store -->
+                            <g class="flow-node">
+                                <rect x="530" y="60" width="130" height="45" rx="4" fill="#f5f4ef" stroke="#e9e8e3" stroke-width="1.5"/>
+                                <text x="595" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">向量数据库存储</text>
+                                <text x="595" y="95" text-anchor="middle" font-size="9" fill="#464742">Qdrant Vector DB</text>
+                            </g>
+
+                            <!-- Flow Divider -->
+                            <line x1="20" y1="130" x2="680" y2="130" stroke="#e9e8e3" stroke-width="1" stroke-dasharray="4,4"/>
+                            
+                            <!-- Search & Answer Pipeline -->
+                            <!-- User Query -->
+                            <g class="flow-node">
+                                <rect x="20" y="170" width="130" height="45" rx="4" fill="#ffffff" stroke="#e9e8e3" stroke-width="1.5"/>
+                                <text x="85" y="190" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">用户提问/查询</text>
+                                <text x="85" y="205" text-anchor="middle" font-size="9" fill="#464742">Query Embedding</text>
+                            </g>
+
+                            <path d="M 85 215 L 85 245 C 85 260, 240 260, 240 200" fill="none" stroke="#767872" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+                            <path d="M 595 105 L 595 170" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <!-- RAG Pipeline -->
+                            <g class="flow-node" id="node-d45" onclick="selectDay(45)">
+                                <rect x="530" y="170" width="130" height="45" rx="4" fill="#ffffff" stroke="#D97757" stroke-width="1.5"/>
+                                <text x="595" y="190" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">检索召回与过滤</text>
+                                <text x="595" y="205" text-anchor="middle" font-size="9" fill="#D97757">Day 45 (空结果兜底)</text>
+                            </g>
+
+                            <path d="M 530 192.5 L 500 192.5" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <!-- Reorder -->
+                            <g class="flow-node" id="node-d47" onclick="selectDay(47)">
+                                <rect x="360" y="170" width="130" height="45" rx="4" fill="#ffffff" stroke="#D97757" stroke-width="1.5"/>
+                                <text x="425" y="190" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">黄金位置重排</text>
+                                <text x="425" y="205" text-anchor="middle" font-size="9" fill="#D97757">Day 47 (Lost in the Middle)</text>
+                            </g>
+
+                            <path d="M 360 192.5 L 330 192.5" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <!-- LLM Prompt with Citation -->
+                            <g class="flow-node" id="node-d46" onclick="selectDay(46)">
+                                <rect x="190" y="170" width="130" height="45" rx="4" fill="#ffffff" stroke="#D97757" stroke-width="1.5"/>
+                                <text x="255" y="190" text-anchor="middle" font-size="11" font-weight="600" fill="#141413">LLM 严格契约生成</text>
+                                <text x="255" y="205" text-anchor="middle" font-size="9" fill="#D97757">Day 46 (脚注与可信引用)</text>
+                            </g>
+
+                            <path d="M 190 192.5 L 160 192.5" fill="none" stroke="#767872" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                            <!-- Final response -->
+                            <g class="flow-node" id="node-d49" onclick="selectDay(49)">
+                                <rect x="20" y="280" width="640" height="50" rx="4" fill="#edf6ef" stroke="#2e623a" stroke-width="1.5"/>
+                                <text x="340" y="305" text-anchor="middle" font-size="13" font-weight="600" fill="#2e623a">Day 49 综合实战：公司内部规章制度问答 Bot (带完整重排与引用)</text>
+                                <text x="340" y="320" text-anchor="middle" font-size="9" fill="#464742">实现从多格式摄入、语义切割、黄金重排、到精确源标引的完整 RAG 控制器闭环</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Timeline / Day Links -->
+                <div class="card">
+                    <div class="card-title">知识链路递进图</div>
+                    <div class="timeline">
+                        <div class="timeline-item active" onclick="selectDay(43)" id="time-d43">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 43</div>
+                            <div class="day-title">分块策略（一）：固定大小 vs 递归字符分块</div>
+                        </div>
+                        <div class="timeline-item" onclick="selectDay(44)" id="time-d44">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 44</div>
+                            <div class="day-title">分块策略（二）：基于语义的语义分块 (Semantic Chunking)</div>
+                        </div>
+                        <div class="timeline-item" onclick="selectDay(45)" id="time-d45">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 45</div>
+                            <div class="day-title">Retrieve -> Augment -> Generate 经典工作流编排与兜底</div>
+                        </div>
+                        <div class="timeline-item" onclick="selectDay(46)" id="time-d46">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 46</div>
+                            <div class="day-title">基于 Context 来源的可信引用 (Source Citation) 与脚注机制</div>
+                        </div>
+                        <div class="timeline-item" onclick="selectDay(47)" id="time-d47">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 47</div>
+                            <div class="day-title">长上下文填充位置对召回率的影响 (Lost in the Middle)</div>
+                        </div>
+                        <div class="timeline-item" onclick="selectDay(48)" id="time-d48">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 48</div>
+                            <div class="day-title">非结构化文档多模态解析（HTML / PDF）与元数据富集</div>
+                        </div>
+                        <div class="timeline-item" onclick="selectDay(49)" id="time-d49">
+                            <div class="timeline-marker"></div>
+                            <div class="day-num">Day 49</div>
+                            <div class="day-title">第七周综合实战：公司内部规章制度问答 Bot (带完整重排与引用)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Detail Panel -->
+            <div class="details-panel">
+                <div class="card" style="min-height: 520px;">
+                    <div class="details-header">
+                        <div class="details-day" id="detail-day">Day 43</div>
+                        <div class="details-badge" id="detail-badge">分块基础</div>
+                    </div>
+                    
+                    <h3 id="detail-title" style="font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; margin-bottom: 16px;">固定大小 vs 递归字符分块</h3>
+
+                    <div class="section-label">底层崩溃隐患 / 痛点</div>
+                    <div class="pain-point" id="detail-pain">
+                        无视自然语义边界，固定字数切块会导致一个完整的代码段（如 Python 异步函数）或者核心学术概念被拦腰折断，高维表征的相关度大幅跌落。
+                    </div>
+
+                    <div class="section-label">工程解决方案 / 做了什么</div>
+                    <div class="solution" id="detail-solution">
+                        使用递归字符分块，优先寻找最自然的段落/句子分隔符（\n\n, \n, 空格），尽量把语义聚拢。并在相邻块引入合理的 Overlap，平滑跨块边缘的信息丢失。
+                    </div>
+
+                    <div class="section-label">Agent 核心关联与价值</div>
+                    <div class="details-text" id="detail-value">
+                        分块过大容易产生信息稀释且爆出 Context Window；分块过小会破坏上下文完整度。分块参数微调直接控制了后续向量匹配的上限。
+                    </div>
+
+                    <div class="section-label">🎯 过关验证标准</div>
+                    <div class="details-text" id="detail-verify" style="font-style: italic; font-weight: 500;">
+                        手写一个递归分块函数，传入长篇技术文档，验证在不同 chunk_size 和 chunk_overlap 设定下，生成的 Chunk 块中是否能完美保留完整的 Python 异步函数体，而不发生代码行被暴力砍断。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overview Matrix Table Card -->
+        <div class="card" style="margin-top: 32px;">
+            <div class="card-title">系统组成模块与痛点分析矩阵</div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">模块/日期</th>
+                        <th style="width: 250px;">具体做了什么</th>
+                        <th>解决的底层痛点问题</th>
+                        <th style="width: 280px;">过关验证物理产物</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge-day">Day 43</span><br><strong>分块策略（一）</strong></td>
+                        <td>基于分隔符列表 <code>['\n\n', '\n', ' ', '']</code> 递归尝试切分长文本，利用 Overlap 控制邻接块信息平滑过渡。</td>
+                        <td>防止固定大小分块在中间暴烈截断代码结构或句子，确保向量表征的数据连续性。</td>
+                        <td><code>Fixed vs Recursive Splitter</code> 脚本 + 异步函数切片保持度验证。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge-day">Day 44</span><br><strong>分块策略（二）</strong></td>
+                        <td>计算相邻单句的 Embedding 余弦相似度，利用统计学阈值（如均值加 1 倍标准差）寻找语义突变切分点。</td>
+                        <td>传统分块仅做字符检测。语义分块基于话题转换自动切分，使每个 Chunk 都是纯净的“语义事实”。</td>
+                        <td><code>SemanticTextSplitter</code> 类 + 跨领域话题长文章（量子/中餐）切分分布打印。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge-day">Day 45</span><br><strong>RAG 经典编排</strong></td>
+                        <td>原生组合检索召回、提示词拼接生成；当相似度低于设定值（如0.6）时触发 Null Fallback。</td>
+                        <td>在向量检索不到相关事实时，大模型会凭空产生强烈的幻觉并胡编乱造，需要物理拦截。</td>
+                        <td><code>RAGPipeline</code> 架构 + 低相似度 Query 拦截测试。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge-day">Day 46</span><br><strong>可信引用脚注</strong></td>
+                        <td>入库时富集 metadata，在 System Prompt 强规制输出引用 <code>[doc_id:page]</code>，正则抓取并还原原文。</td>
+                        <td>企业级问答必须能证明每句话的出处，否则用户或审查人员根本无法信任生成的结论。</td>
+                        <td>带 <code>[doc_id:page]</code> 标签的流式输出提取器 + 引用溯源原文高亮。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge-day">Day 47</span><br><strong>黄金重排</strong></td>
+                        <td>将 Top-K Chunk 列表中语义相似度最高的值排在首尾，中等强度的塞在中间。</td>
+                        <td>大模型对超长 Prompt 的中间部分注意力分配极度下滑，导致中间的关键事实被彻底遗忘。</td>
+                        <td><code>ReorderContextHandler</code> + U 型重排规则位置打印验证。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge-day">Day 48</span><br><strong>多格式解析</strong></td>
+                        <td>基于 <code>pdfplumber</code> 提取 PDF 表格为 Markdown 语法并归一化，富集文件级别 metadata。</td>
+                        <td>非结构化 PDF 或多栏文档提取易破损、表格数据结构崩坏导致大模型语义理解丧失。</td>
+                        <td><code>MultiFormatDocIngestor</code> + 混合表格 PDF 高保真 Markdown 提取。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge-day" style="background-color: var(--success-color);">Day 49</span><br><strong>大项目集成</strong></td>
+                        <td>自底向上将所有微引擎组件拼装为公司规章制度问答 Bot，通过 Qdrant 进行向量召回。</td>
+                        <td>从多格式文件读取到向量数据库写入，再到重排、LLM 引用生成，打通复杂工业 RAG 系统闭环。</td>
+                        <td>规章制度问答命令行 REPL + 完整单元测试 + 运行日志产物。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching logic
+        function switchTab(tabId) {
+            // Remove active classes from tabs
+            document.querySelectorAll('.evolution-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Add active to current clicked tab
+            event.target.classList.add('active');
+
+            // Hide all content areas
+            document.querySelectorAll('.evolution-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            // Show current active content
+            const activeContent = document.getElementById(tabId);
+            if (activeContent) {
+                activeContent.classList.add('active');
+            }
+        }
+
+        // Days data
+        const daysData = {
+            43: {
+                badge: "分块基础",
+                title: "固定大小 vs 递归字符分块",
+                pain: "无视自然语义边界，固定字数切块会导致一个完整的代码段（如 Python 异步函数）或者核心学术概念被拦腰折断，高维表征的相关度大幅跌落。",
+                solution: "使用递归字符分块，优先寻找最自然的段落/句子分隔符（\\n\\n, \\n, 空格），尽量把语义聚拢。并在相邻块引入合理的 Overlap，平滑跨块边缘的信息丢失。",
+                value: "分块过大容易产生信息稀释且爆出 Context Window；分块过小会破坏上下文完整度。分块参数微调直接控制了后续向量匹配的上限。",
+                verify: "手写一个递归分块函数，传入长篇技术文档，验证在不同 chunk_size 和 chunk_overlap 设定下，生成的 Chunk 块中是否能完美保留完整的 Python 异步函数体，而不发生代码行被暴力砍断。"
+            },
+            44: {
+                badge: "智能分块",
+                title: "基于语义的语义分块 (Semantic Chunking)",
+                pain: "传统的字符分块只看字数不看内容，极易导致一个完整的语义单元在物理上被强行分裂。在检索时，这种不连贯的数据块很难与用户的意图完美匹配。",
+                solution: "将文本细分到句子级，计算它们两两之间的 Embedding 距离。根据余弦相似度变化的突变阈值执行物理分割，让每一个 Chunk 在语义上天然独立、内聚。",
+                value: "确保灌入向量数据库的每个文本块都是独立的“语义事实”，极大提升 RAG 系统在高维检索阶段的精确召回率。",
+                verify: "实现一个 SemanticTextSplitter。输入一篇混合了多个话题（如“量子计算”与“中餐烹饪”）的长文章，动态计算相邻句子的 Embedding 距离，在相似度暴跌处自动断开，打印出切块后的段落分布，证明分块在话题转换点完全切分。"
+            },
+            45: {
+                badge: "流程编排",
+                title: "Retrieve -> Augment -> Generate 经典工作流编排",
+                pain: "一旦检索召回的内容与提问完全无关（比如相似度低于 0.6），常规的 RAG 会把无关文本塞给大模型，强行让其回答，极易诱发致命的编造和幻觉。",
+                solution: "原生编写 Query 向量化 -> 检索 -> 判定 -> Fallback 生成链路。设计检索结果相似度的防御阈值拦截器，并在 System 提示词中建立严格的类型契约限制模型只根据 Context 解答。",
+                value: "RAG 是 Agent 在面临实时外部知识和专有私有库时的核心补充手段。掌握原生编排和空检索过滤，能够防止 Agent 产生顽固幻觉。",
+                verify: "编写一个通用的 RAGPipeline，输入用户提问，当向量库返回的最高相似度低于 0.6 时，系统自动触发“空结果降级”——直接回复“对不起，未在参考库中找到对应事实”，不进行模型调用；相似度达标时，拼装上下文完成解答。"
+            },
+            46: {
+                badge: "可信溯源",
+                title: "基于 Context 来源的可信引用与脚注机制",
+                pain: "大模型给出的答案虽然包含了检索的内容，但用户无法核实其内容的真实性与具体出处。在严苛的企业和医疗/金融问答场景下，没有溯源的答案是不可用的。",
+                solution: "在切分入库阶段为 Chunk 自动附加 doc_id, source_file, page 等元数据。利用 Citation Prompting 迫使大模型输出带有符合契约的标注（如 [doc_id:page]），最后在 Python 端通过正则提取高亮并回溯原始段落。",
+                value: "这是保障企业级知识应用能够合规上线的必备核心技术。可信引用机制不仅能够提高用户信任度，也是开发人员排查检索源和生成幻觉的关键监控手段。",
+                verify: "设计一个 Context 数据格式类。通过 Prompt 引导大模型在回答时，针对所引用的事实在句末加入 [doc_id:page] 标记。编写 Python 解析函数，在流式生成中实时捕捉并提取出大模型声明的所有引用源 ID，并在终端末尾输出可溯源的原始文档对照表。"
+            },
+            47: {
+                badge: "长文本重排",
+                title: "长上下文填充位置对召回率的影响 (Lost in the Middle)",
+                pain: "大模型在长上下文中寻找特定事实时，注意力主要集中在最开头和最末尾，中间部分的信息极易被忽略。直接按相似度排序顺次拼接会使得位于中部的关键 Chunk 失效。",
+                solution: "应用黄金位置重排序算法（Golden Position Reordering）。在组装 Context 之前，将相似度最高的 Chunk 交叉放置在 Prompt 上下文的最开头和最末尾，将中等相关性的放在正中间。",
+                value: "在多 Chunk（Top-10+）检索召回的场景下，可以彻底解决长 Prompt 结构下的信息遗忘痛点，大幅提高大模型检索决策的灵敏度。",
+                verify: "编写一个 ReorderContextHandler。接收一个粗筛得到的 Chunk 对象列表，运行重排逻辑：将相似度前两名的 Chunk 分别放到列表第一位和最后一位，其余以此往复，打印并验证重排后列表的位置分布完全符合“首尾最重、中间最轻”的 U型交错规则。"
+            },
+            48: {
+                badge: "多模态解析",
+                title: "非结构化文档多模态解析（HTML / PDF）与元数据富集",
+                pain: "企业的文档多数以带复杂表格的 PDF、带有 HTML 标签的说明网页形式存在。使用纯文本简单提取会造成多栏错乱、表格数据格式化崩塌、元数据丢失，严重损害语义理解。",
+                solution: "开发具备高度鲁棒性的多格式文档解析引擎。基于 pdfplumber 等库单独提取 PDF 表格并序列化为 Markdown 表格形式（大模型非常擅长解析 MD 表格），并在提取过程中自动富集文件基础信息元数据。",
+                value: "数据摄入是整个 RAG 系统质量的基石。解决多模态、非结构化原始文件的脏数据清洗，是工程前置的防线。",
+                verify: "编写一个 MultiFormatDocIngestor 类。能够自动检测输入目录下的 .pdf、.html、.txt 文件并调用对应的解析组件。要求：对 PDF 中的表格实现高保真 Markdown 格式提取，并将文件名、页码、文件大小作为富集元数据（Metadata）统一导出。"
+            },
+            49: {
+                badge: "综合实战",
+                title: "第七周综合实战：公司内部规章制度问答 Bot (带完美引用与语义切块)",
+                pain: "把单个模块（语义切分、重排、多格式解析、引用提取）组装在一起时，容易出现代码高度耦合、数据流转断层、性能低下的问题。缺乏单元测试也让系统修改时极度脆弱。",
+                solution: "采用自底向上的物理隔离微引擎架构设计。将解析器、切片器、重排器、问答控制中心完全封装为独立的组件，各自覆盖边界测试，主入口（main.py）仅做最轻量的数据拼接和流程交互调度。",
+                value: "掌握工业级 RAG 系统自底向上微引擎拼装思想，验证在面对真实 PDF 业务文档时的高可用问答表现。",
+                verify: "完整的 PDF 表格提取类、语义切分器组件、重排处理器类、带引用分析的 RAG 控制脚本、单元测试，以及演示运行的完整日志输出。"
+            }
+        };
+
+        function selectDay(dayNum) {
+            // Update active timeline link
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const timelineItem = document.getElementById('time-d' + dayNum);
+            if (timelineItem) {
+                timelineItem.classList.add('active');
+            }
+
+            // Update active flow node in SVG
+            document.querySelectorAll('.flow-node').forEach(node => {
+                node.classList.remove('active');
+            });
+            const svgNode = document.getElementById('node-d' + dayNum);
+            if (svgNode) {
+                svgNode.classList.add('active');
+            }
+
+            // Update detail panel content
+            const data = daysData[dayNum];
+            document.getElementById('detail-day').innerText = 'Day ' + dayNum;
+            document.getElementById('detail-badge').innerText = data.badge;
+            document.getElementById('detail-title').innerText = data.title;
+            document.getElementById('detail-pain').innerText = data.pain;
+            document.getElementById('detail-solution').innerText = data.solution;
+            document.getElementById('detail-value').innerText = data.value;
+            document.getElementById('detail-verify').innerText = data.verify;
+        }
+    </script>
+</body>
+</html>
