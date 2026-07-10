@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 8 框架拆解与检索工程重塑 - 检索工程与知识组织</title>
+    <!-- Google Fonts: Source Serif 4 for headings, Inter for body and UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables - Warm Intellectual Minimalism */
+        :root {
+            --bg-base: #faf9f4; /* Bone-white base */
+            --surface: #ffffff; /* Pure-white elevation */
+            --surface-dim: #efeee9;
+            --text-primary: #141413; /* Deep Charcoal */
+            --text-muted: #464742; /* Muted Charcoal */
+            --accent: #D97757; /* Apricot Clay Accent */
+            --border: #e9e8e3; /* Low-contrast outline */
+            --border-hover: #dbdad5;
+            --success-bg: #edf6ef;
+            --success-text: #2e623a;
+            --error-bg: #ffdad6;
+            --error-text: #ba1a1a;
+            --font-serif: 'Source Serif 4', Georgia, serif;
+            --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --radius-sm: 4px;
+            --radius-lg: 8px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            padding: 40px 24px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 48px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 24px;
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 2.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            margin-bottom: 16px;
+        }
+
+        .philosophy-banner {
+            background-color: var(--surface);
+            border: 1px solid var(--accent);
+            border-left: 4px solid var(--accent);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            font-style: italic;
+            color: var(--text-primary);
+            margin-top: 16px;
+        }
+
+        h2 {
+            font-family: var(--font-serif);
+            font-size: 1.85rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            margin-top: 48px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background-color: var(--border);
+        }
+
+        /* Line Flow Section */
+        .pipeline-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+
+        .pipeline-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            overflow-x: auto;
+            padding: 20px 0;
+            gap: 12px;
+        }
+
+        .pipeline-step {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            text-align: center;
+            min-width: 140px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .pipeline-step.active {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background-color: var(--surface);
+            box-shadow: 0 2px 8px rgba(217, 119, 87, 0.08);
+        }
+
+        .pipeline-arrow {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* 6 Stage Interactive Section */
+        .stage-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 32px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .stage-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stage-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stage-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font-sans);
+        }
+
+        .stage-btn:hover {
+            border-color: var(--border-hover);
+            background-color: var(--bg-base);
+        }
+
+        .stage-btn.active {
+            border-left: 4px solid var(--accent);
+            border-color: var(--border-hover);
+            background-color: var(--bg-base);
+        }
+
+        .stage-meta {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        .stage-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stage-detail-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .detail-header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+
+        .detail-stage-num {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .detail-title {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .detail-block {
+            margin-bottom: 20px;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-text {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .detail-paper-tag {
+            display: inline-block;
+            background-color: var(--bg-base);
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-family: var(--font-sans);
+            margin-top: 4px;
+        }
+
+        /* Knowledge Tree / Evolution Flow */
+        .tree-container {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .tree-node-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tree-node {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            width: 320px;
+            text-align: center;
+            margin: 8px 0;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .tree-node:hover {
+            border-color: var(--accent);
+            background-color: var(--bg-base);
+        }
+
+        .tree-node-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .tree-node-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .tree-connector {
+            width: 1px;
+            height: 24px;
+            background-color: var(--accent);
+        }
+
+        /* Philosophy Card */
+        .philosophy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 768px) {
+            .philosophy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .philosophy-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+        }
+
+        .philosophy-card-title {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .philosophy-list {
+            list-style: none;
+        }
+
+        .philosophy-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .philosophy-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Terminology Table */
+        .table-container {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #fcfbfa;
+            color: var(--text-primary);
+        }
+
+        .term-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+        }
+
+        .term-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--bg-base);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .footer-action {
+            text-align: center;
+            margin-top: 48px;
+            padding: 32px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-confirm {
+            background-color: var(--text-primary);
+            color: var(--surface);
+            border: none;
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-confirm:hover {
+            background-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em;">Week 8 Overview & Framework</span>
+            <h1>📅 Week 8: 检索工程与知识组织 (Retrieval Engineering)</h1>
+            <p class="subtitle">打通从 Query 改写、精排过滤、假设对齐到知识图谱推理与工具检索的 Pipeline 重塑</p>
+            <div class="philosophy-banner">
+                “Retrieval 不只是'查文档'，而是'组织知识、组织能力、组织上下文'。” —— Week 8 核心设计思想
+            </div>
+        </header>
+
+        <!-- 1. 检索管道主线图 -->
+        <section class="pipeline-card">
+            <h2 style="margin-top: 0;">1. 检索 Pipeline 主线演进图</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.95rem;">
+                Week 8 不再是单纯探讨 Embedding 的余弦相似度，而是通过多个优化层级，构建一个逼近人类思维的检索工程 Pipeline：
+            </p>
+            <div class="pipeline-flow">
+                <div class="pipeline-step active">
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">1. 输入优化</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">Query Opt</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step active">
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">2. 表示对齐</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">Representation Opt</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step active">
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">3. 精排初筛</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">Retrieval Opt</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step active">
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">4. 关系提炼</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">Knowledge Org</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step active">
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">5. 能力匹配</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">Capability Org</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step active">
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">6. 决策引擎</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">Agent Context</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 深度六阶段交互看板 -->
+        <h2>2. 检索工程六大核心优化阶段</h2>
+        <div class="stage-grid">
+            <div class="stage-menu" id="stageMenu">
+                <button class="stage-btn active" data-stage="0">
+                    <div class="stage-meta">Phase 01</div>
+                    <div class="stage-title">优化 Query（Day 50）</div>
+                </button>
+                <button class="stage-btn" data-stage="1">
+                    <div class="stage-meta">Phase 02</div>
+                    <div class="stage-title">优化 Ranking（Day 51）</div>
+                </button>
+                <button class="stage-btn" data-stage="2">
+                    <div class="stage-meta">Phase 03</div>
+                    <div class="stage-title">优化 Representation（Day 52）</div>
+                </button>
+                <button class="stage-btn" data-stage="3">
+                    <div class="stage-meta">Phase 04</div>
+                    <div class="stage-title">优化 Knowledge（Day 53）</div>
+                </button>
+                <button class="stage-btn" data-stage="4">
+                    <div class="stage-meta">Phase 05</div>
+                    <div class="stage-title">知识组织：GraphRAG（Day 54）</div>
+                </button>
+                <button class="stage-btn" data-stage="5">
+                    <div class="stage-meta">Phase 06</div>
+                    <div class="stage-title">优化 Capability（Day 55）</div>
+                </button>
+            </div>
+            
+            <div class="stage-detail-panel" id="stageDetail">
+                <div class="detail-header">
+                    <div class="detail-stage-num">Phase 01 / Day 50</div>
+                    <div class="detail-title">优化 Query：查询改写与多路并行</div>
+                </div>
+                <div class="detail-block">
+                    <div class="detail-label">崩溃隐患 & 痛点场景</div>
+                    <div class="detail-text">
+                        <b>用户不会描述问题。</b> 用户输入的原始提问往往简短、主观。例如提问“为什么 Python 很慢？”，而专业知识库里的记录是“CPython 的全局解释器锁（GIL）”。这两者几乎没有共同词汇，向量相似度极低，导致检索严重<b>漏召回（Recall 下降）</b>。
+                    </div>
+                </div>
+                <div class="detail-block">
+                    <div class="detail-label">技术解决方案</div>
+                    <div class="detail-text">
+                        利用 LLM 将单句原始 Query 在保留原意的前提下，重写衍生出 3-5 句句式和词汇偏好各异的变体问题（Query Rewrite），并发请求向量库执行多路检索（Multi-Query），最终采用文档哈希（SHA-256）进行合并去重。这扩大了相似度匹配的词表覆盖。
+                    </div>
+                </div>
+                <div class="detail-block">
+                    <div class="detail-label">对应经典论文</div>
+                    <div class="detail-text">
+                        <span class="detail-paper-tag">Query2Doc</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 知识树递进图 -->
+        <h2>3. Week 8 知识演进递进树</h2>
+        <div class="tree-container">
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; text-align: center;">
+                检索工程的演进并非为了叠加功能，而是不断解决上一阶段暴露出来的结构性瓶颈：
+            </p>
+            <div class="tree-node-wrap">
+                <div class="tree-node">
+                    <div class="tree-node-title">User Query</div>
+                    <div class="tree-node-desc">用户输入原始提问</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">Query Rewrite / Multi-Query</div>
+                    <div class="tree-node-desc">解决用户表达不足，提升召回率 (Recall)</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">Embedding Vector Retrieval</div>
+                    <div class="tree-node-desc">粗筛召回（以速度和范围为导向）</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">Cross-Encoder Rerank</div>
+                    <div class="tree-node-desc">解决粗筛噪音与精度不足，提升准确率 (Precision)</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">HyDE (Hypothetical Embeddings)</div>
+                    <div class="tree-node-desc">解决 Question / Answer 的表达空间鸿沟</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">Knowledge Graph (Entity & Triples)</div>
+                    <div class="tree-node-desc">解决碎片 Chunk 间的关系割裂，建立逻辑链条</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">GraphRAG Community Summaries</div>
+                    <div class="tree-node-desc">解决超大图谱下的全局宏观推理 (Global Search)</div>
+                </div>
+                <div class="tree-connector"></div>
+                <div class="tree-node">
+                    <div class="tree-node-title">Tool Retrieval (MCP)</div>
+                    <div class="tree-node-desc">解决 Agent 拥有海量工具时的上下文耗尽与幻觉</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 工程思维转型 -->
+        <h2>4. 真正建立的工程思维：从 Prompt 到 Context Engineering</h2>
+        <div class="philosophy-grid">
+            <div class="philosophy-card">
+                <div class="philosophy-card-title">Prompt Engineering (提示词工程)</div>
+                <ul class="philosophy-list">
+                    <li><b>研究焦点</b>：如何让模型更好地<b>思考 (Thinking)</b>。</li>
+                    <li><b>局限性</b>：即使模型具备逻辑推导能力，如果灌入的上下文是残缺的、有噪的或无关的，推理结果依然会产生幻觉。</li>
+                    <li><b>定位</b>：属于模型计算的“内燃机优化”。</li>
+                </ul>
+            </div>
+            <div class="philosophy-card" style="border-color: var(--accent);">
+                <div class="philosophy-card-title" style="color: var(--accent);">Retrieval & Context Engineering (上下文工程)</div>
+                <ul class="philosophy-list">
+                    <li><b>研究焦点</b>：如何让模型获得完美的<b>上下文 (Context)</b>。</li>
+                    <li><b>核心逻辑</b>：现代 Agent 的实际表现高度依赖于 Context 的纯度和结构。在推理发生前，就动态为 LLM 裁剪、组织好符合高阶任务所需的图谱知识与工具列表。</li>
+                    <li><b>定位</b>：这是从“优化模型”走向“优化系统”的质变，也是现代工业级 Agent 落地的底座。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 5. 核心名词词典 -->
+        <h2>5. Week 8 核心技术名词释义</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">核心技术名词</th>
+                        <th style="width: 15%;">技术标签</th>
+                        <th style="width: 65%;">工业级作用与工程实质</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="term-name">Query Rewrite</td>
+                        <td><span class="term-tag">Query 优化</span></td>
+                        <td>保持原意的情况下对 Query 进行句式/词表衍生，解决用户词汇表达单一导致的漏检索。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Multi-Query</td>
+                        <td><span class="term-tag">检索并发</span></td>
+                        <td>并行生成多个改写 Query 执行并发向量库查找，合并各路结果，提升 Recall。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Bi-Encoder</td>
+                        <td><span class="term-tag">粗排双编码</span></td>
+                        <td>Query 与 Doc 独立向量化，计算效率极高，空间相似度只进行余弦相似度等浅层运算，适合初筛。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Cross-Encoder</td>
+                        <td><span class="term-tag">精排交叉编码</span></td>
+                        <td>Query 与 Doc 组合成单文本输入 Transformer 做全自注意力计算，相似度评估极精准，适合精筛。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">HyDE</td>
+                        <td><span class="term-tag">表示对齐</span></td>
+                        <td>Hypothetical Document Embeddings。先用大模型生成假设性答案，再向量化去检索真实文档，弥补问答表达鸿沟。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Triple (SPO)</td>
+                        <td><span class="term-tag">图谱基本单元</span></td>
+                        <td>三元组：主语 (Subject) - 谓语 (Predicate) - 宾语 (Object)，关系知识的最简表达形式。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Entity Resolution</td>
+                        <td><span class="term-tag">实体消歧</span></td>
+                        <td>在图构建中，将不同词汇（如“张三”、“张经理”、“老张”）识别、合并为同一个实体，决定了图谱质量。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Community Summary</td>
+                        <td><span class="term-tag">GraphRAG 核心</span></td>
+                        <td>利用 Leiden 算法对大图自动进行聚类，并使用 LLM 生成社区总结报告，赋予模型进行 Global Reasoning 的能力。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Local / Global Search</td>
+                        <td><span class="term-tag">检索路由</span></td>
+                        <td>Local 围绕局部实体拓扑邻域精细查询；Global 读取聚类 Community Summary 归纳趋势与宏观概括。</td>
+                    </tr>
+                    <tr>
+                        <td class="term-name">Tool Retrieval (MCP)</td>
+                        <td><span class="term-tag">能力检索</span></td>
+                        <td>在执行链前将工具 JSON Schema 向量化并动态召回 Top-K 工具注入 LLM，解决能力膨胀下的上下文爆炸与幻觉。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer-action">
+            <p style="margin-bottom: 16px; color: var(--text-muted); font-size: 0.9rem;">
+                已成功综合您提供的<b>检索工程哲学</b>。请点击确认，或在聊天界面告知，我们将正式进入 Day 50 (Query Rewrite) 的深入教学。
+            </p>
+            <button class="btn-confirm" onclick="confirmAlignment()">我已确认知识脉络，开启 Day 50 学习</button>
+        </div>
+    </div>
+
+    <script>
+        // Data for stages
+        const stageDetails = [
+            {
+                num: "Phase 01 / Day 50",
+                title: "优化 Query：查询改写与多路并行",
+                pain: "<b>用户不会描述问题。</b> 用户输入的原始提问往往简短且口语化。例如提问“为什么 Python 很慢？”，而专业知识库里的记录是“CPython 的全局解释器锁（GIL）”。这两者几乎没有共同词汇，直接相似度检索导致<b>漏召回（Recall 下降）</b>。",
+                solution: "利用 LLM 将原始 Query 在保留原意的前提下，衍生出 3-5 句句式和词汇侧重各异的变体问题（Query Rewrite），并发请求向量库执行多路检索（Multi-Query），最终采用文档哈希（SHA-256）进行合并去重。这扩大了相似度匹配的词表覆盖面。",
+                paper: "Query2Doc"
+            },
+            {
+                num: "Phase 02 / Day 51",
+                title: "优化 Ranking：双编码器与交叉编码重排序",
+                pain: "<b>初排召回包含大量无用噪音。</b> 向量数据库属于双编码器 (Bi-Encoder) 架构，Query 和 Doc 独立编码，只在检索时计算向量余弦角。这虽然速度极快，但无法捕捉深层语义交互，往往召回一堆字面相似但意思无关的 Chunks（干扰 Agent 注意力）。",
+                solution: "引入重排序阶段，构成两阶段检索 Pipeline。初筛召回 Top-50 Chunks 后，将其与 Query 成对输入交叉编码器 (Cross-Encoder，如本地 bge-reranker-base)。利用 Transformer 内部的全自注意力进行交互打分，截断并抛弃得分低于 0.3 的无关联 Chunk，确保输入给 Agent 的都是高纯度知识。",
+                paper: "Sentence-BERT, Cross-Encoder 系列"
+            },
+            {
+                num: "Phase 03 / Day 52",
+                title: "优化 Representation：假设性文档嵌入 (HyDE)",
+                pain: "<b>Question 和 Answer 的表示鸿沟。</b> 用户的“提问（Question）”向量和库中真实的“解答（Answer）”向量在拓扑空间上不在同一区域。例如“如何解决 Redis 连接失败”和“Redis Connection Refused 发生由于...”，两者空间映射不对称。",
+                solution: "使用 HyDE 算法。不直接 Embedding 提问，而是先用 LLM 根据提问生成一篇“假设性、通顺但可能包含微小幻觉”的模拟解答短文（Hypothetical Document），随后使用这篇模拟回答的 Embedding 向量去检索真实文档。这实现了“答案对齐答案”，填补了表示鸿沟。",
+                paper: "HyDE"
+            },
+            {
+                num: "Phase 04 / Day 53",
+                title: "优化 Knowledge：非结构化关系图谱提取与消歧",
+                pain: "<b>切片检索把完整因果网切成孤立碎片。</b> 传统的 Chunk RAG 系统只能检索出相似的片段，但是无法处理多跳关系推理。例如三个独立的 Chunk 分别提及“李四”、“腾讯”、“深圳”，但它们之间是否存在“李四在深圳腾讯工作”的关系，向量库无法表达。",
+                solution: "通过 Prompt 引导大模型提取非结构化文本中的“实体 (Entity) - 关系 (Relationship) - 实体 (Entity)”三元组，在 Python 侧构建内存图模型。重点解决<b>实体消歧 (Entity Resolution)</b>，将不同表述（如“老张”、“张总”）识别合并为同一个顶点，用图拓扑网络连接碎片化知识。",
+                paper: "Google Knowledge Graph, REBEL"
+            },
+            {
+                num: "Phase 05 / Day 54",
+                title: "知识组织：微软 GraphRAG 框架与社区摘要",
+                pain: "<b>图谱庞大导致 LLM 无法全局概括。</b> 当图谱节点膨胀至几万个时，LLM 根本无法一次性吞下整张图。这就导致 Agent 无法回答宏观总结性问题（例如：“这 20 万字文档里反映了系统什么核心安全缺陷？”）。",
+                solution: "GraphRAG 的核心创新在于<b>社区聚类 (Community Detection)</b>。利用 Leiden 算法对大图自动进行聚类分区，并使用 LLM 为每个分区生成“社区摘要 (Community Summary)”。Local Search 围绕局部实体检索其邻近节点，而 Global Search 直接聚合高层级的社区报告进行宏观趋势概括。",
+                paper: "Microsoft GraphRAG"
+            },
+            {
+                num: "Phase 06 / Day 55",
+                title: "优化 Capability：动态工具检索与 MCP 协议",
+                pain: "<b>工具膨胀带来的上下文爆炸与决策混乱。</b> 以前我们只检索文档（Knowledge），现在需要检索能力（Capability）。若 Agent 拥有数百个可用 API 工具，一股脑全部加载进 LLM 会耗尽上下文空间，并导致模型因决策混乱产生工具调用幻觉 (Hallucinate Tool Calls)。",
+                solution: "引入工具检索 (Tool Retrieval)。将工具的标准 JSON Schema（如 Anthropic MCP 协议描述）转化为文本进行向量化并存入向量库。在 Agent 启动 ReAct 循环前，先检索当前意图最相关的 Top-3 工具，动态注入大模型 Tools 列表，从源头杜绝幻觉。",
+                paper: "Gorilla, ToolLLM"
+            }
+        ];
+
+        // Interaction Setup
+        const buttons = document.querySelectorAll('.stage-btn');
+        const detailPanel = document.getElementById('stageDetail');
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+
+                const idx = parseInt(button.getAttribute('data-stage'));
+                const stage = stageDetails[idx];
+
+                detailPanel.innerHTML = `
+                    <div class="detail-header">
+                        <div class="detail-stage-num">${stage.num}</div>
+                        <div class="detail-title">${stage.title}</div>
+                    </div>
+                    <div class="detail-block">
+                        <div class="detail-label">崩溃隐患 & 痛点场景</div>
+                        <div class="detail-text">${stage.pain}</div>
+                    </div>
+                    <div class="detail-block">
+                        <div class="detail-label">技术解决方案</div>
+                        <div class="detail-text">${stage.solution}</div>
+                    </div>
+                    <div class="detail-block">
+                        <div class="detail-label">对应经典论文</div>
+                        <div class="detail-text">
+                            <span class="detail-paper-tag">${stage.paper}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+
+        function confirmAlignment() {
+            alert('您已确认最新的 Week 8 知识脉络！请在终端或聊天窗口回复：“我已确认，可以开始 Day 50 学习。”');
+        }
+    </script>
+</body>
+</html>
