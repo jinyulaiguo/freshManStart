@@ -138,21 +138,24 @@ class APILightweightReranker:
         ]
 
         try:
-            # 限制 max_tokens 为 10，并使用低温度 0.1 保证打分确定性，减少时延
+            # 限制 max_tokens 为 600 以给推理模型足够的思维链空间，并使用低温度 0.1 保证打分确定性
             res = await self.llm_client.request_llm(
                 messages=messages,
                 temperature=0.1,
-                max_tokens=10
+                max_tokens=600
             )
             
-            # 清洗大模型输出
+            # 清洗大模型输出，剥离思维链
+            import re
             cleaned = res.strip()
+            if "<think>" in cleaned:
+                cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL).strip()
+                
             # 过滤反引号 markdown 块
             if cleaned.startswith("`") or cleaned.endswith("`"):
                 cleaned = cleaned.replace("`", "")
             
             # 如果大模型吐出额外汉字，在此只提取首个可能的浮点数
-            import re
             match = re.search(r"\d+(\.\d+)?", cleaned)
             if match:
                 score = float(match.group())
