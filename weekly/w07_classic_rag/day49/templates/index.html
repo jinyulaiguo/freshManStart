@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 研究助手 - 规章制度经典 RAG 系统</title>
+    <!-- 引入 Google Fonts 字体系统，完美遵循衬线与无衬线对比风格 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================
+           Warm Intellectual Minimalism 配色与排版规范
+           ========================================== */
+        :root {
+            --bg-color: #faf9f4; /* 骨白 Bone-white */
+            --surface-color: #ffffff; /* 纯白 Pure-white */
+            --border-color: #e9e8e3; /* 低对比度边框 */
+            --text-primary: #141413; /* 深炭黑 Charcoal */
+            --text-secondary: #464742; /* On-surface variant */
+            --accent-color: #D97757; /* 杏粘土色 Clay accent */
+            --error-bg: #ffdad6;
+            --error-text: #ba1a1a;
+            --success-bg: #edf6ef;
+            --success-text: #2e623a;
+            --status-dim: #90908a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* 标题排版 (Source Serif 4 衬线体) */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        header h1 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* 卡片基础样式 */
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px; /* 容器大圆角 0.5rem */
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h2 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        /* 左侧面板：文档管理与状态 */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 4px; /* 小元素圆角 0.25rem */
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .status-memory {
+            background-color: #f0e9e4;
+            color: #7c5a43;
+        }
+
+        .status-docker {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        /* 拖拽上传区域 */
+        .upload-zone {
+            border: 2px dashed #c7c7c0;
+            border-radius: 6px;
+            padding: 30px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-color);
+            background-color: #faf9f5;
+        }
+
+        .upload-zone p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* 正在解析的后台任务进度样式 */
+        .task-container {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #fcfcf9;
+        }
+
+        .task-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .task-filename {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+
+        .task-progress-pct {
+            color: var(--accent-color);
+        }
+
+        .task-progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e9e8e3;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .task-progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--accent-color);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .task-card.success .task-progress-fill {
+            background-color: var(--success-text);
+        }
+
+        .task-card.error .task-progress-fill {
+            background-color: var(--error-text);
+        }
+
+        .task-detail {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .task-card.error .task-detail {
+            color: var(--error-text);
+        }
+
+        /* 已上传文档列表 */
+        .doc-list {
+            margin-top: 8px;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .doc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            padding: 8px 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .doc-item-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+
+        .doc-item-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            background-color: #e3e3de;
+            border-radius: 2px;
+        }
+
+        /* 右侧：问答区域 */
+        .chat-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        textarea {
+            flex: 1;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            resize: none;
+            height: 60px;
+            outline: none;
+            background-color: var(--surface-color);
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--text-primary);
+        }
+
+        button {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 0 24px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--text-primary);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background-color: #2e2f2a;
+        }
+
+        .btn-primary:disabled {
+            background-color: #e3e3de;
+            color: var(--status-dim);
+            cursor: not-allowed;
+        }
+
+        /* 问答输出展现 */
+        .output-card {
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* 可观测状态机显示 */
+        .pipeline-status {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .step-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--status-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+
+        .step-badge.active {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background-color: #fdf5f2;
+        }
+
+        .step-badge.done {
+            border-color: var(--success-text);
+            color: var(--success-text);
+            background-color: var(--success-bg);
+        }
+
+        /* 聊天文本流样式 */
+        .answer-content {
+            font-size: 15px;
+            color: var(--text-primary);
+            line-height: 1.8;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+
+        .answer-content p {
+            margin-bottom: 12px;
+        }
+
+        /* 引用高亮标注 */
+        .citation-tag {
+            color: var(--accent-color);
+            font-weight: 600;
+            font-size: 12px;
+            cursor: help;
+            padding: 1px 4px;
+            background-color: #fdf5f2;
+            border-radius: 2px;
+            margin: 0 2px;
+            border: 1px solid #fedcd2;
+        }
+
+        /* 引用对照审计面板 */
+        .audit-panel {
+            border-top: 1px dashed var(--border-color);
+            padding-top: 16px;
+            margin-top: 8px;
+            display: none; /* 默认隐藏 */
+        }
+
+        .audit-panel h3 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .audit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .audit-item {
+            padding: 12px;
+            background-color: #fdfdfb;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .audit-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            border-bottom: 1px solid #f6f5f0;
+            padding-bottom: 4px;
+        }
+
+        .audit-meta-id {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .audit-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            background-color: var(--bg-color);
+            padding: 8px;
+            border-radius: 4px;
+            font-style: italic;
+        }
+
+        /* 提示通知消息 */
+        .toast {
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+        }
+
+        .toast-info {
+            background-color: var(--bg-color);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .toast-success {
+            background-color: var(--success-bg);
+            border-color: #cce3d3;
+            color: var(--success-text);
+        }
+
+        .toast-error {
+            background-color: var(--error-bg);
+            border-color: #f7c3be;
+            color: var(--error-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页眉标题 -->
+        <header>
+            <div>
+                <h1>Policy RAG Assistant</h1>
+                <p>带自适应语义分块、大模型重排与可信引用脚注的经典合规 RAG 面板</p>
+            </div>
+            <div id="qdrant-status-container">
+                <span id="qdrant-status" class="status-badge status-memory">探测中...</span>
+            </div>
+        </header>
+
+        <!-- 吐司提示条 -->
+        <div id="toast-message" class="toast toast-info"></div>
+
+        <!-- 双栏主布局 -->
+        <div class="layout">
+            
+            <!-- 左侧：文档库管理 -->
+            <div class="sidebar">
+                <!-- 上传卡片 -->
+                <div class="card">
+                    <h2>文档入库管理</h2>
+                    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto; display: block; color: var(--text-secondary)">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <p>点击或拖拽本地文件至此</p>
+                        <p style="font-size: 11px; color: var(--status-dim);">支持 PDF, HTML, TXT</p>
+                        <input type="file" id="file-input" multiple accept=".pdf,.html,.txt">
+                    </div>
+                </div>
+
+                <!-- 正在解析的进度列表 -->
+                <div class="card" id="parsing-card" style="display: none;">
+                    <h2>正在解析的文档</h2>
+                    <div class="task-container" id="task-items">
+                        <!-- 动态装填处理任务 -->
+                    </div>
+                </div>
+
+                <!-- 已入库列表 -->
+                <div class="card">
+                    <h2>当前已入库文档</h2>
+                    <ul class="doc-list" id="document-items">
+                        <li style="color: var(--status-dim); font-size: 12px; text-align: center; padding: 12px;">暂无入库文档</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 右侧：合规问答主区 -->
+            <div class="chat-section">
+                <!-- 提问输入框 -->
+                <div class="card">
+                    <div class="input-group">
+                        <textarea id="query-input" placeholder="请输入您的专业合规性查询（例如：公司正式员工带薪年假怎么规定？）..."></textarea>
+                        <button id="send-btn" class="btn-primary">发送查询</button>
+                    </div>
+                </div>
+
+                <!-- 结果流式输出区 -->
+                <div class="card output-card">
+                    <!-- 可观测状态指示器 -->
+                    <div class="pipeline-status" id="steps-container">
+                        <span class="step-badge" id="step-retrieve">🔍 Qdrant 初筛</span>
+                        <span class="step-badge" id="step-rerank">⚖️ LLM 重排</span>
+                        <span class="step-badge" id="step-generate">✍️ 强约束生成</span>
+                        <span class="step-badge" id="step-citation">📑 脚注解析</span>
+                    </div>
+
+                    <!-- 答案流式内容 -->
+                    <div class="answer-content" id="answer-text">等待发送问题...</div>
+
+                    <!-- 溯源审计列表 -->
+                    <div class="audit-panel" id="audit-container">
+                        <h3>📄 原始文献溯源审计表</h3>
+                        <div class="audit-list" id="audit-items"></div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JS 控制逻辑 -->
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const queryInput = document.getElementById('query-input');
+        const sendBtn = document.getElementById('send-btn');
+        const answerText = document.getElementById('answer-text');
+        const documentItems = document.getElementById('document-items');
+        const qdrantStatus = document.getElementById('qdrant-status');
+        const auditContainer = document.getElementById('audit-container');
+        const auditItems = document.getElementById('audit-items');
+        const toast = document.getElementById('toast-message');
+        
+        // 后台解析相关 DOM 节点
+        const parsingCard = document.getElementById('parsing-card');
+        const taskItems = document.getElementById('task-items');
+
+        // 状态机步骤节点
+        const steps = {
+            retrieve: document.getElementById('step-retrieve'),
+            rerank: document.getElementById('step-rerank'),
+            generate: document.getElementById('step-generate'),
+            citation: document.getElementById('step-citation')
+        };
+
+        // 全局轮询定时器
+        let statusPollInterval = null;
+
+        // 页面初始化：加载配置状态与已入库文件
+        window.addEventListener('DOMContentLoaded', async () => {
+            await fetchStatus();
+            await fetchDocuments();
+            // 启动时主动检测一次有无遗留处理任务
+            pollParsingStatus();
+        });
+
+        // 拖拽上传支持
+        const uploadZone = document.querySelector('.upload-zone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                uploadZone.style.borderColor = 'var(--accent-color)';
+                uploadZone.style.backgroundColor = '#faf9f5';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                uploadZone.style.borderColor = '#c7c7c0';
+                uploadZone.style.backgroundColor = 'transparent';
+            }, false);
+        });
+
+        uploadZone.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadFiles(fileInput.files);
+            }
+        });
+
+        // 显示通知吐司
+        function showToast(text, type = 'info') {
+            toast.innerText = text;
+            toast.className = `toast toast-${type}`;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 5000);
+        }
+
+        // 获取后端状态与 Qdrant 运行模式
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                if (data.is_memory_mode) {
+                    qdrantStatus.innerText = 'SQLite 内存模式 (本地 Docker 未启动)';
+                    qdrantStatus.className = 'status-badge status-memory';
+                } else {
+                    qdrantStatus.innerText = 'Qdrant Docker 实例已连接 (127.0.0.1)';
+                    qdrantStatus.className = 'status-badge status-docker';
+                }
+            } catch (e) {
+                qdrantStatus.innerText = '连接服务器失败';
+                qdrantStatus.className = 'status-badge status-memory';
+            }
+        }
+
+        // 获取已入库的文件列表
+        async function fetchDocuments() {
+            try {
+                const response = await fetch('/api/documents');
+                const data = await response.json();
+                documentItems.innerHTML = '';
+                
+                if (data.length === 0) {
+                    documentItems.innerHTML = '<li style="color: var(--status-dim); font-size: 12px; text-align: center; padding: 12px;">暂无入库文档</li>';
+                    return;
+                }
+
+                data.forEach(doc => {
+                    const li = document.createElement('li');
+                    li.className = 'doc-item';
+                    li.innerHTML = `
+                        <span class="doc-item-name" title="${doc.name}">${doc.name}</span>
+                        <span class="doc-item-badge">${doc.type.toUpperCase()}</span>
+                    `;
+                    documentItems.appendChild(li);
+                });
+            } catch (e) {
+                console.error("加载文件列表异常: ", e);
+            }
+        }
+
+        // 异步多文档上传建库 (非阻塞，上传后交给后台处理并轮询)
+        async function uploadFiles(files) {
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            showToast("正在上传文件到服务器，后台将异步解析...", "info");
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showToast("文件上传成功，已加入解析队列，请在左侧查看解析进度！", "success");
+                    // 启动轮询获取实时进度
+                    startPolling();
+                } else {
+                    showToast(`文件上传失败: ${data.detail}`, "error");
+                }
+            } catch (e) {
+                showToast(`上传请求出错: ${e.message}`, "error");
+            }
+        }
+
+        // 开启轮询解析任务进度
+        function startPolling() {
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+            }
+            statusPollInterval = setInterval(pollParsingStatus, 1500);
+            pollParsingStatus(); // 立即执行一次
+        }
+
+        // 轮询后端 /api/upload/status 并高保真展示文件解析进度条
+        async function pollParsingStatus() {
+            try {
+                const response = await fetch('/api/upload/status');
+                const tasks = await response.json();
+                
+                const taskKeys = Object.keys(tasks);
+                if (taskKeys.length === 0) {
+                    parsingCard.style.display = 'none';
+                    if (statusPollInterval) {
+                        clearInterval(statusPollInterval);
+                        statusPollInterval = null;
+                    }
+                    return;
+                }
+
+                // 显示“正在解析”卡片面板
+                parsingCard.style.display = 'flex';
+                taskItems.innerHTML = '';
+
+                let activeTasksCount = 0;
+
+                taskKeys.forEach(filename => {
+                    const task = tasks[filename];
+                    const card = document.createElement('div');
+                    card.className = `task-card ${task.status}`;
+                    
+                    // 构造任务渲染内容
+                    card.innerHTML = `
+                        <div class="task-info">
+                            <span class="task-filename" title="${task.filename}">${task.filename}</span>
+                            <span class="task-progress-pct">${task.progress}%</span>
+                        </div>
+                        <div class="task-progress-bar">
+                            <div class="task-progress-fill" style="width: ${task.progress}%"></div>
+                        </div>
+                        <div class="task-detail">
+                            ${task.status === 'error' ? '❌ ' + task.error_message : task.detail}
+                        </div>
+                    `;
+                    taskItems.appendChild(card);
+
+                    // 统计还在运行中的任务
+                    if (task.status === 'processing' || task.status === 'pending') {
+                        activeTasksCount++;
+                    }
+                });
+
+                // 只要有任何任务入库成功或状态改变，刷新左侧已入库文件列表
+                await fetchDocuments();
+
+                // 若没有活动的处理中任务，则停止轮询
+                if (activeTasksCount === 0) {
+                    if (statusPollInterval) {
+                        clearInterval(statusPollInterval);
+                        statusPollInterval = null;
+                    }
+                    // 延迟 4 秒后清空展示，让用户能够看清 100% 入库成功状态
+                    setTimeout(async () => {
+                        // 清空后端任务进度，需要发送 DELETE 或在后端提供重置
+                        // 为了精简，我们这里只在前端在没有活动任务时隐藏它
+                        if (!statusPollInterval) {
+                            parsingCard.style.display = 'none';
+                        }
+                    }, 4000);
+                }
+            } catch (e) {
+                console.error("轮询处理进度出错:", e);
+            }
+        }
+
+        // 发送 RAG 问答请求（流式解析）
+        sendBtn.addEventListener('click', async () => {
+            const query = queryInput.value.trim();
+            if (!query) {
+                showToast("请输入有效查询内容！", "error");
+                return;
+            }
+
+            // 重置状态与面板
+            sendBtn.disabled = true;
+            answerText.innerHTML = '';
+            auditContainer.style.display = 'none';
+            auditItems.innerHTML = '';
+            
+            Object.values(steps).forEach(badge => badge.className = 'step-badge');
+
+            try {
+                // 使用 POST fetch 获取流响应
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    answerText.innerHTML = `<span style="color: var(--error-text)">请求失败: ${errData.detail || '未知服务器错误'}</span>`;
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                // 读出 ReadableStream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    // 保留最后未完的一行在 buffer 里
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        const trimmed = line.strip ? line.strip() : line.trim();
+                        if (!trimmed) continue;
+                        
+                        if (trimmed.startsWith('data:')) {
+                            const dataStr = trimmed.slice(5).trim();
+                            if (dataStr === '[DONE]') break;
+
+                            try {
+                                const payload = JSON.parse(dataStr);
+                                handleServerMessage(payload);
+                            } catch (e) {
+                                console.error("解析流式行出错:", e, trimmed);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                answerText.innerHTML = `<span style="color: var(--error-text)">网络通信发生异常: ${e.message}</span>`;
+            } finally {
+                sendBtn.disabled = false;
+            }
+        });
+
+        // 响应状态机与流数据处理
+        function handleServerMessage(data) {
+            const type = data.type;
+            
+            if (type === 'status') {
+                const text = data.content;
+                if (text.includes("向量化用户查询并执行初筛")) {
+                    steps.retrieve.className = 'step-badge active';
+                } else if (text.includes("大模型 Cross-Encoder 重排")) {
+                    steps.retrieve.className = 'step-badge done';
+                    steps.rerank.className = 'step-badge active';
+                } else if (text.includes("流式请求大模型生成答案")) {
+                    steps.rerank.className = 'step-badge done';
+                    steps.generate.className = 'step-badge active';
+                } else if (text.includes("答案生成结束")) {
+                    steps.generate.className = 'step-badge done';
+                    steps.citation.className = 'step-badge active';
+                }
+            } 
+            else if (type === 'delta') {
+                const text = data.content;
+                // 原生插入大模型生成的文本片段
+                answerText.innerText += text;
+            } 
+            else if (type === 'final') {
+                steps.citation.className = 'step-badge done';
+                
+                const finalAnswer = data.answer;
+                const citations = data.citations;
+
+                // 重新渲染正文，将包含的 [doc_xxx:page] 匹配替换为高亮 HTML 标签
+                renderAnswerWithCitations(finalAnswer);
+
+                // 渲染可信引用对照面板
+                if (citations && citations.length > 0) {
+                    auditItems.innerHTML = '';
+                    citations.forEach((cite, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'audit-item';
+                        item.innerHTML = `
+                            <div class="audit-meta">
+                                <span class="audit-meta-id">[${idx + 1}] [${cite.doc_id}:${cite.page}]</span>
+                                <span>来源文献: ${cite.source_file} (页码: ${cite.page})</span>
+                            </div>
+                            <div class="audit-text">${cite.content}</div>
+                        `;
+                        auditItems.appendChild(item);
+                    });
+                    auditContainer.style.display = 'block';
+                }
+            }
+        }
+
+        // 高亮替换生成的回答中的脚注
+        function renderAnswerWithCitations(text) {
+            // 正则规则：匹配 [doc_xxx:page] 并在 HTML 里替换为可交互 span
+            const pattern = /\[(doc_[a-fA-F0-9]+)\s*:\s*(\d+)\s*\]/g;
+            
+            // 安全转义 HTML 避免注入，随后将脚注变成特定高亮标签
+            let escaped = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            const rendered = escaped.replace(pattern, (match, docId, page) => {
+                return `<span class="citation-tag" title="引用文献 ID: ${docId}, 物理页码: ${page}">${match}</span>`;
+            });
+
+            answerText.innerHTML = rendered;
+        }
+    </script>
+</body>
+</html>
