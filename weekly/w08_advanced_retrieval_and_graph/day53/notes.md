@@ -77,3 +77,34 @@ class MemoryGraph:
         if o not in self.adj_list[s][p]:
             self.adj_list[s][p].append(o)
 ```
+
+---
+
+## 4. 工业级生产落地架构与组件说明
+在真实的工业界应用场景中，内存邻接表（字典）仅适用于沙箱演示。面对高并发、海量实体以及多维扩展属性，工业级知识图谱检索系统会引入以下成熟组件：
+
+### 4.1 属性图模型 (Property Graph Model)
+单纯的 SPO 三元组（RDF）缺乏表达上下文细节的能力。生产中通常采用**属性图**：
+*   **节点属性 (Node Properties)**：除了唯一 ID 和类型 Label，还可挂载丰富的字典信息（如 `年龄`, `所属部门`, `更新时间`）。
+*   **边属性 (Edge Properties)**：关系边本身可挂载属性。例如，在“A ──[ 助手 ]──► B”上，可附加 `startTime: "2024-01-01"` 和 `confidence: 0.95` 等度量值。
+
+### 4.2 存储层：分布式图数据库 (Graph Databases)
+*   **Neo4j**：目前图 RAG 场景的首选适配器。支持强大的 Cypher 查询语言，对属性图支持完备，有成熟的 LlamaIndex/LangChain 图存储连接器。
+*   **Nebula Graph**：国产高并发分布式图数据库，适合金融风控等千亿级顶点与边的超大规模场景。
+*   **FalkorDB / RedisGraph**：基于内存矩阵乘法运算的高性能图数据库，适合对在线推理首字时延（TTFT）有严苛要求的场景。
+
+### 4.3 控制与提取层：本体规范 (Ontology Schema) 与 Pydantic
+*   为了防止大模型提取出失控的关系类型，通常利用 `pydantic` 定义强类型的实体关系协议契约。
+*   在调用大模型接口时开启 **Structured Outputs / JSON Mode**，强制大模型的输出完美对齐预定义的 JSON Schema，防止格式崩溃。
+
+### 4.4 实体链接与消歧引擎 (Entity Linking & Resolution)
+*   只靠 Prompt 无法在千万级库中进行实体消歧。
+*   **语义与文本混合对齐**：系统将 LLM 提炼出的临时实体向量化，在权威实体库中进行**向量余弦相似度检索**与**编辑距离（Levenshtein Distance）**双重匹配。计算通过后，将“张警官”强行映射并合并至标准节点 `Entity_ID: 10025 (张三)` 处，并将其别名属性更新为 `aliases: ["张队长", "张警员", "老张"]`，从而保证图拓扑连通性的高度收敛。
+
+### 4.5 图-向量混合存储与检索 (Graph-Vector Hybrid Store)
+*   Neo4j 5+ 版本支持在节点属性上建立**向量索引 (Vector Index)**。
+*   **混合检索流程**：
+    1. **向量定位**：用户提问 $\to$ 计算提问 Embedding $\to$ 在图数据库中向量检索最相似的 Top-K 节点。
+    2. **图拓扑向外扩散 (Subgraph Expansion)**：以这些节点为起点，在数据库内部执行 Cypher 语句，检索一阶/二阶邻近节点及边属性。
+    3. **上下文拼装**：将向量 Chunk 文本与召回的关系图谱结合，为大模型拼装超大上下文，实现逻辑与细节的融合解答。
+
