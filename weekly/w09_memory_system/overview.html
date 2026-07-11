@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 9: 记忆工程 (Memory Engineering) 整体总览看板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f4; /* 骨白 */
+            --surface-color: #ffffff; /* 纯白 */
+            --primary-text: #141413; /* 深炭黑 */
+            --secondary-text: #464742; /* 变体炭黑 */
+            --accent-color: #D97757; /* 杏粘土色 */
+            --accent-hover: #c56546;
+            --border-color: #e9e8e3;
+            --border-hover: #d2d0c6;
+            --highlight-bg: #f5f2e9;
+            
+            --font-serif: 'Source Serif 4', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            padding: 2.5rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: var(--font-serif);
+            font-weight: 500;
+            color: var(--primary-text);
+            margin-bottom: 0.75rem;
+        }
+
+        h1 {
+            font-size: 2.3rem;
+            letter-spacing: -0.02em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            margin-top: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: var(--secondary-text);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        /* 知识链路网格 */
+        .path-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .path-step {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .path-step:hover, .path-step.active {
+            border-color: var(--accent-color);
+            background-color: var(--highlight-bg);
+        }
+
+        .step-num {
+            font-family: var(--font-serif);
+            color: var(--accent-color);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* 链路指示箭头 */
+        @media (min-width: 769px) {
+            .path-step:not(:last-child)::after {
+                content: '→';
+                position: absolute;
+                right: -0.8rem;
+                top: 35%;
+                color: var(--accent-color);
+                font-size: 1.2rem;
+                z-index: 10;
+            }
+        }
+
+        /* 二分栏区域 */
+        .columns {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 850px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 交互微引擎卡片 */
+        .engine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .engine-item {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .engine-item:hover, .engine-item.active {
+            border-color: var(--accent-color);
+            transform: translateX(4px);
+        }
+
+        .engine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .engine-title {
+            font-family: var(--font-serif);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .engine-badge {
+            font-size: 0.75rem;
+            background-color: var(--highlight-bg);
+            border: 1px solid var(--border-color);
+            color: var(--secondary-text);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        /* 侧边信息展示 */
+        .info-panel {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.75rem;
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+
+        .pain-section {
+            background-color: #ffdad6;
+            color: #ba1a1a;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            border-left: 4px solid #ba1a1a;
+        }
+
+        .solution-section {
+            background-color: #edf6ef;
+            color: #2e623a;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 0.85rem;
+            border-left: 4px solid #2e623a;
+        }
+
+        /* 全景 Pipeline 简图 */
+        .pipeline-diagram {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            overflow-x: auto;
+        }
+
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 800px;
+            padding: 1rem 0;
+        }
+
+        .flow-node {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            width: 140px;
+        }
+
+        .flow-node.active {
+            border-color: var(--accent-color);
+            background-color: var(--highlight-bg);
+        }
+
+        .flow-arrow {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .section-desc {
+            font-style: italic;
+            color: var(--secondary-text);
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Week 9 学习启动前置：记忆工程可视化总览</h1>
+        <p class="section-desc">本页面为 Week 9 记忆工程 (Memory Engineering) 的整体总览看板，清晰罗列本周 7 天的知识链路、核心微引擎功能及解决的系统痛点。</p>
+    </header>
+
+    <!-- 每日知识链路串联 -->
+    <section class="card">
+        <h2>知识链路图 (Daily Knowledge Linkage)</h2>
+        <p>每一天的学习都是在为最后的实战拼装“积木”。点击各个单日步骤，可以在下方查看该模块的定位。</p>
+        
+        <div class="path-grid">
+            <div class="path-step active" onclick="highlightStep('day57', 'Day 57: 记忆层级契约设计', '设计 sensory, working, long-term 记忆的三层抽象接口。这是整个系统架构的**协议根基**。')">
+                <div class="step-num">Day 57</div>
+                <div class="step-name">层级协议根基</div>
+            </div>
+            <div class="path-step" onclick="highlightStep('day58', 'Day 58: 短期压缩滑窗', '实现非阻塞的异步摘要总结，在 Token 溢出时原地替换会话，避免 Context 崩溃。这是**工作记忆的守护者**。')">
+                <div class="step-num">Day 58</div>
+                <div class="step-name">异步摘要压缩</div>
+            </div>
+            <div class="path-step" onclick="highlightStep('day59', 'Day 59: 实体偏好提取', '利用大模型增量提取结构化的 Facts，支持多租户隔离存入向量库。这是**长期记忆的沉淀器**。')">
+                <div class="step-num">Day 59</div>
+                <div class="step-name">结构事实提取</div>
+            </div>
+            <div class="path-step" onclick="highlightStep('day60', 'Day 60: 记忆消歧去重', '定期解决新旧事实的时序冲突，利用遗忘曲线指数级衰减旧记忆。这是**记忆库的清道夫**。')">
+                <div class="step-num">Day 60</div>
+                <div class="step-name">时序一致性消解</div>
+            </div>
+            <div class="path-step" onclick="highlightStep('day62', 'Day 62: 自适应决策路由', '用轻量分类层前置判断是否访问长期记忆、外部 RAG 或直接回答。这是**首字时延的加速器**。')">
+                <div class="step-num">Day 62</div>
+                <div class="step-name">三路自适应路由</div>
+            </div>
+            <div class="path-step" onclick="highlightStep('day61', 'Day 61: 关系持久化建模', '设计 SQLite 关系模型，实现 Repository 模式，支持断电无缝状态恢复。这是**物理存储适配层**。')">
+                <div class="step-num">Day 61</div>
+                <div class="step-name">物理持久化</div>
+            </div>
+            <div class="path-step" onclick="highlightStep('day63', 'Day 63: 综合实战装配', '将 5 大微引擎在 main.py 中进行无逻辑解耦组装，实现带 RAG + 长期记忆的心理研究助手。这是**终极拼装墙**。')">
+                <div class="step-num">Day 63</div>
+                <div class="step-name">积木拼接实战</div>
+            </div>
+        </div>
+
+        <div id="step-description-box" style="padding: 0.75rem 1rem; background-color: var(--highlight-bg); border-radius: 4px; font-size: 0.9rem; border-left: 3px solid var(--accent-color);">
+            <strong>Day 57: 记忆层级契约设计</strong> — 设计 sensory, working, long-term 记忆的三层抽象接口。这是整个系统架构的**协议根基**。
+        </div>
+    </section>
+
+    <!-- 核心微引擎模块拆解 -->
+    <h2>微引擎架构拆解 (Micro-Engines Analysis)</h2>
+    <p class="section-desc">系统被拆解为五个核心“微引擎”，每个模块只承担单一职责，物理隔离并配备独立的单元测试。点击查看痛点与解决方案：</p>
+
+    <div class="columns">
+        <!-- 左侧引擎列表 -->
+        <div class="engine-list">
+            <div class="engine-item active" onclick="showEngine('memory-router')">
+                <div class="engine-header">
+                    <div class="engine-title">1. Memory Router (记忆决策路由)</div>
+                    <span class="engine-badge">前置过滤</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">决定用户 Query 的检索流向，阻断无关检索。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('buffer-memory')">
+                <div class="engine-header">
+                    <div class="engine-title">2. Buffer Memory Manager (短期压缩)</div>
+                    <span class="engine-badge">工作上下文</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">基于非阻塞并发后台任务自动将旧历史消息压缩为摘要段落。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('fact-extractor')">
+                <div class="engine-header">
+                    <div class="engine-title">3. Fact Extractor (原子事实提取)</div>
+                    <span class="engine-badge">增量沉淀</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">精准剥离用户对话中沉淀下来的结构化永久偏好与事实。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('memory-consolidator')">
+                <div class="engine-header">
+                    <div class="engine-title">4. Memory Consolidator (时序一致消解)</div>
+                    <span class="engine-badge">记忆清道夫</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">执行记忆合并、去重以及基于遗忘曲线的时间权重衰减。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('persistence-store')">
+                <div class="engine-header">
+                    <div class="engine-title">5. Persistence Store (物理持久适配层)</div>
+                    <span class="engine-badge">数据库接入</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">处理 Session 反序列化重构，支持系统在意外中断后断电恢复。</p>
+            </div>
+        </div>
+
+        <!-- 右侧信息卡片 -->
+        <div class="info-panel" id="info-panel">
+            <h3 id="panel-title" style="color: var(--accent-color); margin-bottom: 1rem;">Memory Router</h3>
+            
+            <div class="pain-section">
+                <strong>🚨 解决的痛点问题 (Pain Point)</strong>
+                <p id="panel-pain" style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
+                    如果无差别地对每次用户提问（如日常寒暄 “你好”）执行向量检索，将直接导致首字延迟（TTFT）大幅飙升、API 产生大量冗余扣费，并因为引入无关的噪声上下文而导致模型回答出现幻觉。
+                </p>
+            </div>
+
+            <div class="solution-section">
+                <strong>✅ 具体做了什么 (What it does)</strong>
+                <p id="panel-solution" style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
+                    利用轻量化 Prompt 分类机制拦截 Query，智能路由分流至：`MEM`（仅召回个人偏好）、`RAG`（检索外部知识库）或 `NONE`（直接会话）。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最终实战项目全景流程图 -->
+    <h2>Day 63 最终实战项目全景 Pipeline (Project Flow)</h2>
+    <div class="pipeline-diagram">
+        <div class="flow-container">
+            <div class="flow-node active" id="node-input">1. User Query</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-router">2. Router Filter</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-retrieve">3. Multi-Retrieval</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-infer">4. LLM Response</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-bg">5. Async Archive</div>
+        </div>
+        <p style="font-size: 0.85rem; text-align: center; margin-top: 1rem; color: var(--secondary-text);">数据在主流程流转的同时，后台并发线程并行执行 **Facts 抽取消歧** 与 **会话 Token 归约监控** 并通过 **Repository** 异步存盘。</p>
+    </div>
+
+    <script>
+        const enginesData = {
+            'memory-router': {
+                title: '1. Memory Router (记忆决策路由)',
+                pain: '如果无差别地对每次用户提问（如日常寒暄 “你好”）执行向量检索，将直接导致首字延迟（TTFT）大幅飙升、API 产生大量冗余扣费，并因为引入无关的噪声上下文而导致模型回答出现幻觉。',
+                solution: '利用轻量化 Prompt 分类机制前置拦截用户 Query，智能路由分流至：`MEM`（仅召回个人偏好）、`RAG`（检索外部知识库）或 `NONE`（跳过所有检索直接会话）。'
+            },
+            'buffer-memory': {
+                title: '2. Buffer Memory Manager (短期压缩)',
+                pain: '会话上下文拉长后，大模型因输入过长导致处理延迟增加且账单高昂。直接截断又会丢掉早期的关键核心设定（如开头说的 “我常用 Go 进行开发”）。',
+                solution: '在后台实时计算已占用的 Token。一旦消息 Token 累积量超过 2000，就在后台并发非阻塞地触发大模型生成之前的历史摘要（Summary），并在内存与磁盘中自动用摘要段落替换掉已被淘汰的旧消息，实现用户前端零感知的无缝滑窗。'
+            },
+            'fact-extractor': {
+                title: '3. Fact Extractor (原子事实提取)',
+                pain: '传统的 Summary 总结机制由于信息在多轮提炼中的稀释作用（Summary Drift），导致极其细节的用户实体偏好极易失真或丢失；且每次更新都需要重写整段摘要，计算与网络开销高昂。',
+                solution: '实时监控交互数据流，通过精确的 JSON Schema 拦截，仅仅将具有长期保留价值的原子事实提取为扁平的结构化键值（Facts），极易进行精准的向量召回与细粒度 CRUD。'
+            },
+            'memory-consolidator': {
+                title: '4. Memory Consolidator (时序一致消解)',
+                pain: '用户的偏好不是静止的，当用户产生时序相反的表达（如“前天喜欢 Java”与“今天转学 Python”），向量库会同时召回这两条冲突记忆，导致上下文发生逻辑撕裂与决策混乱。',
+                solution: '定期以批量作业方式运行消歧。首先计算召回事实的语义对立性，识别冲突事实；再结合艾宾浩斯遗忘曲线对记忆条目附加时间衰减权重，智能执行旧记忆的“物理/逻辑擦除”或“原地覆盖更新”。'
+            },
+            'persistence-store': {
+                title: '5. Persistence Store (物理持久适配层)',
+                pain: 'Agent 实例在并发部署或遇到系统崩溃/断网时，保存在内存中的上下文与活跃 Session 瞬间化为乌有，破坏交互体验。',
+                solution: '通过 Repository 设计模式与 SQLite 的 Schema 建模（会话表、历史表、事实表），将内存中的活跃状态与 SQLite 异步数据库保持 Write-Through 同步，支持在系统重启时传入 `session_id` 瞬间反序列化重构上下文。'
+            }
+        };
+
+        function showEngine(key) {
+            const items = document.querySelectorAll('.engine-item');
+            items.forEach(item => item.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+
+            const data = enginesData[key];
+            document.getElementById('panel-title').innerText = data.title;
+            document.getElementById('panel-pain').innerText = data.pain;
+            document.getElementById('panel-solution').innerText = data.solution;
+        }
+
+        function highlightStep(stepId, title, desc) {
+            const steps = document.querySelectorAll('.path-step');
+            steps.forEach(step => step.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            document.getElementById('step-description-box').innerHTML = `<strong>${title}</strong> — ${desc}`;
+            
+            // 联动 Pipeline 高亮演示
+            const nodes = ['node-input', 'node-router', 'node-retrieve', 'node-infer', 'node-bg'];
+            nodes.forEach(n => document.getElementById(n).classList.remove('active'));
+            
+            if (stepId === 'day57' || stepId === 'day61') {
+                document.getElementById('node-input').classList.add('active');
+            } else if (stepId === 'day62') {
+                document.getElementById('node-router').classList.add('active');
+            } else if (stepId === 'day59') {
+                document.getElementById('node-retrieve').classList.add('active');
+            } else if (stepId === 'day58' || stepId === 'day60') {
+                document.getElementById('node-bg').classList.add('active');
+            } else if (stepId === 'day63') {
+                nodes.forEach(n => document.getElementById(n).classList.remove('active'));
+            }
+        }
+    </script>
+</body>
+</html>

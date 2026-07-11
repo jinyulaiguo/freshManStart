@@ -1,77 +1,256 @@
-# 📅 Week 9: 多层级记忆系统
+# 📅 Week 9: 多层级记忆系统 (Memory Engineering)
 
-> **第九周目标**：精通多层级记忆系统的生命周期设计，掌握基于 Token 自动监测的滑动摘要压缩，设计长期偏好提取与向量化存储机制，攻克跨会话持久化与数据库整合，实现具备防幻觉与自适应路由的高可用知识记忆 Agent。
+> **第九周目标**：精通多层级记忆系统的生命周期设计，掌握基于 Token 计量的非阻塞滑动摘要压缩，设计基于实体的长期事实提取与多租户隔离向量化存储机制，实现支持断电状态恢复与自适应路由的高可用记忆增强 Agent系统。
 > 
-> **✅ 里程碑二达成**：本周将打通“知识（RAG）”与“记忆（Memory）”的壁垒，实现“**AI 研究助手**”的第二个里程碑版本——一个具备跨会话持久化历史偏好、自动摘要压缩和按需知识检索的完整 Agent 系统。
+> **✅ 里程碑二达成**：打通外部知识检索（RAG）与动态交互记忆（Memory）的状态流转，构建一个具备长时会话缓存、增量事实更新与时序一致性消解的生产级 AI 助手核心组件。
 
 ---
 
-## Day 57：记忆系统分层架构：各级记忆生命周期与空骨架设计
-*   **核心知识点**：
-    *   **记忆层次划分**：
-        1. **感觉记忆（Sensory Memory）**：API 瞬时请求响应中的元数据，无持久化价值；
-        2. **短期记忆（Short-term/Working Memory）**：当前 Session 内的滑动对话上下文消息列表；
-        3. **长期记忆（Long-term Memory）**：跨越 Session 的持久事实（Facts）与用户偏好（Preferences）向量空间。
-    *   **语义缓存（Semantic Cache）**的核心原理与存储层。
-*   **Agent 核心关联**：如果 Agent 缺乏分层记忆系统，其在面对复杂的长期任务时，要么会在重启时瞬间遗忘所有历史偏好，要么会在单次会话中因塞满历史闲聊而耗尽上下文资源。
-*   **🎯 过关验证标准**：能够用 UML 类图或流程图清晰画出分层记忆的流转和状态归约路径。在 Python 中设计出 `ShortTermMemory`、`LongTermMemory` 和 `SemanticCache` 三个底层类的契约协议和接口方法的空实现。
+## 🛠 记忆工程知识演进路线 (Research Timeline)
+
+```text
+[2023.04] Generative Agents (记忆检索与反思)
+       │
+       ▼
+[2023.10] MemGPT (虚拟内存管理 OS-style)
+       │
+       ▼
+[2024.01] MemoryBank (遗忘曲线与时间衰减)
+       │
+       ▼
+[2024.07] Mem0 (实体级别事实增量更新)
+       │
+       ▼
+[2025.03] Letta (多进程高可用状态管理服务)
+       │
+       ▼
+[2026.06] OpenAI & Anthropic (原生持久记忆与上下文缓存)
+```
 
 ---
 
-## Day 58：短期记忆管理：基于滑动窗口与 Token 计量的会话压缩
-*   **核心知识点**：
-    *   **会话滚动截断（Sliding Window Session）**：基于 Token 计数动态截取最近 $N$ 轮消息。
-    *   **异步摘要压缩（Asynchronous Summarization）**：在不阻塞主流程的前提下，当短期消息 Token 数量达到阈值时，自动在后台触发大模型任务生成之前历史消息的精炼摘要（Summary）。
-    *   **上下文拼接机制**：在下一轮调用前，将当前生成的“摘要段落”作为环境背景（Context）动态拼入 System Prompt 头部。
-*   **Agent 核心关联**：对话链条拉长后，直接裁剪会粗暴丢失前期的关键事实（如用户在开头说的“我的主语言是 Python”）。使用异步摘要压缩能确保既节省 Token 成本，又能将之前的关键信息抽象化保留在记忆中。
-*   **🎯 过关验证标准**：编写一个 `BufferMemoryManager` 类。模拟用户连续发起 20 次对话，当消息累积 Token 超过 2000 时，自动触发大模型执行异步摘要提取，使用生成的摘要段落代替已淘汰的消息，而让用户在前端无感知。
+## Day 57：记忆系统分层架构：Working/Sensory/Long-term 契约设计
+
+### 1. 痛点场景 (Problem)
+无记忆分层的 Agent 无法区分交互周期中的**瞬时上下文**（如请求延迟、Token 开销等元数据）与**持久偏好**。每次会话冷启动，模型都会丢失全部历史偏好；而试图保留全量历史消息，又会导致会话 Context 物理窗口迅速溢出，且带来极高昂的 Token 费用。
+
+### 2. 核心理论 (Theory)
+将 Agent 记忆按生命周期划分为不同层次：
+*   **感觉记忆 (Sensory Memory)**：瞬时请求响应中的临时特征数据，无存盘价值。
+*   **工作记忆/短期记忆 (Working Memory)**：当前会话（Session）内流转的滑动消息列表。
+*   **长期记忆 (Long-term Memory)**：跨越会话周期的结构化事实（Facts）与语义向量空间。
+*   **语义缓存 (Semantic Cache)**：基于语义相似度判定拦截重复请求，提高系统的并发时延性能。
+
+### 3. 经典论文 (Foundation Papers)
+*   **MemGPT** (2023)：首次提出将操作系统虚拟内存机制（L1/L2 缓存与 Disk 映射）引入 LLM 状态管理。
+
+### 4. 最新研究 (Latest Research)
+*   **MemoryOS** / **LongMem** (2025-2026)：面向长文本交互的操作系统级持久化与高时效状态管理。
+
+### 5. 工程实践 (Practice)
+*   **类型契约定义**：在 Python 中使用 `typing.Protocol` 定义 `ShortTermMemory`、`LongTermMemory` 和 `SemanticCache` 的基类接口。
+*   **🎯 过关验证标准**：通过编写接口定义类，规范各级记忆的读写操作（`read/write/clear`），要求完成无具体实现的代码框架设计，并通过静态类型检查（`mypy`）。
+
+### 6. Pipeline 映射 (Pipeline Mapping)
+```text
+User Input ──> [Semantic Cache] ──> [Working Memory] ──> [Long-term Memory (Vector)]
+```
 
 ---
 
-## Day 59：长期记忆系统：用户实体偏好提取与向量化存储
-*   **核心知识点**：
-    *   **实体与事实提取（Fact Extraction）**：利用大模型在后台实时分析当前对话，提取出用户显式表达的永久事实和偏好（如“我常用 Go 语言进行开发” $\to$ `{"user_prefer_language": "Go"}`）。
-    *   **偏好向量化与关联**：将提取到的事实偏好转化为语义向量，并写入长期记忆数据库集合中，支持根据用户 ID 进行隔离。
-*   **Agent 核心关联**：长期记忆能为 Agent 带来“用户粘性”和“千人千面”的服务能力。即使时隔数天，Session 被完全重建，Agent 也能通过用户的当前问题，向量召回其历史关联的个性化事实偏好。
-*   **🎯 过关验证标准**：实现一个 `FactExtractor` 模块。输入多轮混合了日常闲聊和用户偏好陈述的对话历史，让大模型准确提取出键值对格式的永久事实，并将其写入本地 Qdrant 的长期偏好集合中。
+## Day 58：短期记忆管理：滑动窗口、Token 监测与后台异步摘要压缩
+
+### 1. 痛点场景 (Problem)
+随着对话轮次增加，Working Memory 中的 Token 数量呈线性增长。若直接粗暴截断，会导致前期核心语义（如用户偏好、当前开发主语言）彻底丢失；若在主线程同步调用大模型进行总结，会造成显著的阻塞时延，降低首字延迟（TTFT）体验。
+
+### 2. 核心理论 (Theory)
+*   **会话滚动截断 (Sliding Window)**：基于 Token 计数动态截取最近 $N$ 轮消息。
+*   **非阻塞异步摘要 (Asynchronous Summarization)**：在主流程响应的后台，通过异步任务（`asyncio.create_task`）触发大模型执行历史归约，生成轻量级上下文摘要（Summary），避免主交互阻塞。
+*   **摘要漂移控制 (Summary Drift)**：设计递归总结的深度上限与高保真 Prompt，降低信息迭代过程中的信息损耗。
+
+### 3. 经典论文 (Foundation Papers)
+*   **MemGPT (Context Management)**：LLM 显式触发上下文交换与分页逻辑。
+
+### 4. 最新研究 (Latest Research)
+*   **Activation Beacon** & **StreamingLLM** (2024-2025)：利用 KV Cache 压缩与注意力滑窗实现无限流式输入。
+
+### 5. 工程实践 (Practice)
+*   **异步归约管道**：编写 `BufferMemoryManager` 类，检测消息 Token 超过 2000 时，在不阻塞主交互流的前提下异步启动 LLM 执行 Summary 归约，自动替换已截断的历史消息。
+*   **🎯 过关验证标准**：设计一个模拟对话脚本。测试 20 次交互下，后台成功触发至少 2 次异步摘要压缩，主交互通道依然保持非阻塞流式输出。
+
+### 6. Pipeline 映射 (Pipeline Mapping)
+```text
+[New Message] ──> (Token Check) ──> [Buffer Memory] ──> (Limit Exceeded) ──> [Async Summary Generator]
+```
 
 ---
 
-## Day 60：记忆压缩、冗余合并与时序冲突解决机制
-*   **核心知识点**：
-    *   **记忆冗余与冲突判定**：分析长期记忆数据库中新旧事实的对立关系（例如：前天提到“我最喜欢 Java”，今天提到“我已转行写 Python 且厌恶 Java”）。
-    *   **大模型记忆清理与整合（Memory Consolidation）**：利用大模型定期扫描用户的事实列表，剔除冗余项，解决时序冲突。
-    *   **衰减系数（Time-decay Weighting）**：基于时间戳计算长期事实的匹配权重，优先采信最新的偏好。
-*   **Agent 核心关联**：长期记忆如果只增不减，很快会充满矛盾的信息，导致 Agent 决策时无所适从（发生冲突）。记忆整合与冲突解决是维护长期数据库纯净度的关键清道夫。
-*   **🎯 过关验证标准**：编写一个 `MemoryConsolidator` 控制类。向其输入一组带有冲突和冗余的模拟事实数据（包含不同时间戳），经过大模型逻辑处理后，成功输出一份去重、无冲突且完全采信最新事实的规范偏好列表。
+## Day 59：长期记忆系统：实体级别 Facts 实时抽取与多租户隔离存储
+
+### 1. 痛点场景 (Problem)
+大段的会话摘要（Summary）存在严重的信息稀释问题。如果要精确获取用户对某技术栈的偏好，让模型在数千字摘要中检索往往不够可靠。此外，多用户并发环境下，若没有进行严格的租户隔离（Tenant Isolation），极易引发越权读取与记忆数据交叉污染。
+
+### 2. 核心理论 (Theory)
+*   **事实提取 (Fact Extraction)**：使用结构化 JSON Schema 约束，从日常对话中抽取出独立的原子事实实体（例如：`likes python`，`hates java`）。
+*   **多租户隔离 (Multi-Tenant Isolation)**：基于 `user_id` 和 `session_id` 对长期记忆数据库进行物理隔离。
+*   **增量式 Facts 沉淀**：避免对全部对话进行重写，仅对新增的 Facts 进行分析并向量化沉淀。
+
+### 3. 经典论文 (Foundation Papers)
+*   **Generative Agents** (2023)：提出人物画像（Profile）与偏好的持久化管理机制。
+
+### 4. 最新研究 (Latest Research)
+*   **Mem0** (2024-2025)：摒弃 Summary 模式，开创了基于实体的增量 facts 提取与关系图记忆（Entity-centric Memory）。
+
+### 5. 工程实践 (Practice)
+*   **多路 Facts 写入器**：实现 `FactExtractor` 模块。大模型从对话历史中提取结构化事实，并将其写入支持 `user_id` 过滤的本地 Qdrant 数据库中。
+*   **🎯 过关验证标准**：向 Facts 处理器输入 5 轮包含闲聊与技术偏好的对话，验证大模型提取出至少 3 条结构化事实，且 Qdrant 能够使用 `Filter` 基于 `user_id` 准确召回。
+
+### 6. Pipeline 映射 (Pipeline Mapping)
+```text
+User Message ──> [Fact Extractor] ──> [JSON Filter] ──> [Qdrant DB (Partition by user_id)]
+```
 
 ---
 
-## Day 61：跨会话持久化与关系型数据库 SQLite 存储整合
-*   **核心知识点**：
-    *   **异步关系型数据库操作**：利用 `aiosqlite` 异步连接并操作本地关系型数据库 SQLite。
-    *   **数据库 Schema 实体建模**：设计 `sessions`（会话元数据表）、`messages`（消息历史表）、`memories`（长期记忆/事实表）三张核心关系表。
-    *   **Session 重构与反序列化**：当用户传入特定的 `session_id` 时，系统自动从 SQLite 中读取并反序列化出该 Session 的历史上下文。
-*   **Agent 核心关联**：在多用户生产环境下，任何进程重启或网络中断都不应该导致用户数据的凭空消失。将短期会话、消息堆栈和提取出的长期事实规范持久化存储在关系型数据库中，是企业级应用落地的及格线。
-*   **🎯 过关验证标准**：设计并执行 SQL 建表语句，使用 `aiosqlite` 实现一个 `PersistenceStore` 辅助类。编写单元测试验证：能够将对话消息及时的持久化存盘；当进程重启后，通过传入 `session_id` 能够 100% 还原内存中的对话状态。
+## Day 60：时序一致性：记忆去重、冲突判定与时间衰减消解机制
+
+### 1. 痛点场景 (Problem)
+长期记忆随时间推移必然会产生矛盾与过时。例如：用户前天声明“我常用 Java 开发项目”，今天却声明“我已完全转入 Python 且厌恶 Java”。若不解决此冲突，向量数据库同时召回这两条事实会导致大模型输入上下文前后矛盾，出现严重幻觉。
+
+### 2. 核心理论 (Theory)
+*   **记忆整合 (Memory Consolidation)**：后台进程定期合并高度相关的 Facts。
+*   **冲突判定 (Conflict Detection)**：定义语义互斥逻辑，识别新旧事实的时序对立。
+*   **时间衰减 (Time-decay Weighting)**：结合艾宾浩斯遗忘曲线，为记忆条目计算时间衰减系数，最新事实具备最高权重级别。
+
+### 3. 经典论文 (Foundation Papers)
+*   **Reflexion** (2023)：通过环境反馈进行反思（Self-Reflection）并修改长期规划记忆。
+
+### 4. 最新研究 (Latest Research)
+*   **Memory Editing** & **Knowledge Updating** (2024-2026)：关于大模型外挂知识库实时编辑与权重遗忘的论文。
+
+### 5. 工程实践 (Practice)
+*   **冲突消解算法**：编写 `MemoryConsolidator` 控制类。当提取出新的 Fact 时，比对已有 Fact 集合，计算相似度与对立度，使用 LLM 对冲突记录进行“原地更新”或“逻辑删除”。
+*   **🎯 过关验证标准**：输入两条互斥的模拟事实（带有时戳），运行消解逻辑后，确保旧有互斥事实被物理覆盖或逻辑注销，只保留最新事实状态。
+
+### 6. Pipeline 映射 (Pipeline Mapping)
+```text
+[New Fact] ──> [Conflict Detector] ──> (Semantic Similarity & Time Stamp) ──> [Consolidated Facts]
+```
 
 ---
 
-## Day 62：记忆路由（Memory Router）与动态召回过滤
-*   **核心知识点**：
-    *   **检索决策路由（Retrieval Routing）**：利用轻量级分类模型或特定 Prompt，分析用户当前请求是否需要读取长期记忆库、是否需要执行 RAG 知识检索，还是仅需短期会话应答。
-    *   **相似度分值阈值判定（Threshold Filtering）**：对向量数据库召回的长期记忆进行分数过滤，抛弃低于阈值的无意义匹配。
-*   **Agent 核心关联**：并不是每一次普通提问（如“今天天气如何”）都需要去扫描长期事实向量库和 RAG 知识库，盲目的全检索会产生巨额的 TTFT 响应延迟，路由机制能做到“按需触发检索”，最大化提升时延效能。
-*   **🎯 过关验证标准**：实现一个 `MemoryRouter`。输入多组不同的指令样本，让大模型分析并输出路由 decision（选项为：`MEM` / `RAG` / `NONE`），验证对偏好问题、专业技术问题和日常闲聊的路由命中准确率大于 90%。
+## Day 62：自适应决策：记忆路由（Memory Router）与 RAG 多路检索协同
+
+### 1. 痛点场景 (Problem)
+并非所有简单的交互请求（如“你好”、“今天天气怎么样”）都需要去扫描 Qdrant 的长期偏好数据库以及专业 RAG 知识库。无差别的全量向量检索会导致首字延迟（TTFT）增加、API 费用暴涨，同时检索回的无关文档会干扰大模型生成。
+
+### 2. 核心理论 (Theory)
+*   **检索分类决策 (Retrieval Routing)**：前置路由分类层，基于轻量分类 Prompt 对用户意图进行识别分类（分流至：`MEM` / `RAG` / `NONE`）。
+*   **协同召回重排**：若判定为混合意图，执行多路检索（从 RAG 检索知识，从 Memory 检索偏好），并对召回条目进行归一化阈值过滤（Threshold Filtering）。
+
+### 3. 经典论文 (Foundation Papers)
+*   **Self-RAG** / **Corrective RAG (CRAG)** (2023-2024)：提出了自适应检索路由以及基于反思符（Critique Tokens）的信息修正思想。
+
+### 4. 最新研究 (Latest Research)
+*   **Adaptive Retrieval** (2024-2025)：基于 Query 复杂度和不确定性动态控制检索深度与路线的研究。
+
+### 5. 工程实践 (Practice)
+*   **多路决策路由**：实现 `MemoryRouter` 模块。对输入的 Query 进行特征识别，返回 `MEM`（仅读取个性化偏好）、`RAG`（检索外部知识）或 `NONE`（直接会话）。
+*   **🎯 过关验证标准**：通过 20 条测试样本，覆盖闲聊、个人偏好、技术知识三大维度，验证路由准确率达 90% 以上，且在路由为 `NONE` 时，查询总耗时（Rtt）降低 80% 以上。
+
+### 6. Pipeline 映射 (Pipeline Mapping)
+```text
+                   ┌──> [MEM Branch] ──> Qdrant (Facts)
+User Query ──> [Memory Router] ──> [RAG Branch] ──> VectorDB (Docs)
+                   └──> [NONE Branch] ──> Directly to LLM
+```
 
 ---
 
-## Day 63：第九周综合实战（✅ 里程碑二）：具备 RAG + 长期记忆持久化的跨会话 AI 心理慰藉 Agent
-*   **综合实战任务**：**打通知识增强与记忆系统，构建一个能够断电恢复、具备情感持久记忆和专业问答能力的研究助理雏形。**
-    *   **系统功能要求**：
-        1. 必须使用 Day 61 的 `aiosqlite` 进行底层数据持久化；
-        2. 短期记忆控制在 2000 Token 内，超出时自动在后台触发 Day 58 的异步会话摘要压缩并保存；
-        3. 实时提取用户的“个人事实偏好”并写入长期偏好表，执行 Day 60 的去重与冲突合并；
-        4. 重新建立新会话（启动新 Session ID）时，系统自动执行 Day 62 的 `MemoryRouter`；若路由到记忆或知识分支，从 Qdrant 中检索用户之前的长期偏好和第七周上传的专业 PDF 知识，并完成 Lost in the Middle 重排拼接；
-        5. 对话全流程以流式 SSE 格式在终端打印，包含完美的引用脚注，并输出完整审计日志。
-    *   **🎯 交付件**：全套 SQLite 表定义脚本、记忆路由类、长期事实处理逻辑代码、整合了第七周 RAG 组件的 Agent 主服务代码、单元测试及模拟跨天对话的完整日志。
+## Day 61：底层持久化：关系型 Schema 建模与多 Session 状态重构
+
+### 1. 痛点场景 (Problem)
+若 Agent 的会话数据和 Facts 仅保留在内存（In-Memory）或单纯依赖外部 API 的 Session（如 OpenAI 云端云存储），当网络断连、容器重启或模型服务发生降级时，将导致历史交互上下文完全遗失。必须在本地实现可靠的数据持久化，提供断电恢复和多 Session 隔离的能力。
+
+### 2. 核心理论 (Theory)
+*   **异步关系型数据库操作**：利用 `aiosqlite` 异步连接并操作本地关系型数据库 SQLite。
+*   **数据库 Schema 实体建模**：设计 `sessions`（会话元数据表）、`messages`（消息历史表）、`memories`（长期记忆/事实表）三张核心关系表。
+*   **Session 重构与反序列化**：当用户传入特定的 `session_id` 时，系统自动从 SQLite 中读取并反序列化出该 Session 的历史上下文。
+*   **存储与状态解耦**：将存储逻辑抽离为 `Repository` 适配层，解耦核心业务 Pipeline 与具体的数据库引擎细节。
+
+### 3. 最新研究 (Latest Research)
+*   **Letta (Agentic OS State Management)** (2025)：将 Agent 状态从应用层剥离为独立的、符合 ACID 特性的持久化数据库服务的工业级最佳工程实践。
+
+### 4. 工程实践 (Practice)
+*   **异步数据库适配器**：使用 `aiosqlite` 编写 `PersistenceStore` 辅助类，支持多 Session 的写入、读取与上下文反序列化重构。
+*   **🎯 过关验证标准**：编写单元测试，模拟多 Session 写入并突发进程中断（主动退出事件循环）。进程重启后，传入相同 `session_id` 能 100% 重构恢复先前的短期上下文与 Facts 关联。
+
+### 6. Pipeline 映射 (Pipeline Mapping)
+```text
+LLM State / Facts ──> [Repository Interface] ──> [aiosqlite Adapter] ──> SQLite DB
+```
+
+---
+
+## Day 63：第九周综合实战（✅ 里程碑二）：多层级记忆工程 Pipeline 拼装实战
+
+### 1. 实战目标 (Goal)
+自底向上组装第九周开发的所有记忆引擎模块，构建一个支持断电无缝恢复、具备长时个性化偏好事实沉淀、并能根据问题自动路由 RAG 专业知识的**生产级 AI 研究助手引擎**。
+
+### 2. 架构设计 (System Architecture)
+```text
+                         ┌────────────────────────────────────┐
+                         │             User Input             │
+                         └─────────────────┬──────────────────┘
+                                           │
+                                           ▼
+                                ┌────────────────────┐
+                                │   Memory Router    │
+                                └──────┬──┬──┬───────┘
+                                       │  │  │
+                    ┌──────────────────┘  │  └──────────────────┐
+                    ▼                     ▼                     ▼
+             [ MEM Route ]          [ RAG Route ]         [ NONE Route ]
+            Qdrant (Facts)         VectorDB (Docs)       (Skip Retrieval)
+                    │                     │                     │
+                    └──────────────┬──────┴─────────────────────┘
+                                   │
+                                   ▼
+                         ┌────────────────────┐
+                         │  Context Assembler │ <─── [ Working Memory ]
+                         └─────────────────┬──┘      (From SQLite Store)
+                                           │
+                                           ▼
+                         ┌────────────────────┐
+                         │   LLM Inference    │
+                         └─────────────────┬──┘
+                                           │
+                                           ▼
+                      ┌────────────────────┴────────────────────┐
+                      │    Background Async Tasks (Non-blocking)│
+                      └────────────┬────────────────────────────┘
+                                   │
+                     ┌─────────────┴─────────────┐
+                     ▼                           ▼
+          [ Fact Extraction ]         [ Buffer Memory Manager ]
+          (JSON Constraints)          (Token Metric > 2000)
+                     │                           │
+                     ▼                           ▼
+          [ Memory Consolidation ]    [ Async Summary Generator ]
+          (Conflict Resolution)                  │
+                     │                           ▼
+                     └─────────────┬─────────────┘
+                                   │
+                                   ▼
+                         ┌────────────────────┐
+                         │ SQLite Store       │ (Sessions, Messages, Facts)
+                         └────────────────────┘
+```
+
+### 3. 🎯 交付件与验收标准 (Deliverables)
+1. **完整 SQLite Schema 定义脚本**。
+2. **微引擎物理隔离组件**：
+   - 包含 `BufferMemoryManager`（异步摘要滑窗）、`FactExtractor` 与 `MemoryConsolidator`（事实冲突消解）、`MemoryRouter`（自适应三路路由）。
+3. **主装配入口 `main.py`**：仅负责生命周期的事件流与各微引擎的装配（`Repository` 模式），不包含具体的路由或冲突处理逻辑。
+4. **完整的单元测试套件**：覆盖记忆路由准确率、时序冲突消解正确性及 Session 断电恢复。
+5. **模拟跨 Session 对话的详细审计日志（Stdout Log）**。
