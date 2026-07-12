@@ -1,24 +1,32 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Week 9: 记忆工程 (Memory Engineering) 整体总览看板</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --bg-color: #faf9f4; /* 骨白 */
-            --surface-color: #ffffff; /* 纯白 */
-            --primary-text: #141413; /* 深炭黑 */
-            --secondary-text: #464742; /* 变体炭黑 */
-            --accent-color: #D97757; /* 杏粘土色 */
+            --bg-color: #faf9f4;
+            /* 骨白 */
+            --surface-color: #ffffff;
+            /* 纯白 */
+            --primary-text: #141413;
+            /* 深炭黑 */
+            --secondary-text: #464742;
+            /* 变体炭黑 */
+            --accent-color: #D97757;
+            /* 杏粘土色 */
             --accent-hover: #c56546;
             --border-color: #e9e8e3;
             --border-hover: #d2d0c6;
             --highlight-bg: #f5f2e9;
-            
+
             --font-serif: 'Source Serif 4', Georgia, serif;
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
@@ -40,7 +48,10 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        h1, h2, h3, h4 {
+        h1,
+        h2,
+        h3,
+        h4 {
             font-family: var(--font-serif);
             font-weight: 500;
             color: var(--primary-text);
@@ -102,7 +113,8 @@
             transition: all 0.2s ease;
         }
 
-        .path-step:hover, .path-step.active {
+        .path-step:hover,
+        .path-step.active {
             border-color: var(--accent-color);
             background-color: var(--highlight-bg);
         }
@@ -163,7 +175,8 @@
             transition: all 0.2s ease;
         }
 
-        .engine-item:hover, .engine-item.active {
+        .engine-item:hover,
+        .engine-item.active {
             border-color: var(--accent-color);
             transform: translateX(4px);
         }
@@ -266,6 +279,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <header>
@@ -277,39 +291,47 @@
     <section class="card">
         <h2>知识链路图 (Daily Knowledge Linkage)</h2>
         <p>每一天的学习都是在为最后的实战拼装“积木”。点击各个单日步骤，可以在下方查看该模块的定位。</p>
-        
+
         <div class="path-grid">
-            <div class="path-step active" onclick="highlightStep('day57', 'Day 57: 记忆层级契约设计', '设计 sensory, working, long-term 记忆的三层抽象接口。这是整个系统架构的**协议根基**。')">
+            <div class="path-step active"
+                onclick="highlightStep('day57', 'Day 57: 记忆层级契约设计', '设计 sensory, working, long-term 记忆的三层抽象接口。这是整个系统架构的**协议根基**。')">
                 <div class="step-num">Day 57</div>
                 <div class="step-name">层级协议根基</div>
             </div>
-            <div class="path-step" onclick="highlightStep('day58', 'Day 58: 短期压缩滑窗', '实现非阻塞的异步摘要总结，在 Token 溢出时原地替换会话，避免 Context 崩溃。这是**工作记忆的守护者**。')">
+            <div class="path-step"
+                onclick="highlightStep('day58', 'Day 58: 短期压缩滑窗', '实现非阻塞的异步摘要总结，在 Token 溢出时原地替换会话，避免 Context 崩溃。这是**工作记忆的守护者**。')">
                 <div class="step-num">Day 58</div>
                 <div class="step-name">异步摘要压缩</div>
             </div>
-            <div class="path-step" onclick="highlightStep('day59', 'Day 59: 实体偏好提取', '利用大模型增量提取结构化的 Facts，支持多租户隔离存入向量库。这是**长期记忆的沉淀器**。')">
+            <div class="path-step"
+                onclick="highlightStep('day59', 'Day 59: 实体偏好提取', '利用大模型增量提取结构化的 Facts，支持多租户隔离存入向量库。这是**长期记忆的沉淀器**。')">
                 <div class="step-num">Day 59</div>
                 <div class="step-name">结构事实提取</div>
             </div>
-            <div class="path-step" onclick="highlightStep('day60', 'Day 60: 记忆消歧去重', '定期解决新旧事实的时序冲突，利用遗忘曲线指数级衰减旧记忆。这是**记忆库的清道夫**。')">
+            <div class="path-step"
+                onclick="highlightStep('day60', 'Day 60: 记忆消歧去重', '定期解决新旧事实的时序冲突，利用遗忘曲线指数级衰减旧记忆。这是**记忆库的清道夫**。')">
                 <div class="step-num">Day 60</div>
                 <div class="step-name">时序一致性消解</div>
             </div>
-            <div class="path-step" onclick="highlightStep('day62', 'Day 62: 自适应决策路由', '用轻量分类层前置判断是否访问长期记忆、外部 RAG 或直接回答。这是**首字时延的加速器**。')">
+            <div class="path-step"
+                onclick="highlightStep('day62', 'Day 62: 自适应决策路由', '用轻量分类层前置判断是否访问长期记忆、外部 RAG 或直接回答。这是**首字时延的加速器**。')">
                 <div class="step-num">Day 62</div>
                 <div class="step-name">三路自适应路由</div>
             </div>
-            <div class="path-step" onclick="highlightStep('day61', 'Day 61: 关系持久化建模', '设计 SQLite 关系模型，实现 Repository 模式，支持断电无缝状态恢复。这是**物理存储适配层**。')">
+            <div class="path-step"
+                onclick="highlightStep('day61', 'Day 61: 关系持久化建模', '设计 SQLite 关系模型，实现 Repository 模式，支持断电无缝状态恢复。这是**物理存储适配层**。')">
                 <div class="step-num">Day 61</div>
                 <div class="step-name">物理持久化</div>
             </div>
-            <div class="path-step" onclick="highlightStep('day63', 'Day 63: 综合实战装配', '将 5 大微引擎在 main.py 中进行无逻辑解耦组装，实现带 RAG + 长期记忆的心理研究助手。这是**终极拼装墙**。')">
+            <div class="path-step"
+                onclick="highlightStep('day63', 'Day 63: 综合实战装配', '将 5 大微引擎在 main.py 中进行无逻辑解耦组装，实现带 RAG + 长期记忆的心理研究助手。这是**终极拼装墙**。')">
                 <div class="step-num">Day 63</div>
                 <div class="step-name">积木拼接实战</div>
             </div>
         </div>
 
-        <div id="step-description-box" style="padding: 0.75rem 1rem; background-color: var(--highlight-bg); border-radius: 4px; font-size: 0.9rem; border-left: 3px solid var(--accent-color);">
+        <div id="step-description-box"
+            style="padding: 0.75rem 1rem; background-color: var(--highlight-bg); border-radius: 4px; font-size: 0.9rem; border-left: 3px solid var(--accent-color);">
             <strong>Day 57: 记忆层级契约设计</strong> — 设计 sensory, working, long-term 记忆的三层抽象接口。这是整个系统架构的**协议根基**。
         </div>
     </section>
@@ -365,7 +387,7 @@
         <!-- 右侧信息卡片 -->
         <div class="info-panel" id="info-panel">
             <h3 id="panel-title" style="color: var(--accent-color); margin-bottom: 1rem;">Memory Router</h3>
-            
+
             <div class="pain-section">
                 <strong>🚨 解决的痛点问题 (Pain Point)</strong>
                 <p id="panel-pain" style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
@@ -375,7 +397,8 @@
 
             <div class="solution-section">
                 <strong>✅ 具体做了什么 (What it does)</strong>
-                <p id="panel-solution" style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
+                <p id="panel-solution"
+                    style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
                     利用轻量化 Prompt 分类机制拦截 Query，智能路由分流至：`MEM`（仅召回个人偏好）、`RAG`（检索外部知识库）或 `NONE`（直接会话）。
                 </p>
             </div>
@@ -396,7 +419,8 @@
             <span class="flow-arrow">➔</span>
             <div class="flow-node" id="node-bg">5. Async Archive</div>
         </div>
-        <p style="font-size: 0.85rem; text-align: center; margin-top: 1rem; color: var(--secondary-text);">数据在主流程流转的同时，后台并发线程并行执行 **Facts 抽取消歧** 与 **会话 Token 归约监控** 并通过 **Repository** 异步存盘。</p>
+        <p style="font-size: 0.85rem; text-align: center; margin-top: 1rem; color: var(--secondary-text);">
+            数据在主流程流转的同时，后台并发线程并行执行 **Facts 抽取消歧** 与 **会话 Token 归约监控** 并通过 **Repository** 异步存盘。</p>
     </div>
 
     <script>
@@ -431,7 +455,7 @@
         function showEngine(key) {
             const items = document.querySelectorAll('.engine-item');
             items.forEach(item => item.classList.remove('active'));
-            
+
             event.currentTarget.classList.add('active');
 
             const data = enginesData[key];
@@ -446,11 +470,11 @@
             event.currentTarget.classList.add('active');
 
             document.getElementById('step-description-box').innerHTML = `<strong>${title}</strong> — ${desc}`;
-            
+
             // 联动 Pipeline 高亮演示
             const nodes = ['node-input', 'node-router', 'node-retrieve', 'node-infer', 'node-bg'];
             nodes.forEach(n => document.getElementById(n).classList.remove('active'));
-            
+
             if (stepId === 'day57' || stepId === 'day61') {
                 document.getElementById('node-input').classList.add('active');
             } else if (stepId === 'day62') {
@@ -465,4 +489,5 @@
         }
     </script>
 </body>
+
 </html>

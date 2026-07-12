@@ -174,3 +174,5 @@ weekly/**/test_data/*.pdf
 # Local Qdrant Engine Storage
 qdrant_storage/
 
+# Exclude old baseline project folder to prevent redundant submission
+weekly/w09_memory_system/project/

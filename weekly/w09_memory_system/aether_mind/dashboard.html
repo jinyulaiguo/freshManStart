@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherMind — 智能记忆增强助手调试看板</title>
+    
+    <!-- 引入衬线体与无衬线体字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    
+    <!-- 引入 marked.js 解析 Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        /* 根色彩与排版标记：温润知性极简主义配色 */
+        :root {
+            --bg-main: #faf9f4;         /* 骨白 Bone-white */
+            --bg-surface: #ffffff;      /* 纯白 Surface */
+            --text-primary: #141413;    /* 深炭黑 Charcoal */
+            --text-secondary: #464742;  /* On-surface variant */
+            --accent: #D97757;          /* 杏粘土色 Clay accent */
+            --border-light: #e9e8e3;    /* 低对比度边框 */
+            
+            --success-bg: #edf6ef;      /* 浅绿 */
+            --success-text: #2e623a;    /* 有机绿 */
+            --error-bg: #ffdad6;        /* 浅红 */
+            --error-text: #ba1a1a;      /* 暖红 */
+            
+            --radius-sm: 4px;           /* 小元素圆角 */
+            --radius-lg: 8px;           /* 大容器圆角 */
+            
+            --font-title: 'Source Serif 4', Georgia, serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 14px;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 布局分栏 */
+        .sidebar {
+            width: 320px;
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            flex-shrink: 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .trace-panel {
+            width: 350px;
+            background-color: var(--bg-surface);
+            border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            flex-shrink: 0;
+        }
+
+        /* 顶部标题衬线体 */
+        h1, h2, h3 {
+            font-family: var(--font-title);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 24px;
+            letter-spacing: -0.5px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 8px;
+        }
+
+        /* 输入项配置 */
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 13px;
+            outline: none;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+        }
+
+        /* 上传区域 */
+        .upload-zone {
+            border: 1px dashed var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 20px 12px;
+            text-align: center;
+            background-color: var(--bg-main);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background-color: #fcfbfa;
+        }
+
+        .upload-zone p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* 消息展示区域 */
+        .chat-history {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background-color: var(--bg-main);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .message-bubble.user {
+            align-self: flex-end;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            border-bottom-right-radius: 0;
+        }
+
+        .message-bubble.assistant {
+            align-self: flex-start;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            border-bottom-left-radius: 0;
+        }
+
+        .message-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        /* 消息输入底栏 */
+        .chat-input-bar {
+            background-color: var(--bg-surface);
+            border-top: 1px solid var(--border-light);
+            padding: 20px 30px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input-bar textarea {
+            flex-grow: 1;
+            height: 48px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            font-family: var(--font-body);
+            font-size: 14px;
+            outline: none;
+            resize: none;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .chat-input-bar textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .send-btn {
+            background-color: var(--accent);
+            color: #ffffff;
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 0 24px;
+            font-weight: 500;
+            font-family: var(--font-body);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Trace 面板时序轴 */
+        .trace-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* 普通 Trace 节点 */
+        .trace-item {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            background-color: var(--bg-main);
+            font-size: 12px;
+            position: relative;
+        }
+
+        /* Pipeline 专用步骤卡片 */
+        .pipeline-step {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            background-color: var(--bg-main);
+            font-size: 11px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .pipeline-step.running {
+            border-color: #a3c4f3;
+            background-color: #f0f6ff;
+        }
+        .pipeline-step.done {
+            border-color: #b2dbbf;
+            background-color: #f5fbf6;
+        }
+        .pipeline-step-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .pipeline-step-icon { font-size: 13px; line-height: 1; }
+        .pipeline-step-label { flex: 1; }
+        .pipeline-step-dur {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--success-text);
+            background: var(--success-bg);
+            padding: 1px 5px;
+            border-radius: 10px;
+        }
+        /* 动态进度条（流动动画仅在 running 状态显示） */
+        .pipeline-progress-bar {
+            height: 2px;
+            border-radius: 2px;
+            margin-top: 6px;
+            background: linear-gradient(90deg, #a3c4f3, #4f9ef8, #a3c4f3);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .pipeline-step.done .pipeline-progress-bar {
+            background: var(--success-text);
+            animation: none;
+        }
+        /* Pipeline 分隔标题 */
+        .pipeline-section-header {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            margin: 12px 0 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pipeline-section-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-light);
+        }
+
+        .trace-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .trace-tag.router { background-color: #e3f2fd; color: #0d47a1; }
+        .trace-tag.retrieval { background-color: #e8f5e9; color: #1b5e20; }
+        .trace-tag.planner { background-color: #fff3e0; color: #e65100; }
+        .trace-tag.cache { background-color: #f3e5f5; color: #4a148c; }
+
+        .trace-meta {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* 状态与通知 */
+        .toast {
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            font-size: 12px;
+            display: none;
+        }
+        .toast.success { background-color: var(--success-bg); color: var(--success-text); border: 1px solid #d4ebd9; }
+        .toast.error { background-color: var(--error-bg); color: var(--error-text); border: 1px solid #fad2cf; }
+
+        /* Markdown 渲染样式微调 */
+        .message-body {
+            font-family: var(--font-body);
+            font-size: 13px;
+        }
+        .message-body p {
+            margin-bottom: 12px;
+        }
+        .message-body p:last-child {
+            margin-bottom: 0;
+        }
+        .message-body strong {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .message-body em {
+            font-style: italic;
+        }
+        .message-body code {
+            font-family: monospace;
+            background-color: var(--bg-main);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            color: var(--accent);
+        }
+        .message-body pre {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        .message-body pre code {
+            padding: 0;
+            background-color: transparent;
+            font-size: 11px;
+            color: var(--text-primary);
+        }
+        .message-body ul, .message-body ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+        .message-body li {
+            margin-bottom: 4px;
+        }
+        .message-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 12px;
+        }
+        .message-body th, .message-body td {
+            border: 1px solid var(--border-light);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .message-body th {
+            background-color: var(--bg-main);
+            font-weight: 600;
+        }
+
+        /* 文档列表区 */
+        .doc-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .doc-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+            background: var(--surface);
+            font-size: 11px;
+        }
+        .doc-item-icon { font-size: 14px; line-height: 1.4; flex-shrink: 0; }
+        .doc-item-info { flex: 1; min-width: 0; }
+        .doc-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .doc-item-meta { color: var(--text-secondary); font-size: 10px; margin-top: 1px; }
+        .doc-item.parsing  { border-color: #a3c4f3; background: #f0f6ff; }
+        .doc-item.success  { border-color: #b2dbbf; background: #f5fbf6; }
+        .doc-item.error    { border-color: #f5b8b8; background: #fff5f5; }
+        /* 上传区动态进度中状态 */
+        .upload-zone.parsing {
+            border-color: #4f9ef8;
+            background: #f0f6ff;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 侧边栏：配置与文档上传 -->
+    <div class="sidebar">
+        <h1>AetherMind</h1>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 24px;">AI 记忆增强研究助手调试台</p>
+
+        <!-- 租户配置 -->
+        <div class="control-group">
+            <label class="control-label">User ID (多租户隔离)</label>
+            <input type="text" id="userId" class="input-field" value="usr_test">
+        </div>
+        <div class="control-group">
+            <label class="control-label">Session ID (会话标识)</label>
+            <input type="text" id="sessionId" class="input-field" value="sess_test">
+        </div>
+
+        <div class="control-group" style="border-top: 1px solid var(--border-light); padding-top: 20px;">
+            <label class="control-label">文献上传 (Hybrid RAG &amp; GraphRAG)</label>
+            <div class="upload-zone" id="uploadZone">
+                <span style="font-size: 18px; color: var(--accent);">&uarr;</span>
+                <p>点击或拖拽文件到此处</p>
+                <p style="font-size: 10px; color: #a1a09a;">支持 .txt, .md, .json, .pdf</p>
+            </div>
+            <input type="file" id="fileInput" style="display: none;" accept=".txt,.md,.json,.pdf">
+
+            <!-- 文档列表：上传后动态生成 -->
+            <div id="docList" class="doc-list" style="display: none;"></div>
+        </div>
+
+        <div class="toast" id="notifyToast"></div>
+    </div>
+
+    <!-- 主对话窗 -->
+    <div class="main-content">
+        <div class="chat-history" id="chatHistory">
+            <div class="message-bubble assistant">
+                <div class="message-header">Assistant</div>
+                <div class="message-body">
+                    您好！我是 AetherMind 记忆增强研究助手。我集成了短期滑窗记忆、长期 Facts 增量消歧、Ebbinghaus 遗忘衰减，以及 Dense/Sparse RAG 和 GraphRAG 网络拓扑检索能力。
+                    请在此与我对话，右侧将实时渲染我的决策 Trace 追踪日志。
+                </div>
+            </div>
+        </div>
+
+        <!-- 底栏输入 -->
+        <div class="chat-input-bar">
+            <textarea id="chatInput" placeholder="输入关于 Agent 架构的问题... (例如: 剖析 smolagents 并与 Letta 做对比)"></textarea>
+            <button class="send-btn" id="sendBtn">发送</button>
+        </div>
+    </div>
+
+    <!-- 右侧 Trace 日志监视器 -->
+    <div class="trace-panel">
+        <h3>Trace Observability</h3>
+        <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px;">
+            异步执行轨迹与耗时分析轴
+        </p>
+
+        <div class="trace-list" id="traceList">
+            <!-- 动态生成的 Trace 节点 -->
+            <div style="font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 40px;" id="tracePlaceholder">
+                暂无交互 Trace 日志
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatHistory = document.getElementById('chatHistory');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const userIdInput = document.getElementById('userId');
+        const sessionIdInput = document.getElementById('sessionId');
+        const traceList = document.getElementById('traceList');
+        const tracePlaceholder = document.getElementById('tracePlaceholder');
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const notifyToast = document.getElementById('notifyToast');
+
+        // === 1. 发送对话消息 (SSE) ===
+        async function sendMessage() {
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            // 清空输入
+            chatInput.value = '';
+            
+            // 1. 在对话框中回显 User 消息
+            appendMessage('User', query, 'user');
+            
+            // 2. 清空 Trace 面板，显示加载状态，并重置 Pipeline 状态
+            traceList.innerHTML = '';
+            tracePlaceholder.style.display = 'none';
+            // 重置 Pipeline 步骤状态（每次新请求都要清零）
+            for (const key in pipelineStepMap) delete pipelineStepMap[key];
+            pipelineSectionInserted = false;
+
+            // 3. 创建 Assistant 兜底 Bubble 用于接收流式 tokens
+            const assistantBubble = appendMessage('Assistant', '', 'assistant');
+            const messageBody = assistantBubble.querySelector('.message-body');
+
+            const session_id = sessionIdInput.value.trim();
+            const user_id = userIdInput.value.trim();
+
+            // 4. 发起 POST 建立连接并解析 SSE 事件流
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ session_id, user_id, query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error ${response.status}`);
+                }
+
+                // 读取流式响应体
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    // 保留最后一行未完整的缓冲
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        const cleanLine = line.trim();
+                        if (!cleanLine || !cleanLine.startsWith('data: ')) continue;
+
+                        const jsonStr = cleanLine.substring(6);
+                        try {
+                            const event = JSON.parse(jsonStr);
+                            handleSSEEvent(event, messageBody);
+                        } catch (e) {
+                            console.warn("JSON解析失败:", jsonStr, e);
+                        }
+                    }
+                }
+
+            } catch (err) {
+                console.error(err);
+                messageBody.innerText = `[连接错误]: 无法连接到 AetherMind 后端服务. ${err.message}`;
+            }
+        }
+
+        function handleSSEEvent(event, messageBodyElement) {
+            if (event.type === 'token') {
+                // 累加流式输出文本
+                if (messageBodyElement.rawMarkdown === undefined) {
+                    messageBodyElement.rawMarkdown = '';
+                }
+                messageBodyElement.rawMarkdown += event.content;
+                if (window.marked) {
+                    messageBodyElement.innerHTML = marked.parse(messageBodyElement.rawMarkdown);
+                } else {
+                    messageBodyElement.innerText = messageBodyElement.rawMarkdown;
+                }
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            } 
+            else if (event.type === 'trace') {
+                // 渲染 trace 面板
+                appendTrace(event.step, event.content, event.duration_ms);
+            }
+            else if (event.type === 'error') {
+                messageBodyElement.innerHTML = `<span style="color: var(--error-text);">${event.content}</span>`;
+            }
+        }
+
+        // === 3. 辅助：添加消息 Bubble ===
+        function appendMessage(role, content, className) {
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble ${className}`;
+            bubble.innerHTML = `
+                <div class="message-header">${role}</div>
+                <div class="message-body"></div>
+            `;
+            const messageBody = bubble.querySelector('.message-body');
+            messageBody.rawMarkdown = content;
+            if (content) {
+                if (window.marked) {
+                    messageBody.innerHTML = marked.parse(content);
+                } else {
+                    messageBody.innerText = content;
+                }
+            }
+            chatHistory.appendChild(bubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            return bubble;
+        }
+
+        // === 4. 辅助：添加 Trace 节点 ===
+
+        // 用于跟踪 Pipeline 子步骤卡片的全局 Map（内容关键词 -> DOM元素）
+        const pipelineStepMap = {};
+        let pipelineSectionInserted = false;
+
+        // RAG Pipeline 子步骤关键词匹配
+        const PIPELINE_STEP_KEYS = [
+            { key: '[1/5]', label: 'Multi-Query & HyDE' },
+            { key: '[2/5]', label: '向量 + BM25 检索' },
+            { key: '[3/5]', label: 'GraphRAG Local Search' },
+            { key: '[4/5]', label: 'Global Map-Reduce' },
+            { key: '[5/5]', label: 'LLM ReRank' },
+        ];
+
+        function isPipelineEvent(content) {
+            return PIPELINE_STEP_KEYS.some(s => content.includes(s.key));
+        }
+
+        function appendTrace(step, content, durationMs) {
+            // 判断是否是 RAG Pipeline 子步骤事件
+            if (isPipelineEvent(content)) {
+                _handlePipelineTrace(content, durationMs);
+                return;
+            }
+
+            // 普通 Trace 卡片
+            const item = document.createElement('div');
+            item.className = 'trace-item';
+            const tagClass = step.toLowerCase();
+            const durationText = durationMs ? `${durationMs}ms` : '';
+            item.innerHTML = `
+                <span class="trace-tag ${tagClass}">${step}</span>
+                <p style="color: var(--text-primary); font-family: var(--font-body); font-size: 11px; margin-top: 4px;">${content}</p>
+                ${durationText ? `<div class="trace-meta">耗时: ${durationText}</div>` : ''}
+            `;
+            traceList.appendChild(item);
+            traceList.scrollTop = traceList.scrollHeight;
+        }
+
+        function _handlePipelineTrace(content, durationMs) {
+            // 如果是第一个 Pipeline 事件，先插入分隔标题
+            if (!pipelineSectionInserted) {
+                const sectionHeader = document.createElement('div');
+                sectionHeader.className = 'pipeline-section-header';
+                sectionHeader.innerHTML = `📡 RAG Pipeline 实时步骤`;
+                traceList.appendChild(sectionHeader);
+                pipelineSectionInserted = true;
+            }
+
+            // 找出这个事件对应哪个步骤 key
+            const matched = PIPELINE_STEP_KEYS.find(s => content.includes(s.key));
+            if (!matched) return;
+
+            const isRunning = content.includes('⏳');
+            const isDone = content.includes('✅');
+
+            if (isRunning) {
+                // 创建新卡片
+                const card = document.createElement('div');
+                card.className = 'pipeline-step running';
+                card.dataset.key = matched.key;
+                card.innerHTML = `
+                    <div class="pipeline-step-header">
+                        <span class="pipeline-step-icon">⏳</span>
+                        <span class="pipeline-step-label">${matched.label}</span>
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px;">${content.replace('⏳', '').trim()}</div>
+                    <div class="pipeline-progress-bar"></div>
+                `;
+                traceList.appendChild(card);
+                pipelineStepMap[matched.key] = card;
+                traceList.scrollTop = traceList.scrollHeight;
+            } else if (isDone && pipelineStepMap[matched.key]) {
+                // 更新已有卡片为完成状态
+                const card = pipelineStepMap[matched.key];
+                card.className = 'pipeline-step done';
+                const durBadge = durationMs ? `<span class="pipeline-step-dur">${durationMs}ms</span>` : '';
+                card.innerHTML = `
+                    <div class="pipeline-step-header">
+                        <span class="pipeline-step-icon">✅</span>
+                        <span class="pipeline-step-label">${matched.label}</span>
+                        ${durBadge}
+                    </div>
+                    <div style="font-size: 10px; color: var(--success-text);">${content.replace('✅', '').trim()}</div>
+                    <div class="pipeline-progress-bar"></div>
+                `;
+                traceList.scrollTop = traceList.scrollHeight;
+            }
+        }
+
+        // === 5. 文档上传处理 ===
+        const docList = document.getElementById('docList');
+        const docMap = {};  // filename -> DOM元素，用于更新状态
+
+        function addDocItem(fileName) {
+            docList.style.display = 'flex';
+            const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'doc-item parsing';
+            item.innerHTML = `
+                <span class="doc-item-icon">⏳</span>
+                <div class="doc-item-info">
+                    <div class="doc-item-name" title="${fileName}">${fileName}</div>
+                    <div class="doc-item-meta">解析中... &middot; ${now}</div>
+                </div>
+            `;
+            docList.prepend(item);
+            docMap[fileName] = { el: item, time: now };
+            return item;
+        }
+
+        function updateDocItem(fileName, ok, detail) {
+            const entry = docMap[fileName];
+            if (!entry) return;
+            const { el, time } = entry;
+            if (ok) {
+                el.className = 'doc-item success';
+                el.innerHTML = `
+                    <span class="doc-item-icon">✅</span>
+                    <div class="doc-item-info">
+                        <div class="doc-item-name" title="${fileName}">${fileName}</div>
+                        <div class="doc-item-meta">${detail} &middot; ${time}</div>
+                    </div>
+                `;
+            } else {
+                el.className = 'doc-item error';
+                el.innerHTML = `
+                    <span class="doc-item-icon">❌</span>
+                    <div class="doc-item-info">
+                        <div class="doc-item-name" title="${fileName}">${fileName}</div>
+                        <div class="doc-item-meta">失败: ${detail} &middot; ${time}</div>
+                    </div>
+                `;
+            }
+        }
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+            if (!fileInput.files.length) return;
+            const file = fileInput.files[0];
+            fileInput.value = '';  // 允许重复上传同一文件
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 在列表中添加“解析中”状态条目
+            addDocItem(file.name);
+            uploadZone.classList.add('parsing');
+
+            try {
+                const response = await fetch('/api/documents', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    updateDocItem(file.name, true, `${data.chunks_count} 个切片`);
+                } else {
+                    updateDocItem(file.name, false, data.detail || '未知错误');
+                }
+            } catch (err) {
+                updateDocItem(file.name, false, err.message);
+            } finally {
+                uploadZone.classList.remove('parsing');
+            }
+        });
+
+        // 拖拽支持
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.style.borderColor = 'var(--accent)'; });
+        uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = ''; });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '';
+            if (e.dataTransfer.files.length) {
+                // 将文件注入 fileInput 触发统一处理流
+                const dt = new DataTransfer();
+                dt.items.add(e.dataTransfer.files[0]);
+                fileInput.files = dt.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // 状态提示 Toast 自动关闭
+        function showToast(message, type) {
+            notifyToast.className = `toast ${type}`;
+            notifyToast.innerText = message;
+            notifyToast.style.display = 'block';
+            setTimeout(() => {
+                notifyToast.style.display = 'none';
+            }, 6000);
+        }
+
+        // 事件绑定
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Local SQLite databases (for testing/fallback)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Local environment configuration containing credentials
+.env
+
+# Local run logs
+*.log
