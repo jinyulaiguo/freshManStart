@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 10: LangGraph 核心 整体总览看板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f4;
+            /* 骨白 */
+            --surface-color: #ffffff;
+            /* 纯白 */
+            --primary-text: #141413;
+            /* 深炭黑 */
+            --secondary-text: #464742;
+            /* 变体炭黑 */
+            --accent-color: #D97757;
+            /* 杏粘土色 */
+            --accent-hover: #c56546;
+            --border-color: #e9e8e3;
+            --border-hover: #d2d0c6;
+            --highlight-bg: #f5f2e9;
+
+            --font-serif: 'Source Serif 4', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            padding: 2.5rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            margin-bottom: 2.5rem;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: var(--font-serif);
+            font-weight: 500;
+            color: var(--primary-text);
+            margin-bottom: 0.75rem;
+        }
+
+        h1 {
+            font-size: 2.3rem;
+            letter-spacing: -0.02em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            margin-top: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: var(--secondary-text);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        /* 知识链路网格 */
+        .path-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .path-step {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .path-step:hover,
+        .path-step.active {
+            border-color: var(--accent-color);
+            background-color: var(--highlight-bg);
+        }
+
+        .step-num {
+            font-family: var(--font-serif);
+            color: var(--accent-color);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* 链路指示箭头 */
+        @media (min-width: 769px) {
+            .path-step:not(:last-child)::after {
+                content: '→';
+                position: absolute;
+                right: -0.8rem;
+                top: 35%;
+                color: var(--accent-color);
+                font-size: 1.2rem;
+                z-index: 10;
+            }
+        }
+
+        /* 二分栏区域 */
+        .columns {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 850px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 交互微引擎卡片 */
+        .engine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .engine-item {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .engine-item:hover,
+        .engine-item.active {
+            border-color: var(--accent-color);
+            transform: translateX(4px);
+        }
+
+        .engine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .engine-title {
+            font-family: var(--font-serif);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .engine-badge {
+            font-size: 0.75rem;
+            background-color: var(--highlight-bg);
+            border: 1px solid var(--border-color);
+            color: var(--secondary-text);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        /* 侧边信息展示 */
+        .info-panel {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.75rem;
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+
+        .pain-section {
+            background-color: #ffdad6;
+            color: #ba1a1a;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            border-left: 4px solid #ba1a1a;
+        }
+
+        .solution-section {
+            background-color: #edf6ef;
+            color: #2e623a;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 0.85rem;
+            border-left: 4px solid #2e623a;
+        }
+
+        /* 全景 Pipeline 简图 */
+        .pipeline-diagram {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            overflow-x: auto;
+        }
+
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 900px;
+            padding: 1rem 0;
+        }
+
+        .flow-node {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            width: 140px;
+        }
+
+        .flow-node.active {
+            border-color: var(--accent-color);
+            background-color: var(--highlight-bg);
+            font-weight: 600;
+        }
+
+        .flow-arrow {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .section-desc {
+            font-style: italic;
+            color: var(--secondary-text);
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Week 10 学习启动前置：LangGraph 核心可视化总览</h1>
+        <p class="section-desc">本页面为 Week 10 LangGraph 核心 的整体总览看板，清晰罗列本周 7 天的知识链路、核心机制功能及解决的系统痛点。</p>
+    </header>
+
+    <!-- 每日知识链路串联 -->
+    <section class="card">
+        <h2>知识链路图 (Daily Knowledge Linkage)</h2>
+        <p>每一天的学习都在为最后的实战拼装“积木”。点击各个单日步骤，可以在下方查看该模块的定位。</p>
+
+        <div class="path-grid">
+            <div class="path-step active"
+                onclick="highlightStep('day64', 'Day 64: Runnable 契约可运行协议', '实现自定义的可运行实体，掌握 `ainvoke` 与 `astream` 生命周期。这是组件的**规范接口基石**。')">
+                <div class="step-num">Day 64</div>
+                <div class="step-name">Runnable 协议</div>
+            </div>
+            <div class="path-step"
+                onclick="highlightStep('day65', 'Day 65: 有向图 StateGraph 基础', '构建有向图模型（Nodes & Edges），并编译为 Runnable 执行流。这是**拓扑决策架构**。')">
+                <div class="step-num">Day 65</div>
+                <div class="step-name">有向图基础</div>
+            </div>
+            <div class="path-step"
+                onclick="highlightStep('day66', 'Day 66: TypedDict 状态与 Reducer', '利用 TypedDict 作为强类型状态契约，使用 `add_messages` 等归约器拦截并处理状态并发更新。这是**状态一致性防线**。')">
+                <div class="step-num">Day 66</div>
+                <div class="step-name">状态与归约器</div>
+            </div>
+            <div class="path-step"
+                onclick="highlightStep('day67', 'Day 67: 路由边与动态决策', '通过 Router 函数分析全局状态，利用 Conditional Edges 动态分流。这是**控制权自主流转**的保障。')">
+                <div class="step-num">Day 67</div>
+                <div class="step-name">路由边决策</div>
+            </div>
+            <div class="path-step"
+                onclick="highlightStep('day68', 'Day 68: recursion_limit 熔断机制', '配置全局最大循环计数，捕获 `GraphRecursionError` 并实现优雅的降级处理。这是**死循环防御装置**。')">
+                <div class="step-num">Day 68</div>
+                <div class="step-name">环路熔断保护</div>
+            </div>
+            <div class="path-step"
+                onclick="highlightStep('day69', 'Day 69: MemorySaver 持久化', '利用 Checkpointer 进行会话状态快照持久化，通过 `thread_id` 隔离多用户上下文。这是**断电重续与会话隔离**器。')">
+                <div class="step-num">Day 69</div>
+                <div class="step-name">会话持久化</div>
+            </div>
+            <div class="path-step"
+                onclick="highlightStep('day70', 'Day 70: 综合实战装配', '拼装“意图分类 -> 知识检索 -> 工具执行 -> 总结回复”的客服机器人，实现多会话安全路由。这是**最终拼装墙**。')">
+                <div class="step-num">Day 70</div>
+                <div class="step-name">类型安全客服</div>
+            </div>
+        </div>
+
+        <div id="step-description-box"
+            style="padding: 0.75rem 1rem; background-color: var(--highlight-bg); border-radius: 4px; font-size: 0.9rem; border-left: 3px solid var(--accent-color);">
+            <strong>Day 64: Runnable 契约可运行协议</strong> — 实现自定义的可运行实体，掌握 `ainvoke` 与 `astream` 生命周期。这是组件的**规范接口基石**。
+        </div>
+    </section>
+
+    <!-- 核心微引擎模块拆解 -->
+    <h2>微引擎与核心机制拆解 (Core Engines & Mechanisms)</h2>
+    <p class="section-desc">LangGraph 框架内部由多个精密设计的子契约与微引擎协作构成。点击查看它们的痛点与解决方案：</p>
+
+    <div class="columns">
+        <!-- 左侧引擎列表 -->
+        <div class="engine-list">
+            <div class="engine-item active" onclick="showEngine('runnable-protocol')">
+                <div class="engine-header">
+                    <div class="engine-title">1. Runnable Protocol (可运行契约)</div>
+                    <span class="engine-badge">接口契约</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">统一大模型组件输入与输出通道，支持标准化异步与流式生命周期。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('stategraph-compiler')">
+                <div class="engine-header">
+                    <div class="engine-title">2. StateGraph Compiler (状态图编译器)</div>
+                    <span class="engine-badge">编译引擎</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">将显式的图节点与有向边编译成具备复杂流转控制的执行网络。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('state-reducer')">
+                <div class="engine-header">
+                    <div class="engine-title">3. State Reducer (状态归约引擎)</div>
+                    <span class="engine-badge">状态管理</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">防止节点覆盖更新导致的上下文丢失，为消息或数值字段提供增量合并逻辑。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('conditional-router')">
+                <div class="engine-header">
+                    <div class="engine-title">4. Conditional Router (条件分支决策)</div>
+                    <span class="engine-badge">自主路由</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">基于状态上下文动态判断流转路径，实现 ReAct 循环中的工具分流。</p>
+            </div>
+
+            <div class="engine-item" onclick="showEngine('checkpoint-saver')">
+                <div class="engine-header">
+                    <div class="engine-title">5. Checkpoint Saver (快照持久化隔离)</div>
+                    <span class="engine-badge">会话安全</span>
+                </div>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">通过 `thread_id` 绝对隔离用户会话，为每次状态演进记录物理快照，支持宕机重续。</p>
+            </div>
+        </div>
+
+        <!-- 右侧信息卡片 -->
+        <div class="info-panel" id="info-panel">
+            <h3 id="panel-title" style="color: var(--accent-color); margin-bottom: 1rem;">1. Runnable Protocol (可运行契约)</h3>
+
+            <div class="pain-section">
+                <strong>🚨 解决的痛点问题 (Pain Point)</strong>
+                <p id="panel-pain" style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
+                    在大模型应用开发中，各个底层组件（大模型、检索器、Prompt 模板）的方法调用千差万别，缺乏统一的方法生命周期契约。这导致无法做统一的异步化重试、缺乏统一的流式（stream）数据传输处理，且基于管道符 `|` 的旧 LCEL 链难以应对分支和环路。
+                </p>
+            </div>
+
+            <div class="solution-section">
+                <strong>✅ 具体做了什么 (What it does)</strong>
+                <p id="panel-solution"
+                    style="margin-bottom: 0; color: inherit; font-size: 0.85rem; margin-top: 0.25rem;">
+                    定义了标准的 Runnable 协议，统一声明了 `invoke`/`ainvoke`（单次调用）和 `stream`/`astream`（流式输出）方法矩阵。所有 LangGraph 节点本质上都是符合该协议的 Runnable 实体，从而保证了拓扑图的统一输入/输出校验。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最终实战项目全景流程图 -->
+    <h2>Day 70 最终实战项目全景 Pipeline (Project Flow)</h2>
+    <div class="pipeline-diagram">
+        <div class="flow-container">
+            <div class="flow-node active" id="node-input">1. User Message (Thread ID)</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-intent">2. Intent Classifier</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-route">3. Router Decision</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-action">4. Tool Exec / Retrieve</div>
+            <span class="flow-arrow">➔</span>
+            <div class="flow-node" id="node-response">5. Summarize Answer</div>
+        </div>
+        <p style="font-size: 0.85rem; text-align: center; margin-top: 1rem; color: var(--secondary-text);">
+            <strong>环路控制与持久化</strong>：在 Intent & Router 之间会受到 `recursion_limit` 物理步数限制以拦截熔断死循环；整个交互状态由 `MemorySaver` 根据 `thread_id` 物理存盘归档。
+        </p>
+    </div>
+
+    <script>
+        const enginesData = {
+            'runnable-protocol': {
+                title: '1. Runnable Protocol (可运行契约)',
+                pain: '在大模型应用开发中，各个底层组件（大模型、检索器、Prompt 模板）的方法调用千差万别，缺乏统一的方法生命周期契约。这导致无法做统一的异步化重试、缺乏统一的流式（stream）数据传输处理，且基于管道符 `|` 的旧 LCEL 链难以应对分支和环路。',
+                solution: '定义了标准的 Runnable 协议，统一声明了 `invoke`/`ainvoke`（单次调用）和 `stream`/`astream`（流式输出）方法矩阵。所有 LangGraph 节点本质上都是符合该协议的 Runnable 实体，从而保证了拓扑图的统一输入/输出校验。'
+            },
+            'stategraph-compiler': {
+                title: '2. StateGraph Compiler (状态图编译器)',
+                pain: 'Agent 内部经常需要在决策节点和工具执行之间跳转、重试和打回，若只用 Prompt 提示或硬编码 While 循环控制，逻辑极其脆弱且不可追踪，难以实现工业级的确定性流转。',
+                solution: '提供 StateGraph 结构体，用户显式注册节点（Nodes）与有向边（Edges）。通过 `.compile()` 将整个图编译为一个符合 Runnable 协议的运行时流转引擎，具备统一的步进、跳转与控制环处理能力。'
+            },
+            'state-reducer': {
+                title: '3. State Reducer (状态归约引擎)',
+                pain: '多节点并行或顺序修改全局状态时，普通的赋值会直接抹掉以前的消息，例如“总结节点”把答复赋给全局 messages 时导致之前的对话上下文丢失。',
+                solution: '通过在 TypedDict 的属性字段中绑定 Reducer 函数（如 Annotated[list, add_messages]）。在节点修改该属性时，系统自动调用 Reducer（如 `add_messages` 自动进行覆盖去重与追加更新），保障状态并发更新下的数据一致性。'
+            },
+            'conditional-router': {
+                title: '4. Conditional Router (条件分支决策)',
+                pain: '有向图如果只能定义静态有向边，程序就退化为了普通流水线，Agent 无法在运行时根据大模型吐出的数据动态判断接下来是“结束”还是“继续调用某个具体工具”。',
+                solution: '引入条件边（Conditional Edges），接收一个 Router 分类函数，该函数接收当前 State 并返回下一跳节点的标识字符串，结合 path_map 将状态图转化为具有智能决策分支的动态状态机。'
+            },
+            'checkpoint-saver': {
+                title: '5. Checkpoint Saver (快照持久化隔离)',
+                pain: '无状态 Agent 无法在服务器宕机或交互中途断开时恢复之前的上下文；而在多用户并发下，不同用户会话数据交织在一起造成逻辑混乱。',
+                solution: '集成 Checkpointer 机制（如内存版 MemorySaver 或数据库持久化版），每次状态在节点间跃迁时都会物理归档快照。调用时传入 `configurable={"thread_id": "..."}` 自动隔离用户上下文，支持断电后零状态损耗重启。'
+            }
+        };
+
+        function showEngine(key) {
+            const items = document.querySelectorAll('.engine-item');
+            items.forEach(item => item.classList.remove('active'));
+
+            event.currentTarget.classList.add('active');
+
+            const data = enginesData[key];
+            document.getElementById('panel-title').innerText = data.title;
+            document.getElementById('panel-pain').innerText = data.pain;
+            document.getElementById('panel-solution').innerText = data.solution;
+        }
+
+        function highlightStep(stepId, title, desc) {
+            const steps = document.querySelectorAll('.path-step');
+            steps.forEach(step => step.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            document.getElementById('step-description-box').innerHTML = `<strong>${title}</strong> — ${desc}`;
+
+            // 联动 Pipeline 高亮演示
+            const nodes = ['node-input', 'node-intent', 'node-route', 'node-action', 'node-response'];
+            nodes.forEach(n => document.getElementById(n).classList.remove('active'));
+
+            if (stepId === 'day64') {
+                document.getElementById('node-input').classList.add('active');
+            } else if (stepId === 'day65' || stepId === 'day67') {
+                document.getElementById('node-route').classList.add('active');
+            } else if (stepId === 'day66') {
+                document.getElementById('node-intent').classList.add('active');
+            } else if (stepId === 'day68') {
+                document.getElementById('node-intent').classList.add('active');
+                document.getElementById('node-route').classList.add('active');
+            } else if (stepId === 'day69') {
+                document.getElementById('node-input').classList.add('active');
+                document.getElementById('node-response').classList.add('active');
+            } else if (stepId === 'day70') {
+                nodes.forEach(n => document.getElementById(n).classList.add('active'));
+            }
+        }
+    </script>
+</body>
+
+</html>
