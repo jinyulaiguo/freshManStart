@@ -66,12 +66,13 @@
 
 ---
 
-## Day 70：第十周综合实战：基于 LangGraph 的类型安全、环路熔断客服机器人
-*   **实战任务**：**利用 LangGraph 图状态机架构重新开发“AI 研究助手”的控制层。**
+## Day 70：第十周综合实战：基于 LangGraph 的企业级多租户 CVE 漏洞分诊与自动化修复 Pipeline
+*   **实战任务**：**利用 LangGraph 图状态机架构开发生产级 CVE 漏洞分诊与自动修复流水线。**
     *   **要求**：
-        1. 使用 TypedDict 定义全局 State，并为 messages 绑定原生的 `add_messages` 归约器。
-        2. 构建包含“意图分类 -> 知识检索 -> 工具执行 -> 总结回复”的有向图节点拓扑。
-        3. 采用 Conditional Edges 实现大模型决策工具分发；
-        4. 全局配置 `MemorySaver` 进行 Checkpoint 保存，隔离不同的 Thread ID；
-        5. 配置最大运行次数限制 `recursion_limit=6` 防范死循环，并使用自定义异常链优雅兜底。
-    *   **🎯 交付件**：全套 LangGraph 客服机器人代码、持久化配置脚本、单元测试，以及模拟死循环触发熔断与 Thread ID 隔离的运行轨迹日志。\n
+        1. 使用 TypedDict 定义全局 `CVETriageState`，绑定原生 `add_messages` 归约器与自定义 Reducers（`token_sum_reducer`、`append_reducer`）；
+        2. 构建包含 8 个独立业务微节点（安全净化、LLM 分诊、知识检索、补丁生成、静态审查、升舱网关、合规报告、安全拦截）的拓扑结构；
+        3. 采用 3 组 Conditional Edges 实现多路条件分流与受控补丁重试反馈闭环（`static_validator → patch_generator`）；
+        4. 全局配置 `MemorySaver` 进行多租户会话隔离（`tenant_id:session_id`）与正向 Checkpoint 时间线追溯；
+        5. 配置 `MultiDimensionalCircuitBreaker` 四维切面熔断控制器（超步/Token/指纹震荡/延迟），实现死循环隔离与降级兜底；
+        6. 提供 FastAPI 后端与 SSE 流式事件接口，配套 Warm Intellectual Minimalism 风格的 Web 调试看板。
+    *   **🎯 交付件**：全套生产级 CVE Pipeline 架构代码、48 个单元与集成测试套件、FastAPI 服务、Web 调试看板及详细 README 说明文档。\n

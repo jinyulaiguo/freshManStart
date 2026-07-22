@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVE Vulnerability Triage & Auto-Remediation Dashboard</title>
+  <!-- Google Fonts: Source Serif 4 & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #faf9f4;
+      --surface-color: #ffffff;
+      --text-main: #141413;
+      --text-muted: #464742;
+      --accent-clay: #D97757;
+      --accent-clay-hover: #c46445;
+      --border-color: #e9e8e3;
+      --border-highlight: #d1cfc7;
+
+      --status-success-bg: #edf6ef;
+      --status-success-text: #2e623a;
+      --status-error-bg: #ffdad6;
+      --status-error-text: #ba1a1a;
+      --status-warn-bg: #fef3d6;
+      --status-warn-text: #8a5a00;
+
+      --font-title: 'Source Serif 4', Georgia, serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+      --radius-sm: 0.25rem; /* 4px */
+      --radius-md: 0.5rem;  /* 8px */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      padding: 2rem;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-title);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .badge-success { background: var(--status-success-bg); color: var(--status-success-text); }
+    .badge-error { background: var(--status-error-bg); color: var(--status-error-text); }
+    .badge-warn { background: var(--status-warn-bg); color: var(--status-warn-text); }
+
+    /* Dashboard Layout: 2 Columns Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .panel-title {
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Form Controls */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    input, textarea, select {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--surface-color);
+      color: var(--text-main);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent-clay);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    button {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-clay);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-clay-hover);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-color);
+      border-color: var(--border-highlight);
+    }
+
+    /* SVG Topology Container */
+    .topology-container {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      text-align: center;
+      overflow-x: auto;
+    }
+
+    .topology-node {
+      fill: var(--surface-color);
+      stroke: var(--border-color);
+      stroke-width: 1.5;
+      rx: 4;
+    }
+
+    .topology-node.active {
+      fill: var(--status-success-bg);
+      stroke: var(--status-success-text);
+      stroke-width: 2;
+    }
+
+    .topology-node.blocked {
+      fill: var(--status-error-bg);
+      stroke: var(--status-error-text);
+    }
+
+    .topology-text {
+      font-family: var(--font-body);
+      font-size: 11px;
+      fill: var(--text-main);
+    }
+
+    .topology-line {
+      stroke: var(--border-highlight);
+      stroke-width: 1.5;
+      marker-end: url(#arrow);
+    }
+
+    /* Timeline & Output Logs */
+    .timeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .timeline-item {
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-color);
+      font-size: 0.85rem;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text-muted);
+    }
+
+    pre {
+      font-family: monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #f4f3ed;
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Metric Bar */
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed var(--border-color);
+    }
+
+    .progress-bar-bg {
+      background: var(--border-color);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      width: 100%;
+      margin-top: 0.25rem;
+    }
+
+    .progress-bar-fill {
+      background: var(--accent-clay);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* History & Snapshot Viewer */
+    .history-list {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .history-chip {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-color);
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .history-chip:hover, .history-chip.active {
+      border-color: var(--accent-clay);
+      background: var(--surface-color);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>Enterprise CVE Triage Pipeline</h1>
+      <p class="subtitle">基于 LangGraph 图拓扑的多租户 CVE 漏洞分诊与自动化修复系统</p>
+    </div>
+    <div id="global-status">
+      <span class="badge badge-success">系统就绪</span>
+    </div>
+  </header>
+
+  <div class="dashboard-grid">
+
+    <!-- 面板 1: 漏洞提交与控制区 -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🛡️ 漏洞分析提交</h2>
+        <span class="badge badge-warn" id="mode-badge">API Mode: Real LLM</span>
+      </div>
+
+      <div class="form-group">
+        <label for="tenant-select">多租户 ID (Tenant ID)</label>
+        <select id="tenant-select">
+          <option value="tenant_acme">acme_corp (租户 A)</option>
+          <option value="tenant_globex">globex_sec (租户 B)</option>
+          <option value="tenant_demo">demo_sandbox (测试沙箱)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="vuln-input">漏洞描述 (Vulnerability Description)</label>
+        <textarea id="vuln-input" placeholder="请输入 CVE 漏洞描述，例如：auth 模块的用户登录接口存在未授权的 SQL 注入漏洞...">User authentication endpoint in auth_module is vulnerable to SQL Injection via username parameter, allowing unauthorized database access.</textarea>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" onclick="submitTriage()">提交分析 Pipeline</button>
+        <button class="btn-secondary" onclick="triggerDeadLoopTest()">触发死循环演示 (熔断测试)</button>
+      </div>
+    </div>
+
+    <!-- 面板 2: 拓扑状态展示 -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🗺️ 图拓扑节点实时流转</h2>
+        <span class="subtitle" id="current-step-label">节点状态: 待触发</span>
+      </div>
+
+      <div class="topology-container">
+        <svg width="600" height="210" viewBox="0 0 600 210">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#d1cfc7"/>
+            </marker>
+            <marker id="arrow-active" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2e623a"/>
+            </marker>
+            <marker id="arrow-warn" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#D97757"/>
+            </marker>
+          </defs>
+
+          <!-- CSS Style for Lines -->
+          <style>
+            .topology-line { stroke: #e9e8e3; stroke-width: 1.5; marker-end: url(#arrow); fill: none; transition: stroke 0.3s ease, stroke-width 0.3s ease; }
+            .topology-line.active { stroke: #2e623a; stroke-width: 2.5; marker-end: url(#arrow-active); }
+            .topology-line-loop { stroke: #e9e8e3; stroke-width: 1.5; stroke-dasharray: 4,3; marker-end: url(#arrow); fill: none; transition: stroke 0.3s ease, stroke-width 0.3s ease; }
+            .topology-line-loop.active { stroke: #D97757; stroke-width: 2.5; marker-end: url(#arrow-warn); }
+          </style>
+
+          <!-- Nodes Rects -->
+          <!-- Sanitizer -->
+          <rect id="node-input_sanitizer" class="topology-node" x="10" y="85" width="85" height="36"/>
+          <text x="52" y="107" class="topology-text" text-anchor="middle">Sanitizer</text>
+
+          <!-- Block -->
+          <rect id="node-block_response" class="topology-node" x="10" y="155" width="85" height="36"/>
+          <text x="52" y="177" class="topology-text" text-anchor="middle">Block</text>
+
+          <!-- Triage -->
+          <rect id="node-severity_triage" class="topology-node" x="125" y="85" width="85" height="36"/>
+          <text x="167" y="107" class="topology-text" text-anchor="middle">Triage (LLM)</text>
+
+          <!-- Escalation -->
+          <rect id="node-human_escalation" class="topology-node" x="240" y="15" width="85" height="36"/>
+          <text x="282" y="37" class="topology-text" text-anchor="middle">Escalation</text>
+
+          <!-- Retriever -->
+          <rect id="node-cve_knowledge_retriever" class="topology-node" x="240" y="85" width="85" height="36"/>
+          <text x="282" y="107" class="topology-text" text-anchor="middle">Retriever</text>
+
+          <!-- Patch Gen -->
+          <rect id="node-code_patch_generator" class="topology-node" x="355" y="85" width="85" height="36"/>
+          <text x="397" y="107" class="topology-text" text-anchor="middle">PatchGen</text>
+
+          <!-- Validator -->
+          <rect id="node-static_analysis_validator" class="topology-node" x="470" y="85" width="85" height="36"/>
+          <text x="512" y="107" class="topology-text" text-anchor="middle">Validator</text>
+
+          <!-- Reporter -->
+          <rect id="node-compliance_reporter" class="topology-node" x="470" y="155" width="85" height="36"/>
+          <text x="512" y="177" class="topology-text" text-anchor="middle">Reporter</text>
+
+          <!-- All Topology Edge Lines with Specific Edge IDs for Dynamic Path Lighting -->
+
+          <!-- 1. Sanitizer -> Block -->
+          <path id="edge-input_sanitizer-block_response" d="M 52 121 L 52 155" class="topology-line"/>
+
+          <!-- 2. Sanitizer -> Triage -->
+          <path id="edge-input_sanitizer-severity_triage" d="M 95 103 L 125 103" class="topology-line"/>
+
+          <!-- 3. Triage -> Escalation -->
+          <path id="edge-severity_triage-human_escalation" d="M 167 85 C 167 33, 200 33, 240 33" class="topology-line"/>
+
+          <!-- 4. Triage -> Retriever -->
+          <path id="edge-severity_triage-cve_knowledge_retriever" d="M 210 103 L 240 103" class="topology-line"/>
+
+          <!-- 5. Triage -> Reporter -->
+          <path id="edge-severity_triage-compliance_reporter" d="M 167 121 C 167 195, 400 195, 470 173" class="topology-line"/>
+
+          <!-- 6. Retriever -> PatchGen -->
+          <path id="edge-cve_knowledge_retriever-code_patch_generator" d="M 325 103 L 355 103" class="topology-line"/>
+
+          <!-- 7. PatchGen -> Validator -->
+          <path id="edge-code_patch_generator-static_analysis_validator" d="M 440 103 L 470 103" class="topology-line"/>
+
+          <!-- 8. Validator -> Reporter -->
+          <path id="edge-static_analysis_validator-compliance_reporter" d="M 512 121 L 512 155" class="topology-line"/>
+
+          <!-- 9. Validator -> PatchGen Loop -->
+          <path id="edge-static_analysis_validator-code_patch_generator" d="M 512 85 C 512 60, 397 60, 397 85" class="topology-line-loop"/>
+
+          <!-- 10. Validator -> Escalation -->
+          <path id="edge-static_analysis_validator-human_escalation" d="M 490 85 C 440 50, 350 33, 325 33" class="topology-line"/>
+
+          <!-- 11. Escalation -> Reporter -->
+          <path id="edge-human_escalation-compliance_reporter" d="M 325 25 C 420 15, 545 40, 545 155" class="topology-line"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 面板 3: 执行记录与消息时间线 -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">📜 消息链条与节点日志</h2>
+        <span class="subtitle" id="session-id-display">Thread ID: -</span>
+      </div>
+
+      <div class="timeline-container" id="timeline-box">
+        <div class="timeline-item">
+          <div class="timeline-header"><span>[系统]</span><span>就绪</span></div>
+          <div>点击“提交分析 Pipeline”以开启链路分析...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 面板 4: Telemetry 仪表盘 -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">📊 Telemetry & 熔断监控</h2>
+        <span class="badge badge-success" id="cb-badge">Circuit: Normal</span>
+      </div>
+
+      <div class="metric-row">
+        <span>全链路总执行延迟</span>
+        <strong id="metric-latency">0.0 ms</strong>
+      </div>
+      <div class="metric-row">
+        <span>严重性分诊结果</span>
+        <strong id="metric-severity">-</strong>
+      </div>
+      <div class="metric-row">
+        <span>静态验证结论</span>
+        <strong id="metric-verdict">-</strong>
+      </div>
+
+      <div style="margin-top: 0.5rem;">
+        <div class="metric-row">
+          <span>LLM Token 预算消耗 (上限: 8000)</span>
+          <strong id="metric-token-text">0 / 8000</strong>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="metric-token-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 面板 5: Checkpoint 历史浏览器 -->
+    <div class="panel" style="grid-column: span 2;">
+      <div class="panel-header">
+        <h2 class="panel-title">⏳ Checkpoint 版本演进历史 (MemorySaver)</h2>
+        <span class="subtitle">支持回溯与状态快照审查</span>
+      </div>
+
+      <div class="history-list" id="history-chips">
+        <div class="history-chip">暂无 Checkpoint</div>
+      </div>
+
+      <div style="margin-top: 0.5rem;">
+        <label>选定 Checkpoint 的原始 State 快照 (JSON)</label>
+        <pre id="snapshot-json-viewer">{ "info": "选择上方 Checkpoint 版本以查看快照内容" }</pre>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let activeThreadId = null;
+    let lastExecutedNode = null;
+
+    async function submitTriage() {
+      const rawInput = document.getElementById("vuln-input").value;
+      const tenantId = document.getElementById("tenant-select").value;
+
+      if (!rawInput.trim()) {
+        alert("请输入漏洞描述内容");
+        return;
+      }
+
+      setLoading(true);
+
+      // 1. 立即重置节点与连线高亮（重置状态）
+      lastExecutedNode = null;
+      document.querySelectorAll(".topology-node").forEach(el => el.classList.remove("active", "blocked"));
+      document.querySelectorAll(".topology-line, .topology-line-loop").forEach(el => el.classList.remove("active"));
+
+      const timelineBox = document.getElementById("timeline-box");
+      timelineBox.innerHTML = `
+        <div class="timeline-item">
+          <div class="timeline-header"><span>[系统]</span><span>初始化中...</span></div>
+          <div>正在为租户 [${tenantId}] 创建底层 State 数据总线...</div>
+        </div>
+      `;
+
+      document.getElementById("metric-latency").innerText = "计算中...";
+      document.getElementById("metric-severity").innerText = "分析中...";
+      document.getElementById("metric-verdict").innerText = "待判定...";
+      document.getElementById("metric-token-text").innerText = "0 / 8000";
+      document.getElementById("metric-token-bar").style.width = "0%";
+      document.getElementById("cb-badge").className = "badge badge-success";
+      document.getElementById("cb-badge").innerText = "Circuit: Normal";
+
+      try {
+        // 2. 发起 SSE 流式请求，获得阶段式实时下发
+        const response = await fetch("/api/triage/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ raw_input: rawInput, tenant_id: tenantId })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let stepIdx = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data: ")) continue;
+            const jsonStr = trimmed.substring(6);
+            try {
+              const event = JSON.parse(jsonStr);
+
+              if (event.type === "start") {
+                activeThreadId = event.thread_id;
+                document.getElementById("session-id-display").innerText = "Thread ID: " + activeThreadId;
+              } else if (event.type === "node_update") {
+                stepIdx++;
+                renderNodeUpdate(event, stepIdx);
+              } else if (event.type === "done") {
+                renderFinalDone(event);
+                if (activeThreadId) {
+                  await loadSessionHistory(activeThreadId);
+                }
+              }
+            } catch (e) {
+              console.error("解析 SSE 事件异常:", e);
+            }
+          }
+        }
+
+      } catch (err) {
+        alert("请求异常: " + err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderNodeUpdate(event, stepIdx) {
+      const nodeName = event.node;
+      const latency = event.latency_ms || 0;
+      const tokens = event.tokens_used || 0;
+      const totalTokens = event.total_tokens || 0;
+
+      // 阶段式刷新 1: 高亮当前 SVG 节点
+      const svgNode = document.getElementById("node-" + nodeName);
+      if (svgNode) {
+        svgNode.classList.add("active");
+        if (nodeName === "block_response") {
+          svgNode.classList.add("blocked");
+        }
+      }
+
+      // 阶段式刷新 2: 动态高亮上一个节点 -> 当前节点的物理 edge 连线
+      if (lastExecutedNode) {
+        const edgeId = `edge-${lastExecutedNode}-${nodeName}`;
+        const edgeEl = document.getElementById(edgeId);
+        if (edgeEl) {
+          edgeEl.classList.add("active");
+        }
+      }
+      lastExecutedNode = nodeName;
+
+      document.getElementById("current-step-label").innerText = `阶段 [${stepIdx}]: 节点 ${nodeName} 完成 (${latency}ms)`;
+
+      // 追加日志时间线条目
+      const timelineBox = document.getElementById("timeline-box");
+      const item = document.createElement("div");
+      item.className = "timeline-item";
+      item.innerHTML = `
+        <div class="timeline-header">
+          <span>[${stepIdx}] 节点: ${nodeName}</span>
+          <span>${latency} ms</span>
+        </div>
+        <div>Token 增量: ${tokens} | 严重性: ${event.severity} | 验证: ${event.validation_verdict}</div>
+      `;
+      timelineBox.appendChild(item);
+      timelineBox.scrollTop = timelineBox.scrollHeight;
+
+      // 实时更新指标
+      document.getElementById("metric-severity").innerText = event.severity;
+      document.getElementById("metric-verdict").innerText = event.validation_verdict;
+      document.getElementById("metric-token-text").innerText = `${totalTokens} / 8000`;
+      const pct = Math.min(100, Math.round((totalTokens / 8000) * 100));
+      document.getElementById("metric-token-bar").style.width = pct + "%";
+    }
+
+    function renderFinalDone(event) {
+      document.getElementById("metric-latency").innerText = (event.telemetry?.total_latency_ms || 0) + " ms";
+      document.getElementById("metric-severity").innerText = event.severity;
+      document.getElementById("metric-verdict").innerText = event.validation_verdict;
+
+      if (event.is_circuit_broken) {
+        document.getElementById("cb-badge").className = "badge badge-error";
+        document.getElementById("cb-badge").innerText = "Circuit: TRIPPED (🔴)";
+      } else {
+        document.getElementById("cb-badge").className = "badge badge-success";
+        document.getElementById("cb-badge").innerText = "Circuit: Normal";
+      }
+
+      if (event.compliance_report) {
+        const timelineBox = document.getElementById("timeline-box");
+        const reportItem = document.createElement("div");
+        reportItem.className = "timeline-item";
+        reportItem.innerHTML = `
+          <div class="timeline-header"><span>合规报告签发 (Preview)</span></div>
+          <pre>${event.compliance_report.substring(0, 450)}...</pre>
+        `;
+        timelineBox.appendChild(reportItem);
+        timelineBox.scrollTop = timelineBox.scrollHeight;
+      }
+    }
+
+    async function triggerDeadLoopTest() {
+      const tenantId = document.getElementById("tenant-select").value;
+      setLoading(true);
+
+      try {
+        const res = await fetch("/api/triage/dead-loop-test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tenant_id: tenantId, recursion_limit: 6 })
+        });
+
+        const data = await res.json();
+        alert("死循环熔断触发成功！\n熔断原因: " + data.degradation_payload.trip_reason);
+
+        document.getElementById("cb-badge").className = "badge badge-error";
+        document.getElementById("cb-badge").innerText = "Circuit: TRIPPED (🔴)";
+        document.getElementById("snapshot-json-viewer").innerText = JSON.stringify(data.degradation_payload, null, 2);
+
+      } catch (err) {
+        alert("演示失败: " + err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function loadSessionHistory(threadId) {
+      try {
+        const res = await fetch(`/api/sessions/${encodeURIComponent(threadId)}/history`);
+        const data = await res.json();
+
+        const chipsBox = document.getElementById("history-chips");
+        chipsBox.innerHTML = "";
+
+        if (!data.checkpoints || data.checkpoints.length === 0) {
+          chipsBox.innerHTML = '<div class="history-chip">暂无 Checkpoint</div>';
+          return;
+        }
+
+        const totalCps = data.checkpoints.length;
+        data.checkpoints.forEach((cp, idx) => {
+          const isLatest = idx === totalCps - 1;
+          const isInitial = idx === 0;
+
+          let label = `v${cp.version_index}: ${cp.checkpoint_id.substring(0, 8)}`;
+          if (isLatest) label += " (最新终态)";
+          else if (isInitial) label += " (初始输入)";
+
+          const chip = document.createElement("div");
+          chip.className = "history-chip" + (isLatest ? " active" : "");
+          chip.innerText = label;
+          chip.onclick = () => loadSpecificCheckpoint(threadId, cp.checkpoint_id, chip);
+          chipsBox.appendChild(chip);
+        });
+
+        // 默认自动载入最后一个（最新终态 vN）的 Checkpoint 详情
+        if (totalCps > 0) {
+          const lastIdx = totalCps - 1;
+          await loadSpecificCheckpoint(threadId, data.checkpoints[lastIdx].checkpoint_id, chipsBox.children[lastIdx]);
+        }
+
+      } catch (err) {
+        console.error("加载历史失败:", err);
+      }
+    }
+
+    async function loadSpecificCheckpoint(threadId, checkpointId, chipEl) {
+      document.querySelectorAll(".history-chip").forEach(c => c.classList.remove("active"));
+      if (chipEl) chipEl.classList.add("active");
+
+      try {
+        const res = await fetch(`/api/sessions/${encodeURIComponent(threadId)}/checkpoints/${encodeURIComponent(checkpointId)}`);
+        const data = await res.json();
+        document.getElementById("snapshot-json-viewer").innerText = JSON.stringify(data.values, null, 2);
+      } catch (err) {
+        document.getElementById("snapshot-json-viewer").innerText = "加载特定的 Checkpoint 失败: " + err;
+      }
+    }
+
+    function setLoading(isLoading) {
+      document.querySelectorAll("button").forEach(b => b.disabled = isLoading);
+      if (isLoading) {
+        document.getElementById("current-step-label").innerText = "Pipeline 实时流转中...";
+      } else {
+        document.getElementById("current-step-label").innerText = "全流程执行完毕";
+      }
+    }
+  </script>
+</body>
+</html>
