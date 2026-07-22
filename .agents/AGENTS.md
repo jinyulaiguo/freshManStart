@@ -115,3 +115,16 @@
 *   **远程仓库的同步规整**：如果上一次的提交已经推送（Push）到远程仓库，在进行本地修补（Amend）后，必须使用 `git push --force-with-lease origin [branch]` 命令进行安全性的强制覆盖推送，确保本地与远程保持 100% 同步且依然只有唯一一条干净的 Commit。
 *   **禁止擅自提交铁律**：除非用户显式下达 Commit 或提交指令（例如明确说出“你可以提交了”、“进行提交/commit”），否则 AI **绝对禁止以任何理由自行在后台执行 `git commit` 操作**。所有修改必须保持在本地工作区（Unstaged/Staged 状态），静默等待用户的最终审查与提交指令。
 
+### 16. 生产级架构师设计规范（Enterprise Architect Standard）
+本仓库中所有每日练习（`practice.py`）、参考标准答案（`xxx_impl.py`）以及教学讲解与文档，**必须 100% 采用生产级、架构师级（Architect-Level）的工程标准与真实工业级业务场景进行设计**，严禁使用任何针对初学者的简化模型：
+* **真实工业业务上下文**：严禁在代码中使用任何无业务含义的 `node_a`/`node_b`、`foo`/`bar` 或 `Hello World` 式占位代码。必须代入具体的工业级 Agent 业务场景（例如：多 Agent 自动化代码重构与 AST 安全审计引擎、高并发金融回测 Pipeline、分布式 Trace 审计链等）。
+* **架构级容错与设计模式**：必须采用生产级的切面代理（AOP）、状态快照保险箱（State Snapshot Vault）、结构化诊断 Payload、多维熔断策略（如超步限额、运行耗时预算超时、状态指纹震荡检测）等架构模式，确保代码具备 100% 生产落地的参考价值。
+
+### 17. 全局战略定位与双图谱映射规范 (Global Strategic Alignment Standard)
+在进行任何单日（如 Day YY）的技术讲解、代码构建与交互引导时，AI **必须强制建立全局视角，从架构层面思考单点 API 的位置**：
+1. **AI 导师认知锚定**：AI 必须参考 [docs/agent_learning_plan.md](file:///Users/zhouyi/03.AI/03.freshManStart/docs/agent_learning_plan.md) 与当周大纲（如 [docs/week_10_langgraph_core.md](file:///Users/zhouyi/03.AI/03.freshManStart/docs/week_10_langgraph_core.md)），在交互回答与提问引导中体现该日知识点在 26 周路线图中的战略意图与本周积木位置。
+2. **课堂笔记 (`notes.md`) 解耦边界**：静态笔记 `notes.md` **必须保持纯粹的软件工程技术大纲**（聚焦于当天的业务痛点、底层原理、流程图谱、代码模式与性能指标），**严禁将全局规划说明、元规则描述或宏观路线图文本直接贴入 `notes.md` 中**，确保笔记纯粹高效、干货满载。
+
+
+
+
