@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多层级记忆增强 Agent 看板</title>
+    <!-- 引入衬线体 Source Serif 4 (知性人气质感) 和无衬线体 Inter (清晰可读) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================================================
+           1. CSS Reset 与温润知性极简主义配色系统 (Warm Intellectual Minimalism)
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #faf9f4; /* 主背景：骨白 Bone-white */
+            color: #141413;            /* 主字色：深炭黑 Charcoal */
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-weight: 600;
+            color: #141413;
+        }
+
+        /* 统一边框与交互高亮 */
+        input, select, button {
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            border-radius: 4px; /* 小元素 0.25rem (4px) 圆角 */
+            border: 1px solid #e9e8e3; /* 低对比度边框 */
+            transition: all 0.2s ease;
+        }
+
+        input, select {
+            background-color: #ffffff;
+            padding: 0.5rem 0.75rem;
+            color: #141413;
+        }
+
+        input:focus, select:focus {
+            border-color: #D97757; /* 聚焦高亮：杏粘土色 Clay accent */
+        }
+
+        button {
+            background-color: #141413;
+            color: #faf9f4;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            border: 1px solid #141413;
+        }
+
+        button:hover {
+            background-color: #464742;
+            border-color: #464742;
+        }
+
+        /* 杏粘土色辅助按钮 */
+        button.accent {
+            background-color: #D97757;
+            border-color: #D97757;
+            color: #ffffff;
+        }
+
+        button.accent:hover {
+            background-color: #b55d3f;
+            border-color: #b55d3f;
+        }
+
+        /* ==========================================================================
+           2. 页面网格布局 (Grid System)
+           ========================================================================== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* 顶栏配置区 */
+        header {
+            background: #ffffff;
+            border: 1px solid #e9e8e3;
+            border-radius: 8px; /* 大容器 0.5rem (8px) 圆角 */
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        header .brand h1 {
+            font-size: 1.7rem;
+            letter-spacing: -0.02em;
+        }
+
+        header .brand p {
+            font-size: 0.85rem;
+            color: #464742;
+        }
+
+        .config-panel {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .config-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #464742;
+        }
+
+        /* 主体分栏 */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card 统一扁平底座 */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e9e8e3;
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            border-bottom: 1px solid #faf9f4;
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ==========================================================================
+           3. 左侧 Chat 对话区域
+           ========================================================================== */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border-bottom: 1px solid #faf9f4;
+        }
+
+        /* 消息气泡设计 */
+        .msg-bubble {
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            position: relative;
+        }
+
+        .msg-bubble.user {
+            align-self: flex-end;
+            background-color: #faf9f4;
+            color: #141413;
+            border: 1px solid #e9e8e3;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-bubble.assistant {
+            align-self: flex-start;
+            background-color: #ffffff;
+            color: #141413;
+            border: 1px solid #e9e8e3;
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg-meta {
+            font-size: 0.75rem;
+            color: #464742;
+            margin-bottom: 0.25rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+        }
+
+        /* ==========================================================================
+           4. 右侧上帝视角调试看板
+           ========================================================================== */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* A. 自适应路由卡片 */
+        .route-badge-container {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .route-badge {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem;
+            border: 1px solid #e9e8e3;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #464742;
+            background-color: #faf9f4;
+        }
+
+        .route-badge.active {
+            border-color: #D97757;
+            background-color: #ffdad6;
+            color: #ba1a1a;
+        }
+
+        .route-badge.active.none-route {
+            border-color: #2e623a;
+            background-color: #edf6ef;
+            color: #2e623a;
+        }
+
+        .route-badge.active.mem-route {
+            border-color: #D97757;
+            background-color: #fdf5f2;
+            color: #D97757;
+        }
+
+        .rtt-info {
+            font-size: 0.85rem;
+            background: #faf9f4;
+            padding: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid #e9e8e3;
+        }
+
+        /* B. 短期工作记忆卡片 */
+        .summary-box {
+            background-color: #faf9f4;
+            border: 1px dashed #D97757;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 0.85rem;
+            color: #464742;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .active-window-list {
+            font-size: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .active-window-item {
+            padding: 0.4rem;
+            border-bottom: 1px solid #faf9f4;
+        }
+
+        /* C. 长期事实库卡片 */
+        .memories-table-container {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid #e9e8e3;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #e9e8e3;
+        }
+
+        th {
+            background-color: #faf9f4;
+            font-weight: 600;
+            color: #464742;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .decay-bar-bg {
+            width: 60px;
+            background-color: #e9e8e3;
+            height: 6px;
+            border-radius: 3px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+
+        .decay-bar-fill {
+            background-color: #2e623a;
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .decay-bar-fill.low {
+            background-color: #ba1a1a;
+        }
+
+        /* D. 审计日志卡片 */
+        .logs-box {
+            background-color: #141413;
+            color: #faf9f4;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .log-line {
+            line-break: anywhere;
+            white-space: pre-wrap;
+        }
+
+        .log-line.SUCCESS { color: #8ec07c; }
+        .log-line.WARNING { color: #fe8019; }
+        .log-line.ERROR { color: #fb4934; }
+        .log-line.INFO { color: #a89984; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 顶栏配置 -->
+    <header>
+        <div class="brand">
+            <h1>多层级记忆增强 Agent 看板</h1>
+            <p>基于 Day 63 实战：滑窗异步摘要 ｜ 实体事实消歧 ｜ 艾宾浩斯遗忘 ｜ 自适应检索路由</p>
+        </div>
+        <div class="config-panel">
+            <div class="config-group">
+                <label for="userIdInput">租户用户 ID:</label>
+                <select id="userIdInput" onchange="onUserOrSessionChange()">
+                    <option value="user_leeming">user_leeming (李明)</option>
+                    <option value="user_zhangsan">user_zhangsan (张三)</option>
+                    <option value="user_custom">自定义用户</option>
+                </select>
+                <input type="text" id="customUserText" style="display: none; width: 110px;" placeholder="输入租户ID" value="" onblur="onCustomUserBlur()">
+            </div>
+            <div class="config-group">
+                <label for="sessionIdInput">会话 Session ID:</label>
+                <select id="sessionIdInput" onchange="onUserOrSessionChange()">
+                    <!-- 动态载入 -->
+                </select>
+                <button onclick="createNewSession()">新建会话</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体分栏 -->
+    <div class="main-layout">
+        <!-- 左侧：Chat 区域 -->
+        <div class="card chat-container">
+            <h2>会话交互</h2>
+            <div class="chat-history" id="chatHistory">
+                <div class="msg-bubble assistant">
+                    <div class="msg-meta"><span>ASSISTANT</span></div>
+                    你好！我是多层级记忆助手，我们可以随便聊聊，你可以告诉我你的偏好（我将异步为你沉淀至长期 facts），或者询问我客观的专业概念（如 MemGPT、RAG 等原理）。
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="输入消息..." onkeydown="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" id="sendBtn">发送</button>
+            </div>
+        </div>
+
+        <!-- 右侧：上帝视角调试看板 -->
+        <div class="dashboard-grid">
+            <!-- 意图路由状态 -->
+            <div class="card">
+                <h2>意图分流路由器</h2>
+                <div class="route-badge-container">
+                    <div class="route-badge" id="badgeNONE">NONE (短路免检索)</div>
+                    <div class="route-badge" id="badgeMEM">MEM (长期偏好)</div>
+                    <div class="route-badge" id="badgeRAG">RAG (客观知识库)</div>
+                </div>
+                <div class="rtt-info">
+                    <p><strong>上轮检索时延:</strong> <span id="rttText">0 ms</span></p>
+                    <p style="margin-top: 0.4rem;"><strong>召回数据 Payload:</strong></p>
+                    <div id="payloadBox" style="font-size: 0.8rem; max-height: 80px; overflow-y: auto; color:#464742; margin-top: 0.2rem; white-space: pre-wrap;">无</div>
+                </div>
+            </div>
+
+            <!-- 短期工作记忆 -->
+            <div class="card">
+                <h2>短期工作记忆 (Working Memory)</h2>
+                <div>
+                    <p style="font-size:0.85rem; font-weight:600; margin-bottom: 0.3rem;">当前滚动摘要 (SQLite sessions.summary):</p>
+                    <div class="summary-box" id="summaryBox">暂无摘要。当对话内容长度超过 1200 字符时，后台将触发非阻塞大模型归约摘要。</div>
+                </div>
+                <div>
+                    <p style="font-size:0.85rem; font-weight:600; margin-bottom: 0.3rem;">活跃滑动窗口消息 (未归约):</p>
+                    <div class="active-window-list" id="activeWindowList">
+                        <!-- 动态载入 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 长期事实库 -->
+            <div class="card" style="grid-column: span 2;">
+                <h2 style="border:none;">
+                    <span>长期事实库 (Long-term Facts)</span>
+                    <div style="display:flex; gap: 0.5rem;">
+                        <button onclick="triggerDecay()" class="accent" style="font-size:0.75rem; padding: 0.25rem 0.5rem;">艾宾浩斯衰减</button>
+                        <button onclick="refreshMemories()" style="font-size:0.75rem; padding: 0.25rem 0.5rem; background:#ffffff; color:#141413;">手动刷新</button>
+                    </div>
+                </h2>
+                <div class="memories-table-container">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Fact Key</th>
+                            <th>Fact Value</th>
+                            <th>记录时间</th>
+                            <th>留存权重 (遗忘淘汰阈值: 0.200)</th>
+                        </tr>
+                        </thead>
+                        <tbody id="memoriesTableBody">
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #a89984;">暂无长期事实，开始聊天让 Agent 沉淀记忆吧。</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 审计日志 -->
+            <div class="card" style="grid-column: span 2;">
+                <h2>后台任务审计日志 (Audit Logs)</h2>
+                <div class="logs-box" id="logsBox">
+                    <!-- 动态载入 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全局状态变量
+    const API_BASE = "";
+    let activeUser = "user_leeming";
+    let activeSession = "";
+    let activeSessionsList = [];
+
+    // 初始化加载
+    window.onload = async () => {
+        await loadSessions();
+        if (activeSessionsList.length > 0) {
+            activeSession = activeSessionsList[0].session_id;
+            activeUser = activeSessionsList[0].user_id;
+            document.getElementById("userIdInput").value = activeUser;
+            if (!["user_leeming", "user_zhangsan"].includes(activeUser)) {
+                document.getElementById("userIdInput").value = "user_custom";
+                const customInput = document.getElementById("customUserText");
+                customInput.style.display = "inline-block";
+                customInput.value = activeUser;
+            }
+        } else {
+            // 没有会话，自动新建
+            await createNewSession();
+        }
+        updateSessionSelector();
+        await refreshAllData();
+        
+        // 挂载定时轮询更新（每 2.5 秒刷新状态、事实和日志，模拟后台非阻塞行为）
+        setInterval(async () => {
+            await refreshMemories();
+            await refreshLogs();
+            await refreshDebugInfo();
+        }, 2500);
+    };
+
+    // 加载会话列表
+    async function loadSessions() {
+        try {
+            const res = await fetch(`${API_BASE}/api/sessions`);
+            const data = await res.json();
+            activeSessionsList = data.sessions || [];
+        } catch (e) {
+            console.error("加载会话列表失败:", e);
+        }
+    }
+
+    // 渲染会话下拉选择框
+    function updateSessionSelector() {
+        const selector = document.getElementById("sessionIdInput");
+        selector.innerHTML = "";
+        
+        // 过滤展示当前用户对应的 sessions
+        const filtered = activeSessionsList.filter(s => s.user_id === activeUser);
+        
+        filtered.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s.session_id;
+            const shortSum = s.summary ? ` (${s.summary.substring(0, 12)}...)` : " (空会话)";
+            opt.innerText = s.session_id.substring(0, 8) + "..." + shortSum;
+            if (s.session_id === activeSession) {
+                opt.selected = true;
+            }
+            selector.appendChild(opt);
+        });
+        
+        // 如果该租户没有 session，自动为他创建一个
+        if (filtered.length === 0) {
+            createNewSession();
+        }
+    }
+
+    // 新建 Session 会话
+    async function createNewSession() {
+        const randId = "session_" + Math.random().toString(36).substring(2, 10);
+        activeSession = randId;
+        
+        // 临时加到列表
+        activeSessionsList.unshift({
+            session_id: randId,
+            user_id: activeUser,
+            summary: "",
+            created_at: Date.now() / 1000
+        });
+        
+        // 重置聊天区
+        const chatHistory = document.getElementById("chatHistory");
+        chatHistory.innerHTML = `
+            <div class="msg-bubble assistant">
+                <div class="msg-meta"><span>ASSISTANT</span></div>
+                已为您物理重建并加载新会话 [${randId.substring(0, 8)}]。
+            </div>
+        `;
+        
+        updateSessionSelector();
+        await refreshAllData();
+    }
+
+    // 租户用户选择变化
+    function onUserOrSessionChange() {
+        const userSel = document.getElementById("userIdInput").value;
+        const customInput = document.getElementById("customUserText");
+        
+        if (userSel === "user_custom") {
+            customInput.style.display = "inline-block";
+            customInput.focus();
+            return;
+        } else {
+            customInput.style.display = "none";
+            activeUser = userSel;
+        }
+
+        const sessionSel = document.getElementById("sessionIdInput").value;
+        if (sessionSel) {
+            activeSession = sessionSel;
+            // 获取该 session 的 user
+            const found = activeSessionsList.find(s => s.session_id === activeSession);
+            if (found && found.user_id !== activeUser) {
+                // 如果用户不一致，切换为该 session 对应的用户
+                activeUser = found.user_id;
+                document.getElementById("userIdInput").value = activeUser;
+            }
+        }
+        
+        updateSessionSelector();
+        refreshAllData();
+    }
+
+    function onCustomUserBlur() {
+        const val = document.getElementById("customUserText").value.trim();
+        if (val) {
+            activeUser = val;
+            updateSessionSelector();
+            refreshAllData();
+        }
+    }
+
+    // 发送聊天消息
+    async function sendMessage() {
+        const input = document.getElementById("chatInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const query = input.value.trim();
+        if (!query) return;
+
+        input.value = "";
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        // 1. 在对话栏追加用户的消息
+        appendMessageBubble("user", query);
+
+        try {
+            // 2. 发起 API 请求
+            const res = await fetch(`${API_BASE}/api/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_id: activeSession,
+                    user_id: activeUser,
+                    query: query
+                })
+            });
+
+            if (!res.ok) {
+                throw new Error(await res.text());
+            }
+
+            const data = await res.json();
+            
+            // 3. 在对话栏追加助手回复
+            appendMessageBubble("assistant", data.reply);
+
+            // 4. 更新路由决策高亮
+            updateRouterBadges(data.route, data.rtt_ms, data.payload);
+
+            // 5. 立即局部刷新数据
+            await loadSessions();
+            updateSessionSelector();
+            await refreshMemories();
+            await refreshLogs();
+            await refreshDebugInfo();
+
+        } catch (e) {
+            appendMessageBubble("assistant", "❌ 后端服务处理出错: " + e.message);
+        } finally {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    }
+
+    // 在 HTML 中追加气泡
+    function appendMessageBubble(role, content) {
+        const chatHistory = document.getElementById("chatHistory");
+        const bubble = document.createElement("div");
+        bubble.className = `msg-bubble ${role}`;
+        
+        const meta = document.createElement("div");
+        meta.className = "msg-meta";
+        meta.innerHTML = `<span>${role.toUpperCase()}</span>`;
+        
+        const text = document.createElement("div");
+        text.innerText = content;
+        
+        bubble.appendChild(meta);
+        bubble.appendChild(text);
+        chatHistory.appendChild(bubble);
+        
+        // 滚动到底部
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // 路由高亮控制
+    function updateRouterBadges(route, rtt, payload) {
+        document.getElementById("badgeNONE").className = "route-badge";
+        document.getElementById("badgeMEM").className = "route-badge";
+        document.getElementById("badgeRAG").className = "route-badge";
+
+        const activeId = "badge" + route;
+        const el = document.getElementById(activeId);
+        if (el) {
+            if (route === "NONE") {
+                el.className = "route-badge active none-route";
+            } else if (route === "MEM") {
+                el.className = "route-badge active mem-route";
+            } else {
+                el.className = "route-badge active";
+            }
+        }
+
+        document.getElementById("rttText").innerText = `${rtt} ms`;
+        
+        const payloadBox = document.getElementById("payloadBox");
+        if (payload && payload.length > 0) {
+            payloadBox.innerText = JSON.stringify(payload, null, 2);
+        } else {
+            payloadBox.innerText = "无";
+        }
+    }
+
+    // 刷新全部状态
+    async function refreshAllData() {
+        await refreshMemories();
+        await refreshLogs();
+        await refreshDebugInfo();
+    }
+
+    // A. 刷新长期事实列表
+    async function refreshMemories() {
+        try {
+            const res = await fetch(`${API_BASE}/api/memories?user_id=${activeUser}`);
+            const data = await res.json();
+            const tableBody = document.getElementById("memoriesTableBody");
+            
+            tableBody.innerHTML = "";
+            const memories = data.memories || [];
+            
+            if (memories.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #a89984;">暂无长期事实，开始聊天让 Agent 沉淀记忆吧。</td></tr>`;
+                return;
+            }
+
+            memories.forEach(m => {
+                const tr = document.createElement("tr");
+                
+                const tdKey = document.createElement("td");
+                tdKey.innerHTML = `<code>${m.fact_key}</code>`;
+                
+                const tdVal = document.createElement("td");
+                tdVal.innerText = m.fact_value;
+                
+                const tdTime = document.createElement("td");
+                const date = new Date(m.timestamp * 1000);
+                tdTime.innerText = date.toLocaleTimeString();
+                
+                const tdWeight = document.createElement("td");
+                const w = m.weight;
+                const isLow = w < 0.35;
+                const percent = Math.min(100, w * 100).toFixed(0);
+                
+                tdWeight.innerHTML = `
+                    <div class="decay-bar-bg">
+                        <div class="decay-bar-fill ${isLow ? 'low' : ''}" style="width: ${percent}%"></div>
+                    </div>
+                    <span>${w.toFixed(3)}</span>
+                `;
+                
+                tr.appendChild(tdKey);
+                tr.appendChild(tdVal);
+                tr.appendChild(tdTime);
+                tr.appendChild(tdWeight);
+                tableBody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("刷新长期记忆失败:", e);
+        }
+    }
+
+    // B. 刷新后台审计日志
+    async function refreshLogs() {
+        try {
+            const res = await fetch(`${API_BASE}/api/logs`);
+            const data = await res.json();
+            const box = document.getElementById("logsBox");
+            
+            const isAtBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 10;
+            box.innerHTML = "";
+            
+            const logs = data.logs || [];
+            logs.forEach(log => {
+                const date = new Date(log.timestamp * 1000);
+                const timeStr = date.toLocaleTimeString();
+                const div = document.createElement("div");
+                div.className = `log-line ${log.level}`;
+                div.innerText = `[${timeStr}] [${log.level}] ${log.message}`;
+                box.appendChild(div);
+            });
+
+            if (isAtBottom) {
+                box.scrollTop = box.scrollHeight;
+            }
+        } catch (e) {
+            console.error("刷新日志失败:", e);
+        }
+    }
+
+    // C. 刷新短期 debug 详情
+    async function refreshDebugInfo() {
+        if (!activeSession) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/debug_info?session_id=${activeSession}`);
+            const data = await res.json();
+            
+            // 摘要
+            const sBox = document.getElementById("summaryBox");
+            if (data.current_summary) {
+                sBox.innerText = data.current_summary;
+                sBox.style.borderStyle = "solid";
+            } else {
+                sBox.innerText = `暂无摘要。当前消息累计长度 ${sumMessageChars(data.messages)}/${data.token_limit} 字符。超限将触发后台非阻塞压缩。`;
+                sBox.style.borderStyle = "dashed";
+            }
+
+            // 活跃窗口
+            const listEl = document.getElementById("activeWindowList");
+            listEl.innerHTML = "";
+            const msgs = data.messages || [];
+            
+            if (msgs.length === 0) {
+                listEl.innerHTML = `<div style="text-align:center; color:#a89984; padding:0.5rem 0;">当前工作记忆滑窗为空</div>`;
+                return;
+            }
+
+            msgs.forEach(msg => {
+                const item = document.createElement("div");
+                item.className = "active-window-item";
+                item.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${msg.content.substring(0, 70)}${msg.content.length > 70 ? '...' : ''}`;
+                listEl.appendChild(item);
+            });
+        } catch (e) {
+            console.error("获取短期记忆详情失败:", e);
+        }
+    }
+
+    function sumMessageChars(messages) {
+        if (!messages) return 0;
+        return messages.reduce((sum, m) => sum + m.content.length, 0);
+    }
+
+    // 手动触发艾宾浩斯衰减
+    async function triggerDecay() {
+        try {
+            const res = await fetch(`${API_BASE}/api/decay`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: activeUser,
+                    decay_rate: 0.15 // 手动衰减使用较大的速率以展示淘汰效果
+                })
+            });
+            const data = await res.json();
+            alert(`手动衰减调用成功！被物理遗忘淘汰的 Facts 键: ${JSON.stringify(data.decayed_keys)}`);
+            await refreshAllData();
+        } catch (e) {
+            alert("衰减失败: " + e.message);
+        }
+    }
+</script>
+</body>
+</html>
