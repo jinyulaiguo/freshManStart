@@ -46,10 +46,11 @@
 
 ## Day 75：多线程并行节点（Parallel Nodes）的并发执行与分支汇聚
 *   **核心知识点**：
-    *   **并行节点设计**：将一个 Node 的输出边同时指向多个独立的 Nodes，触发这些节点并发执行。
-    *   **并发安全归约**：当这几个并行 Nodes 同时执行完毕并返回新状态时，Reducers 在汇聚节点上如何保证数据一致性（多路并发消息的安全合并）。
-*   **Agent 核心关联**：在 Agent 执行多路信息比对（例如同时调用“百度搜索”和“谷歌搜索”两个子 Agent 进行学术核查）时，通过 Parallel Nodes 能够在底层实现非阻塞的并发运行，并自动在最终的汇聚节点上整合所有 Observation。
-*   **🎯 过关验证标准**：在图拓扑中设计并实现并行的 A 节点与 B 节点。并发运行它们后，在汇聚节点 C 上使用 Annotated 列表 Reducer 成功将 A 和 B 生成的消息按时间戳顺序安全合并，不发生数据丢失。
+    *   **拓扑扇出与扇入（Fan-out / Fan-in）**：通过 `builder.add_edge("start", ["node_a", "node_b"])` 触发非阻塞并发分支，并在汇聚节点安全归约。
+    *   **Pregel 超步（Superstep）同步屏障 Barrier 机制**：理解引擎如何在当前 Superstep 冻结等待所有并行 Worker 执行完毕后，统一推进至下一 Superstep 汇聚节点。
+    *   **并发安全 Reducer 竞态防护**：使用 `Annotated[list, operator.add]` 强类型归约器解决多路 Node 状态并发写入冲突，实现数据无损强一致合并。
+*   **Agent 核心关联**：在多源并行检索（如同时调用学术库、搜索 API、本地 DB 进行信息交叉核验）或多 Agent 审查（代码审计 + 性能审计）时，利用并行节点能降低 60%+ 的总响应延迟。
+*   **🎯 过关验证标准**：设计多源核验 Agent 图。从起始节点同时 Fan-out 分流给 `BaiduSearchNode` 与 `GoogleSearchNode` 并发执行；两个 Worker 各自模拟延迟；在汇聚节点 `ConsolidateNode` 上使用 `Annotated` 列表 Reducer 成功将两路并发返回的数据安全归约合并，且验证总耗时接近最大单节点耗时（而非两者叠加）。
 
 ---
 
