@@ -56,11 +56,11 @@
 
 ## Day 76：持久化存储接口与自定义 Redis/Postgres Checkpointer 扩展
 *   **核心知识点**：
-    *   **BaseCheckpointSaver 接口契约**：理解 LangGraph 读写 Checkpoint 的核心抽象方法（`put` 与 `get`）。
-    *   **Redis / PostgreSQL 连接池与序列化**：将图状态（State）序列化为二进制字节流（使用 pickle 或 json），存储并建立快速索引。
-    *   **分布式锁与一致性**：在高并发场景下防止同一 thread_id 被多个请求并发写入。
-*   **Agent 核心关联**：默认的 `MemorySaver` 是内存级别的，进程重启状态就归零。在真正的线上高并发生产环境中，必须自己基于 Redis 或 Postgres 数据库重写持久化存储插件，以支持百万级多租户状态存盘。
-*   **🎯 过关验证标准**：继承 `BaseCheckpointSaver` 抽象类，手写一个 Redis 校验器 `RedisCheckpointer`（或 Postgres 版本），并在编译图时予以绑定，验证数据落库的序列化正确度及重启恢复功能。
+    *   **BaseCheckpointSaver 抽象契约解构**：实现 LangGraph 底层读写快照的 4 大核心 API（`get_tuple` / `list` / `put` / `put_writes`）。
+    *   **序列化协议与 Key 复合索引设计**：运用 `SerializerProtocol` 实现强类型字节流/JSON 序列化，设计 `checkpoint:{thread_id}:{checkpoint_ns}:{checkpoint_id}` 分布式高效 key 格式。
+    *   **进程重启跨生命周期无损恢复**：通过独立落盘的 Checkpointer 实例在进程重启或重新初始化后从持久化存储恢复图状态与历史快照。
+*   **Agent 核心关联**：默认的 `MemorySaver` 随进程销毁而归零。在真正的线上高并发生产环境中，必须基于 Redis 或 PostgreSQL 扩展自定义持久化插件，以支持百万级多租户状态存盘与高可用无状态服务扩展。
+*   **🎯 过关验证标准**：继承 `BaseCheckpointSaver` 实现自定义持久化插件 `CustomRedisCheckpointer`。将该插件绑定至 StateGraph 进行图运行并保存快照；销毁旧 Graph 实例，重新实例化新 Graph 对象并绑定同一 Checkpointer 句柄，验证成功还原之前的 `StateSnapshot` 且恢复图后续流程推进。
 
 ---
 

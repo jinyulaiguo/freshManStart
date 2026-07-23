@@ -131,6 +131,19 @@
 2. **大纲同步修改**：在扩充单日教学内容的同时，AI **必须同步修改周度全局大纲文档（`docs/week_XX_*.md`）中对应单日的核心知识点与过关验证标准**，确保全局大纲与实际教学内容保持 100% 动态对齐。
 3. **交付件全链路对齐**：扩展后的内容必须同步体现在当日的 `notes.md`（技术沉淀）、`practice.py`（TODO 模版）以及参考标准答案代码中，确保全套教学交付件的一致性与高完备度。
 
+### 19. 包管理工具规范 (Package Management Standard)
+* **包管理与虚拟环境**：本项目统一且严格使用 **`uv`**（优先使用 `uv pip install <package>` 进行极速包管理）和 **`pip`** 管理 Python 依赖与本地 `.venv` 虚拟环境。在执行任何依赖安装或环境配置命令时，必须遵守此基本原则。
+
+### 20. 项目基础设施与环境变量配置规范 (Infrastructure & Environment Config Standard)
+* **环境变量与动态配置读取**：项目的所有基础服务（LLM API、Redis、PostgreSQL 等）凭证与网络地址**严禁在代码或文档中硬编码敏感账号密码**。所有配置统一通过 `weekly/w04_prompt_and_http/utils.py` 的 `load_env_file()` 动态从本地 `.env` 文件或系统环境变量中读取：
+    * **LLM API 配置变量**：`MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_MODEL`
+    * **Redis 配置变量**：`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`
+    * **PostgreSQL 配置变量**：`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+* **解耦原则**：代码与规范中仅保留环境变量 Key 的契约定义，真正的敏感账号密码完全收拢在本地未纳管的 `.env` 中，确保代码安全的工业级解耦。
+
+
+
+
 
 
 
