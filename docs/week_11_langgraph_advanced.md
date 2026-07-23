@@ -6,11 +6,11 @@
 
 ## Day 71：人在回路（HITL）中断（interrupt）机制与断点控制
 *   **核心知识点**：
-    *   **编译断点参数**：`compile(interrupt_before=[...], interrupt_after=[...])` 的设计含义。
-    *   **中断运行时（Runtime Interruption）**：在指定节点执行前/后强制冻结图执行，并将控制权交还给调用方的运行逻辑。
-    *   **恢复运行（Resume）**：调用 `update_state` 注入用户干预数据后，图从断点原位继续往下流动。
-*   **Agent 核心关联**：对于高风险的 Agent 决策（如发送商业邮件、删除数据库记录、大额支付支付），绝不能交由 LLM 盲盒执行。必须使用断点技术，在核心 Action 执行前强制卡住，等待人类的安全审计。
-*   **🎯 过关验证标准**：创建一个状态图，配置在 `send_email` 节点执行前触发 `interrupt_before`。编写脚本运行该图，验证其在执行到该节点时自动挂起，在外部输入“批准”指令后，图能正常继续运行并输出结果。
+    *   **双范式中断控制**：静态拓扑断点 `compile(interrupt_before=[...], interrupt_after=[...])` 与动态节点内中断 `interrupt()` 的设计含义与适用场景。
+    *   **中断运行时与状态快照**：图挂起冻结机制，调取 `StateSnapshot` 读取 `snapshot.next` 待执行队列与 `snapshot.tasks` 中解构的 Interrupt Payload。
+    *   **双路径解冻恢复（Resume）**：调用 `update_state` 原位修正状态并搭配 `invoke(None)` 恢复运行；或通过 `Command(resume=...)` 注入人工审核响应数据原位解冻。
+*   **Agent 核心关联**：对于高风险的 Agent 决策（如发送商业邮件、删除数据库记录、大额资金支付），绝不能交由 LLM 盲盒全自动执行。必须通过物理阻断屏障挂起图状态落盘，等待人工安全审计与修正后缝合控制流。
+*   **🎯 过关验证标准**：构建带双范式 HITL 机制的状态图。1) 验证静态断点 `interrupt_before` 在节点前挂起，调取快照，利用 `update_state` 修正参数后解冻；2) 验证动态 `interrupt()` 在大额场景触发挂起并暴露告警 Payload，通过 `Command(resume=...)` 注入响应恢复图运行。
 
 ---
 

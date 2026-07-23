@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 11: LangGraph 进阶 整体总览看板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #faf9f4;
+            /* 骨白 */
+            --surface-color: #ffffff;
+            /* 纯白 */
+            --primary-text: #141413;
+            /* 深炭黑 */
+            --secondary-text: #464742;
+            /* 变体炭黑 */
+            --accent-color: #D97757;
+            /* 杏粘土色 */
+            --accent-hover: #c56546;
+            --border-color: #e9e8e3;
+            --border-hover: #d2d0c6;
+            --highlight-bg: #f5f2e9;
+            --success-color: #2e623a;
+            --success-bg: #edf6ef;
+            --error-color: #ba1a1a;
+            --error-bg: #ffdad6;
+
+            --font-serif: 'Source Serif 4', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            padding: 2.5rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            margin-bottom: 2.5rem;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: var(--font-serif);
+            font-weight: 500;
+            color: var(--primary-text);
+            margin-bottom: 0.75rem;
+        }
+
+        h1 {
+            font-size: 2.3rem;
+            letter-spacing: -0.02em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            margin-top: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: var(--secondary-text);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        /* 知识链路网格 */
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .day-badge {
+            display: inline-block;
+            background-color: var(--highlight-bg);
+            color: var(--accent-color);
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .day-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .pain-point {
+            background-color: var(--error-bg);
+            color: var(--error-color);
+            padding: 0.6rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid var(--error-color);
+        }
+
+        .solution {
+            background-color: var(--success-bg);
+            color: var(--success-color);
+            padding: 0.6rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid var(--success-color);
+        }
+
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        th,
+        td {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: var(--highlight-bg);
+            font-family: var(--font-serif);
+            font-weight: 600;
+            color: var(--primary-text);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 流程全景 CSS 框图 */
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem;
+            background-color: var(--highlight-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .flow-step-num {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            font-weight: bold;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .flow-step-content h4 {
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .flow-step-content p {
+            margin: 0;
+            font-size: 0.85rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag-hitl {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .tag-tt {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .tag-db {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="day-badge">WEEK 11 ROADMAP</div>
+        <h1>Week 11: LangGraph 进阶与生产级架构</h1>
+        <p><strong>核心目标</strong>：掌握人在回路（HITL）交互与运行时中断、状态“时间旅行”回滚、子图隔离与多节点并发归约，具备编写分布式持久化 Checkpointer 的能力，最终交付可商业落地的带安全审批与故障自愈的 SQL 执行 Agent。</p>
+    </header>
+
+    <section class="card">
+        <h2>🎯 本周实战大项目架构全景 (Day 77)</h2>
+        <p>本周我们将构建一个<strong>企业级带人工安全审批与故障自愈的 SQL 智能交互系统</strong>。系统整体业务流程如下：</p>
+        
+        <div class="flow-diagram">
+            <div class="flow-step">
+                <div class="flow-step-num">1</div>
+                <div class="flow-step-content">
+                    <h4>Node 1: 自然语言转 SQL 思考（Text2SQL）</h4>
+                    <p>Agent 接收用户问题，结合 Schema 进行反思推演并生成候选 SQL 语句。</p>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">2</div>
+                <div class="flow-step-content">
+                    <h4>HITL 安全断点拦截与审计 <span class="tag tag-hitl">Interrupt Barrier</span></h4>
+                    <p>图执行至高危节点（SQL 执行）前强制挂起冻结，将导出的 SQL Payload 呈报外部人工。安全人员可原位批准，或通过 <code>update_state</code> 重写错误的 SQL 参数。</p>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">3</div>
+                <div class="flow-step-content">
+                    <h4>Node 2: 数据库执行与安全沙箱防护 <span class="tag tag-db">DB Sandbox</span></h4>
+                    <p>在 SQLite/PostgreSQL 沙箱中原子化执行校验后的 SQL，实时捕获语法错误、锁等待或超时异常。</p>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">4</div>
+                <div class="flow-step-content">
+                    <h4>时间旅行故障恢复与分叉自愈 <span class="tag tag-tt">Time Travel Fork</span></h4>
+                    <p>若数据库执行崩溃，触发故障降级机制。工程师可查询 Checkpoint 历史版本，定位到旧点快照，重置 State 注入纠偏 Context，从断点发起分叉继续执行。</p>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">5</div>
+                <div class="flow-step-content">
+                    <h4>自定义 Redis Checkpointer 分布式持久化 <span class="tag tag-db">Redis Store</span></h4>
+                    <p>底座采用继承 <code>BaseCheckpointSaver</code> 的分布式 Redis 持久化组件，支持多租户高并发锁与字节流状态无损还原。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>🗺️ 每日知识链路与痛点攻克</h2>
+        <div class="roadmap-grid">
+            <div class="card">
+                <div class="day-badge">DAY 71</div>
+                <div class="day-title">HITL 中断（interrupt）与断点控制</div>
+                <div class="pain-point">💥 痛点：LLM 在高风险操作（删除、支付、写库）中不可控，直接运行易引发灾难事故。</div>
+                <div class="solution">✨ 方案：拓扑断点 <code>interrupt_before/after</code> 与动态 <code>NodeInterrupt/interrupt()</code> 双重冻结图控制流。</div>
+            </div>
+
+            <div class="card">
+                <div class="day-badge">DAY 72</div>
+                <div class="day-title">工具调用人工审批与运行时拦截重写</div>
+                <div class="pain-point">💥 痛点：LLM 生成的工具入参拼写错误时，重新生成耗时费 Token 且结果依然不稳定。</div>
+                <div class="solution">✨ 方案：利用 <code>update_state</code> 在挂起状态下原位覆写工具参数，实现秒级人工纠偏。</div>
+            </div>
+
+            <div class="card">
+                <div class="day-badge">DAY 73</div>
+                <div class="day-title">状态“时间旅行”（Time Travel）与回滚重新触发</div>
+                <div class="pain-point">💥 痛点：Agent 运行 10 步后第 9 步偏离，过去只能全部废弃重跑，严重浪费算力。</div>
+                <div class="solution">✨ 方案：基于 Checkpoint 历史快照 ID（<code>checkpoint_id</code>）发起特定节点分叉二次 invoke 运行。</div>
+            </div>
+
+            <div class="card">
+                <div class="day-badge">DAY 74</div>
+                <div class="day-title">子图（Subgraph）状态隔离与并发子流程设计</div>
+                <div class="pain-point">💥 痛点：大型系统单图状态过于臃肿，不同业务模块之间 State 字段互相污染缠绕。</div>
+                <div class="solution">✨ 方案：构建独立编排的 Subgraph，通过 Input/Output Schema 物理隔离局部高频消息。</div>
+            </div>
+
+            <div class="card">
+                <div class="day-badge">DAY 75</div>
+                <div class="day-title">多线程并行节点（Parallel Nodes）与分支汇聚</div>
+                <div class="pain-point">💥 痛点：多源独立查询（如多引擎搜索）顺序串行执行耗时太长，并发合并易丢失数据。</div>
+                <div class="solution">✨ 方案：拓扑多路并发分支 + 汇聚节点 <code>Annotated</code> 列表安全 Reducer 顺序强一致合并。</div>
+            </div>
+
+            <div class="card">
+                <div class="day-badge">DAY 76</div>
+                <div class="day-title">持久化存储与 Redis/Postgres Checkpointer 扩展</div>
+                <div class="pain-point">💥 痛点：默认 <code>MemorySaver</code> 随服务重启而清空，无法支撑生产环境高可用多租户集群。</div>
+                <div class="solution">✨ 方案：深入 <code>BaseCheckpointSaver</code> 契约，封装带并发锁与二进制序列化的 RedisCheckpointer。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>📊 架构对比矩阵</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>维度</th>
+                    <th>传统 Agent 模式</th>
+                    <th>LangGraph 进阶架构 (Week 11)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>安全管控</strong></td>
+                    <td>LLM 盲盒全自动执行，高风险操作无拦截</td>
+                    <td>HITL 中断屏障 + 人工状态干预纠偏 (Day 71-72)</td>
+                </tr>
+                <tr>
+                    <td><strong>故障恢复</strong></td>
+                    <td>出现异常彻底失败，仅能从头重跑</td>
+                    <td>时间旅行 (Time Travel) 精确快照回滚与分叉 (Day 73)</td>
+                </tr>
+                <tr>
+                    <td><strong>模块解耦</strong></td>
+                    <td>单图无边界混杂，全局变量泛滥</td>
+                    <td>子图 (Subgraph) 物理隔离 + 清晰数据映射 (Day 74)</td>
+                </tr>
+                <tr>
+                    <td><strong>并发性能</strong></td>
+                    <td>节点串行推演，执行耗时高</td>
+                    <td>Parallel Branch 并行分支 + Reducer 汇聚 (Day 75)</td>
+                </tr>
+                <tr>
+                    <td><strong>生产可用性</strong></td>
+                    <td>内存存储状态，无法分布式扩展</td>
+                    <td>自定义 Redis/Postgres 引擎分布式落盘 (Day 76)</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</body>
+
+</html>
