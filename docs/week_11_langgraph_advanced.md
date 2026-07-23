@@ -36,10 +36,11 @@
 
 ## Day 74：子图（Subgraph）状态隔离与并发子流程设计
 *   **核心知识点**：
-    *   **子图模式（Subgraph）**的架构定义：主图中的一个 Node 绑定了另一个已编译的 StateGraph 实例。
-    *   **状态隔离与映射（State Mapping）**：主图状态与子图状态之间通过输入输出模式（Input/Output Schema）进行受限同步，防止子图的局部高频消息污染主图的历史。
-*   **Agent 核心关联**：在复杂的企业级多 Agent 系统中，不同业务模块（如退款处理、用户推荐）具有完全不同的状态机逻辑。通过子图能够隔离局部细节，使主图保持优雅清爽。
-*   **🎯 过关验证标准**：定义一个主图 `ParentGraph` 和一个子图 `ChildGraph`，在 ParentGraph 中将一个 Node 指向 ChildGraph。配置状态传递映射，验证主图运行该节点时子图能独立执行状态归约，并在执行完毕后将特定结果完美合入主图状态。
+    *   **子图模式（Subgraph）架构**：主图节点绑定已编译的 `StateGraph` 实例，实现模块化嵌套编排。
+    *   **状态隔离与 Schema 映射（State Mapping）**：通过独立定义 `ChildInputState` / `ChildOutputState` 物理隔离子图高频消息与局部细节，防止污染 `ParentState` 历史链。
+    *   **Nested `checkpoint_ns` 命名空间**：理解底座持久化引擎如何通过命名空间分隔（如 `thread_id:subgraph_node`）维护主子图独立且连贯的 Checkpoint 结构。
+*   **Agent 核心关联**：在大型企业级多 Agent 架构（如退款处理子系统、代码审计子系统）中，各个专业模块逻辑复杂。利用子图模式能实现高内聚低耦合，保持主控制流清爽优雅。
+*   **🎯 过关验证标准**：构建主图 `ParentGraph` 与子图 `RefundChildGraph`。子图使用独立简化的 `ChildState` 执行多步退款校验。主图将 `RefundChildGraph` 作为 Node 嵌套调用，验证子图内部高频状态不写入主图 State，且最终只有 `RefundResult` 被正确归约合入主图状态。
 
 ---
 
