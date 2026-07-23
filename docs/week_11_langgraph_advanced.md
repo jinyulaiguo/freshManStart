@@ -24,12 +24,13 @@
 
 ---
 
-## Day 73：状态“时间旅行”（Time Travel）与回滚重新触发
+## Day 73：状态“时间旅行”（Time Travel）与回滚分叉重试
 *   **核心知识点**：
-    *   **Checkpoint 历史回溯**：通过 `graph.get_state_history(config)` 读取该 thread 历史中所有成功归约的状态快照版本（每个快照带有唯一的 `checkpoint_id`）。
-    *   **分叉执行（Forking）**：指定历史中的某个旧 `checkpoint_id` 并以此为起点进行二次 invoke 启动分叉控制流。
-*   **Agent 核心关联**：如果 Agent 走了 5 步循环后最终失败，最聪明的调试和恢复手段不是从头再来，而是回滚到第 3 步（大模型决策偏离的那一步），修改该步的状态并分叉走一条新路径。
-*   **🎯 过关验证标准**：编写一段状态回滚测试代码，运行一个 5 步骤的有向图，保存全部 checkpoint 记录。随后读取历史，选取第 2 步的快照，从该点重新 invoke 发起调用，验证生成了新的分叉历史且不破坏原有分支的持久化记录。
+    *   **Checkpoint 链式历史回溯**：使用 `graph.get_state_history(config)` 遍历该 thread 历史中带有唯一 `checkpoint_id` 与 `parent_checkpoint_id` 的状态快照链。
+    *   **分叉执行（Forking）机制**：在特定历史 `checkpoint_id` 节点上，构造带 `checkpoint_id` 的 RunnableConfig 发起二次 `invoke` 派生新分支。
+    *   **快照修补分叉（Snapshot Patch & Fork）**：结合 `update_state` 在历史快照点注入修正数据并分叉流动，确保原历史路径不被破坏的同时实现“故障自愈式重做”。
+*   **Agent 核心关联**：在多步循环推演（如代码重构、复杂推理）中，若第 5 步发生逻辑崩溃，最省算力与确定的恢复方式是回滚到第 3 步（大模型决策偏离点），修改状态并分叉推演一条新路径。
+*   **🎯 过关验证标准**：构建一个多步骤 Agent 运行图，产生至少 4 个 Checkpoint 节点。通过 `get_state_history` 读取历史快照，选取中间步骤的 `checkpoint_id`，利用 `update_state` 修正 Context 参数并发起 `invoke` 分叉运行，验证生成了包含新 `checkpoint_id` 的分支历史，且旧分支与新分支的 Checkpoint 链均完整可读取。
 
 ---
 
