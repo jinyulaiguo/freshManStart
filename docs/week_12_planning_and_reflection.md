@@ -4,13 +4,13 @@
 
 ---
 
-## Day 78：Plan-and-Execute (规划-执行) 架构分步控制
+## Day 78：Plan-and-Execute (规划-执行) 强类型架构与上下文参数映射
 *   **核心知识点**：
-    *   **Planner（规划器）与 Executor（执行器）的解耦**：Planner 负责宏观拆解任务为 Sub-tasks，Executor 负责微观执行单个 Sub-task 并返回结果。
-    *   **状态结构设计**：State 中设计专门的 `plan` 列表和 `results` 历史字典。
-    *   **大模型作为计划分配器**：根据当前步骤提取任务，分发给对应 Node。
-*   **Agent 核心关联**：传统的 ReAct 模式在遇到多步骤复杂任务时极易迷失方向（走一步看一步）。通过 Plan-and-Execute，Agent 能在最开始生成宏观路线图，每一轮循环只执行当前计划项，极大提升了多阶段复杂长程任务的稳定性。
-*   **🎯 过关验证标准**：手写一个 Plan-and-Execute 状态图。Planner 解析复杂长句并输出一个 3 步骤的 `PlanList`。控制图按照该列表循环跳转到执行器，完成所有步骤后汇总并输出。
+    *   **Planner（规划器）与 Executor（执行器）物理解耦**：Planner 负责宏观分解任务并生成强类型的 `Plan`（包含带有依赖约束与变量占位符的 `TaskStep` 列表）；Executor 负责结合上下文微观执行单个 Sub-task 并回填结果。
+    *   **结构化状态与上下文变量映射 (Variable Directing)**：State 中设计 Pydantic 强类型的 `TaskStep` 列表与历史 Observation 映射字典，支持自动将前置步骤的输出注入后续步骤的变量中。
+    *   **防死循环与步数预算熔断机制 (Step Quota & Anti-Loop Guard)**：引入计划指纹哈希与最大超步限制，防止 Planner 陷入反复重跑同一无效步骤的死循环。
+*   **Agent 核心关联**：传统的 ReAct 模式在遇到多步骤复杂任务时极易迷失方向（走一步看一步）。通过强类型的 Plan-and-Execute 架构，Agent 能在初始阶段建立严密的全景路线图，且在执行期具备精准的参数依赖传递与死循环保护能力，极大提升多阶段长程任务的工程稳健性。
+*   **🎯 过关验证标准**：构建带参数依赖映射与步数熔断的 Plan-and-Execute 状态图。Planner 提取多目标请求并生成含 Pydantic 强类型 `TaskStep` 的计划拓扑；控制图自动识别依赖并将 Step 1 的 Observation 精准回填至 Step 2 入参，同时包含超出预算限制时的自动熔断抛错机制。
 
 ---
 

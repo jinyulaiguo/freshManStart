@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 12: Planning & Reflection 范式 — 宏观架构全景总览</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-bone: #faf9f4;
+            --surface-white: #ffffff;
+            --text-main: #141413;
+            --text-muted: #464742;
+            --accent-clay: #D97757;
+            --accent-clay-light: #fdf2ee;
+            --border-light: #e9e8e3;
+            --border-hover: #d1cfc7;
+            --error-red: #ba1a1a;
+            --error-bg: #ffdad6;
+            --success-green: #2e623a;
+            --success-bg: #edf6ef;
+            --shadow-subtle: 0 2px 8px rgba(20, 20, 19, 0.04);
+            --font-serif: 'Source Serif 4', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-bone);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            padding: 2.5rem 1.5rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 2rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: var(--accent-clay-light);
+            color: var(--accent-clay);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            border: 1px solid rgba(217, 119, 87, 0.2);
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 2.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.75rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 900px;
+        }
+
+        /* Section Layout */
+        section {
+            margin-bottom: 3.5rem;
+        }
+
+        .section-title {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 1.25rem;
+            background-color: var(--accent-clay);
+            border-radius: 2px;
+        }
+
+        /* Project Architecture Container */
+        .arch-card {
+            background: var(--surface-white);
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: var(--shadow-subtle);
+            margin-bottom: 2rem;
+        }
+
+        /* Pipeline Flow Representation */
+        .pipeline-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .flow-node {
+            background: var(--bg-bone);
+            border: 1px solid var(--border-light);
+            border-radius: 0.375rem;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .flow-node:hover {
+            border-color: var(--accent-clay);
+            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .node-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-clay);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .node-title {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .node-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Daily Learning Chain Grid */
+        .chain-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .day-card {
+            background: var(--surface-white);
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 140px 1fr 1fr 1.2fr;
+            gap: 1.5rem;
+            align-items: center;
+            transition: border-color 0.2s ease;
+        }
+
+        .day-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .day-badge {
+            font-family: var(--font-serif);
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-clay);
+            background: var(--accent-clay-light);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            text-align: center;
+            border: 1px solid rgba(217, 119, 87, 0.15);
+        }
+
+        .day-topic {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .day-painpoint {
+            background: var(--error-bg);
+            color: var(--error-red);
+            padding: 0.625rem 0.875rem;
+            border-radius: 0.25rem;
+            font-size: 0.825rem;
+            border: 1px solid rgba(186, 26, 26, 0.15);
+        }
+
+        .day-solution {
+            background: var(--success-bg);
+            color: var(--success-green);
+            padding: 0.625rem 0.875rem;
+            border-radius: 0.25rem;
+            font-size: 0.825rem;
+            border: 1px solid rgba(46, 98, 58, 0.15);
+        }
+
+        /* Comparison Table */
+        .table-container {
+            overflow-x: auto;
+            background: var(--surface-white);
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-subtle);
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--bg-bone);
+            font-family: var(--font-serif);
+            font-weight: 600;
+            color: var(--text-main);
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-muted);
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(250, 249, 244, 0.5);
+        }
+
+        .tech-tag {
+            display: inline-block;
+            font-family: var(--font-sans);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            background: var(--bg-bone);
+            color: var(--text-main);
+            border: 1px solid var(--border-light);
+        }
+
+        /* Interactive Details Box */
+        .interactive-box {
+            background: var(--surface-white);
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 0.6rem 1.2rem;
+            font-family: var(--font-sans);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--accent-clay);
+            background: var(--accent-clay-light);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-clay);
+            color: white;
+            border-color: var(--accent-clay);
+        }
+
+        .tab-content {
+            display: none;
+            font-size: 0.925rem;
+            color: var(--text-main);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Visual Flow Cards Layout */
+        .visual-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.25rem 0;
+        }
+
+        .v-step {
+            background: var(--bg-bone);
+            border: 1px solid var(--border-light);
+            border-radius: 0.375rem;
+            padding: 1rem 1.25rem;
+        }
+
+        .v-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-clay);
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .v-title {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .v-arrow {
+            text-align: center;
+            color: var(--accent-clay);
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: -0.25rem 0;
+        }
+
+        .v-parallel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .v-sub-node {
+            background: var(--surface-white);
+            border: 1px solid var(--border-light);
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(217, 119, 87, 0.1);
+            color: #b84c2a;
+            padding: 0.15rem 0.35rem;
+            border-radius: 0.2rem;
+            font-size: 0.85em;
+        }
+
+        /* Code Block Container with IDE Header */
+        .code-block-container {
+            background: #1e1e1e;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-top: 1.25rem;
+            border: 1px solid #333333;
+        }
+
+        .code-header {
+            background: #252526;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #cccccc;
+            border-bottom: 1px solid #333333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-snippet {
+            color: #d4d4d4;
+            padding: 1.25rem;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre; /* 保留准确换行与制表符 */
+            overflow-x: auto;
+            margin: 0;
+        }
+
+        .metric-bar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .metric-item {
+            display: grid;
+            grid-template-columns: 180px 1fr 60px;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .bar-outer {
+            background: var(--border-light);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .bar-inner {
+            height: 100%;
+            background: var(--accent-clay);
+            border-radius: 5px;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 900px) {
+            .day-card {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            .metric-item {
+                grid-template-columns: 120px 1fr 50px;
+            }
+            .v-parallel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="badge">Week 12 全景总览 & 深度架构对比</div>
+        <h1>Planning & Reflection 范式与控制流图谱</h1>
+        <p class="subtitle">
+            本周聚焦于 Agent 领域的两大高级决策范式：<strong>Plan-and-Execute（规划-执行解耦）</strong>与 <strong>Reflexion / Critic（反思与对抗式审阅）</strong>。本看板提供深度的控制流对比图谱与工程实现方案。
+        </p>
+    </header>
+
+    <main>
+        <!-- Section 1: Final Project Architecture -->
+        <section>
+            <h2 class="section-title">本周终极实战项目：行业趋势分析 Agent 引擎 (Day 84)</h2>
+            <div class="arch-card">
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">
+                    综合运用 ReWOO 并行工具调用、Reflexion 自动错误自愈、LLM-as-Critic 对抗审查与 NLI 防幻觉校验，构建能够自主完成研报生成与精准校对的 Agent 拓扑：
+                </p>
+
+                <div class="pipeline-flow">
+                    <div class="flow-node">
+                        <div class="node-tag">Day 78 & 79 Phase</div>
+                        <div class="node-title">1. Planner & ReWOO 解耦</div>
+                        <div class="node-desc">解析复杂的行业研究课题，一次性输出带依赖解耦的结构化 Plan 拓扑，并行拉起 API 抽取多路数据。</div>
+                    </div>
+
+                    <div class="flow-node">
+                        <div class="node-tag">Day 82 Phase</div>
+                        <div class="node-title">2. Dynamic Re-planner</div>
+                        <div class="node-desc">若工具返回数据离线或缺失，识别异常并重新生成降级策略计划，动态重写后续步骤。</div>
+                    </div>
+
+                    <div class="flow-node">
+                        <div class="node-tag">Day 81 Phase</div>
+                        <div class="node-title">3. Reflexion Engine</div>
+                        <div class="node-desc">当数值提取或格式校验失败时，Reflector 分析错误 Traceback，归纳反思经验存入 Context 进行二次修正。</div>
+                    </div>
+
+                    <div class="flow-node">
+                        <div class="node-tag">Day 83 Phase</div>
+                        <div class="node-title">4. Anti-Hallucination NLI</div>
+                        <div class="node-desc">基于 NLI 蕴含逻辑校验生成的每一项结论与原始 Observation 的事实一致性，剔除虚构陈述。</div>
+                    </div>
+
+                    <div class="flow-node">
+                        <div class="node-tag">Day 80 Phase</div>
+                        <div class="node-title">5. Critic 对抗审阅</div>
+                        <div class="node-desc">独立的 Critic LLM 法官对研报草稿进行严格审查，不合格则抛出 REJECT 触发 Generator 重构，通过才输出 PASS。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Knowledge Link Chain -->
+        <section>
+            <h2 class="section-title">每日知识链路与痛点解决方案 (Day 78 – Day 84)</h2>
+            <div class="chain-grid">
+                
+                <div class="day-card">
+                    <div class="day-badge">Day 78</div>
+                    <div class="day-topic">Plan-and-Execute 强类型架构</div>
+                    <div class="day-painpoint"><strong>痛点：</strong>传统 ReAct“走一步看一步”，长程任务极易走偏、陷入死循环。</div>
+                    <div class="day-solution"><strong>解法：</strong>解耦 Planner 与 Executor，使用 Pydantic 强类型 Plan 拓扑管理变量映射与熔断。</div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">Day 79</div>
+                    <div class="day-topic">ReWOO 规划与并行执行解耦</div>
+                    <div class="day-painpoint"><strong>痛点：</strong>每步工具调用都必须等待 LLM 决策，时延高且 Token 消耗巨大。</div>
+                    <div class="day-solution"><strong>解法：</strong>一次性预测参数占位符并生成无依赖拓扑，并发拉起多路工具执行。</div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">Day 80</div>
+                    <div class="day-topic">LLM-as-Critic 独立审查与博弈</div>
+                    <div class="day-painpoint"><strong>痛点：</strong>单一模型自查存在认知盲区，自我评判无法发现自身逻辑漏洞。</div>
+                    <div class="day-solution"><strong>解法：</strong>引入独立系统提示词的 Critic 法官节点，构成 Generator-Critic 对抗环路。</div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">Day 81</div>
+                    <div class="day-topic">Reflexion 自我反思与错误自愈</div>
+                    <div class="day-painpoint"><strong>痛点：</strong>异常崩溃后单纯重新生成只是盲目试错，无法收敛。</div>
+                    <div class="day-solution"><strong>解法：</strong>捕获环境 Traceback，驱动 Reflector 节点归纳错误规则并注入下一轮约束。</div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">Day 82</div>
+                    <div class="day-topic">动态计划重构 (Dynamic Re-planning)</div>
+                    <div class="day-painpoint"><strong>痛点：</strong>静态计划死板，遇到运行期工具失效或非预期 Observation 时撞墙。</div>
+                    <div class="day-solution"><strong>解法：</strong>检测中间 Observation 偏离度，实时路由回 Planner 刷写后续未执行的计划列表。</div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">Day 83</div>
+                    <div class="day-topic">语义 NLI 断言与防幻觉校对</div>
+                    <div class="day-painpoint"><strong>痛点：</strong>大模型抓取外部 Context 后仍会“张冠李戴”产生逻辑幻觉。</div>
+                    <div class="day-solution"><strong>解法：</strong>结合 NLI 逻辑蕴含计算，强行校验生成的命题是否满足 Context 约束。</div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">Day 84</div>
+                    <div class="day-topic">Week 12 综合实战大项目</div>
+                    <div class="day-painpoint"><strong>目标：</strong>构建具备全闭环自愈能力与极致稳健度的行业研报 Agent。</div>
+                    <div class="day-solution"><strong>交付：</strong>组装全部微引擎，包含完整的 Graph 拓扑、单元测试与日志流水。</div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 3: Deep Comparison Matrix & Control Flow Architecture -->
+        <section>
+            <h2 class="section-title">核心控制流原理深度对比矩阵</h2>
+            
+            <!-- Comparison Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>架构范式</th>
+                            <th>核心设计哲学</th>
+                            <th>LLM 调用频次</th>
+                            <th>端到端延时 (Latency)</th>
+                            <th>环境自适应性</th>
+                            <th>典型失败模式 / 反模式</th>
+                            <th>工业落地选型建议</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tech-tag">ReAct</span></td>
+                            <td>Thought-Action-Observation 单步交织推理与行动</td>
+                            <td>高 (每步 1 次 LLM)</td>
+                            <td>高 (串行等待工具)</td>
+                            <td>极强 (实时反应)</td>
+                            <td>长任务易迷失目标、死循环、Context 爆表</td>
+                            <td>短步骤、探针式探索、简单问答 Agent</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tech-tag">Plan-and-Execute</span></td>
+                            <td>宏观 upfront 任务拆解与微观分发执行解耦</td>
+                            <td>中 (1次 Planner + N次 Step)</td>
+                            <td>中等 (顺序执行 Plan)</td>
+                            <td>中等 (依赖 Re-planner)</td>
+                            <td>初始 Plan 固化，遇到未知异常易僵死</td>
+                            <td>多步骤确定性长流程（如代码安全审计）</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tech-tag">ReWOO</span></td>
+                            <td>Reasoning Without Observation：占位符 DAG 并行解耦</td>
+                            <td>极低 (1次 Planner + 1次 Worker)</td>
+                            <td>极低 (Tool 并发)</td>
+                            <td>较弱 (无中间反馈)</td>
+                            <td>工具返回空或异常时，后置步骤参数失效</td>
+                            <td>数据密集型、API 并行抽取、成本敏感型应用</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tech-tag">Reflexion</span></td>
+                            <td>Actor-Evaluator-Reflector 错误日志言语强化自愈</td>
+                            <td>高 (依赖多轮 Attempt)</td>
+                            <td>高 (试错重跑)</td>
+                            <td>强 (针对 Error 自适应)</td>
+                            <td>反思提示词不佳导致反复生成相同的 Bug 错误</td>
+                            <td>高要求代码生成、数学推理、自动化 Debug</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tech-tag">LLM-as-Critic</span></td>
+                            <td>Generator 与 Critic 独立角色博弈与收敛控制</td>
+                            <td>中/高 (取决于对抗轮数)</td>
+                            <td>中等 (审阅回退)</td>
+                            <td>强 (质量把关)</td>
+                            <td>Critic 过于严苛导致无限 REJECT 死循环</td>
+                            <td>研报撰写、法律合同生成、合规审核</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab Details Container -->
+            <div class="interactive-box">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="showTab('tab-react-pe')">1. ReAct vs Plan-and-Execute</button>
+                    <button class="tab-btn" onclick="showTab('tab-rewoo-dag')">2. ReWOO 并行 DAG 解耦</button>
+                    <button class="tab-btn" onclick="showTab('tab-reflexion-loop')">3. Reflexion 言语自愈闭环</button>
+                    <button class="tab-btn" onclick="showTab('tab-replan-dynamic')">4. Dynamic Re-planning 降级重构</button>
+                    <button class="tab-btn" onclick="showTab('tab-critic-game')">5. LLM-as-Critic 博弈控制</button>
+                </div>
+
+                <!-- Tab 1 -->
+                <div id="tab-react-pe" class="tab-content active">
+                    <h3 style="font-family: var(--font-serif); font-size: 1.15rem; margin-bottom: 0.75rem;">控制流视觉节点图谱</h3>
+                    
+                    <div class="v-parallel-grid">
+                        <div>
+                            <strong style="color: var(--error-red);">ReAct 模式 (单步交织)</strong>
+                            <div class="visual-flow">
+                                <div class="v-step">
+                                    <span class="v-tag">Step 1</span>
+                                    <div class="v-title">LLM Thought ➔ Call Tool 1</div>
+                                </div>
+                                <div class="v-arrow">↓</div>
+                                <div class="v-step">
+                                    <span class="v-tag">Step 2</span>
+                                    <div class="v-title">LLM Obs 1 ➔ Thought ➔ Call Tool 2</div>
+                                </div>
+                                <div class="v-arrow">↓ (反复迭代)</div>
+                                <div class="v-step" style="background: var(--error-bg); border-color: rgba(186,26,26,0.2);">
+                                    <span class="v-tag" style="color: var(--error-red);">痛点</span>
+                                    <div style="font-size: 0.85rem; color: var(--error-red);">全量 Context 随着工具 Observation 爆炸，易发生 Goal Drift 目标漂移</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <strong style="color: var(--success-green);">Plan-and-Execute 强类型解耦</strong>
+                            <div class="visual-flow">
+                                <div class="v-step">
+                                    <span class="v-tag">1. Planner Node</span>
+                                    <div class="v-title">生成 TaskStep 结构化列表</div>
+                                </div>
+                                <div class="v-arrow">↓</div>
+                                <div class="v-step">
+                                    <span class="v-tag">2. Loop Executor Node</span>
+                                    <div class="v-title">只执行单步并回填 ObservationMap</div>
+                                </div>
+                                <div class="v-arrow">↓</div>
+                                <div class="v-step" style="background: var(--success-bg); border-color: rgba(46,98,58,0.2);">
+                                    <span class="v-tag" style="color: var(--success-green);">3. Summarizer Node</span>
+                                    <div style="font-size: 0.85rem; color: var(--success-green);">所有步骤完成后进行最终汇总</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="code-block-container">
+                        <div class="code-header">
+                            <span>LangGraph Plan-and-Execute State 契约代码 (Python)</span>
+                            <span>pydantic / TypedDict</span>
+                        </div>
+                        <pre class="code-snippet">class TaskStep(BaseModel):
+    step_id: int = Field(description="步骤唯一标识")
+    title: str = Field(description="步骤简述")
+    tool_name: str = Field(description="使用的工具")
+    input_args: dict = Field(default_factory=dict, description="参数模版，支持变量如 {step_1_output}")
+    status: Literal["PENDING", "COMPLETED", "FAILED"] = "PENDING"
+
+class PlanAndExecuteState(TypedDict):
+    input_goal: str
+    plan: list[TaskStep]
+    completed_steps: dict[int, Any]
+    current_step_index: int
+    step_count: int  # 防死循环 Step Quota 预算</pre>
+                    </div>
+                </div>
+
+                <!-- Tab 2 -->
+                <div id="tab-rewoo-dag" class="tab-content">
+                    <h3 style="font-family: var(--font-serif); font-size: 1.15rem; margin-bottom: 0.75rem;">ReWOO 并行计算视觉拓扑</h3>
+                    
+                    <p style="margin-bottom: 0.75rem;">
+                        ReWOO 的核心创新在于消除“等待 Observation 返回后才能思考下一步”的依赖链。Planner 预先预测占位符变量（如 <code>#E1</code>, <code>#E2</code>），生成可并行化的 DAG 图。
+                    </p>
+
+                    <div class="visual-flow">
+                        <div class="v-step">
+                            <span class="v-tag">1. Input Task</span>
+                            <div class="v-title">"对比 Apple 与 Microsoft 2025 年 Q1 财报总营收"</div>
+                        </div>
+                        <div class="v-arrow">↓</div>
+                        <div class="v-step">
+                            <span class="v-tag">2. ReWOO Planner</span>
+                            <div class="v-title">生成带变量占位符的无依赖拓扑：</div>
+                            <div style="font-size: 0.85rem; margin-top: 0.25rem;">
+                                • <code>Plan 1</code>: <code>#E1</code> = FetchFinancials[ticker="AAPL", period="2025Q1"]<br>
+                                • <code>Plan 2</code>: <code>#E2</code> = FetchFinancials[ticker="MSFT", period="2025Q1"]<br>
+                                • <code>Plan 3</code>: <code>#E3</code> = CompareData[data1=<code>#E1</code>, data2=<code>#E2</code>]
+                            </div>
+                        </div>
+                        <div class="v-arrow">↓</div>
+                        <div class="v-step" style="background: var(--surface-white); border: 1px solid var(--accent-clay);">
+                            <span class="v-tag">3. Parallel Worker Engine (asyncio.gather)</span>
+                            <div class="v-parallel-grid">
+                                <div class="v-sub-node">
+                                    <strong>Async Task 1 (#E1)</strong><br>
+                                    ➔ API Call AAPL Data
+                                </div>
+                                <div class="v-sub-node">
+                                    <strong>Async Task 2 (#E2)</strong><br>
+                                    ➔ API Call MSFT Data
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: var(--accent-clay); font-weight: 600;">
+                                ➔ 归约合并 Evidence Map: <code>{#E1: "AAPL Revenue $124B", #E2: "MSFT Revenue $65B"}</code>
+                            </div>
+                        </div>
+                        <div class="v-arrow">↓</div>
+                        <div class="v-step">
+                            <span class="v-tag">4. Solver Node</span>
+                            <div class="v-title">将 Evidence Map 精准回填至 Plan 3 占位符，输出最终对比结论</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-bar-container">
+                        <strong>控制流延时对比 (End-to-End Latency Estimate)</strong>
+                        <div class="metric-item">
+                            <span>ReAct (3 工具顺序):</span>
+                            <div class="bar-outer"><div class="bar-inner" style="width: 85%;"></div></div>
+                            <span>8.5s</span>
+                        </div>
+                        <div class="metric-item">
+                            <span>Plan-and-Execute (顺序):</span>
+                            <div class="bar-outer"><div class="bar-inner" style="width: 60%;"></div></div>
+                            <span>6.0s</span>
+                        </div>
+                        <div class="metric-item">
+                            <span>ReWOO (并发抽取):</span>
+                            <div class="bar-outer"><div class="bar-inner" style="width: 25%; background: var(--success-green);"></div></div>
+                            <span>2.2s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3 -->
+                <div id="tab-reflexion-loop" class="tab-content">
+                    <h3 style="font-family: var(--font-serif); font-size: 1.15rem; margin-bottom: 0.75rem;">Reflexion 言语自愈四节点视觉闭环</h3>
+                    
+                    <div class="visual-flow">
+                        <div class="v-step">
+                            <span class="v-tag">Node 1: Actor Node</span>
+                            <div class="v-title">生成代码/解题方案 (Attempt #k)</div>
+                        </div>
+                        <div class="v-arrow">↓</div>
+                        <div class="v-step">
+                            <span class="v-tag">Node 2: Evaluator / Sandbox</span>
+                            <div class="v-title">执行本地代码单元测试 / 逻辑校验</div>
+                        </div>
+                        <div class="v-arrow">↓ (若捕获 Exception / KeyError)</div>
+                        <div class="v-step" style="background: var(--error-bg); border-color: rgba(186,26,26,0.3);">
+                            <span class="v-tag" style="color: var(--error-red);">Node 3: Reflector Node</span>
+                            <div style="font-size: 0.85rem; color: var(--error-red);">
+                                分析错误 Traceback 根因 ➔ 输出言语反思规则：“错误由 KeyError 引起，下一轮禁止直接访问 dict['key']，必须改用 dict.get()”
+                            </div>
+                        </div>
+                        <div class="v-arrow">↓ (存入 Memory Buffer)</div>
+                        <div class="v-step" style="background: var(--success-bg); border-color: rgba(46,98,58,0.3);">
+                            <span class="v-tag" style="color: var(--success-green);">Node 4: Next Attempt Actor</span>
+                            <div style="font-size: 0.85rem; color: var(--success-green);">
+                                将反思规则作为 Prompt 强约束拼接到顶部 ➔ 生成完全规避 Bug 的全新代码
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="code-block-container">
+                        <div class="code-header">
+                            <span>Reflexion 中的 Reflector Prompt 契约定义 (Prompt Template)</span>
+                            <span>System Prompt</span>
+                        </div>
+                        <pre class="code-snippet">REFLECTOR_PROMPT = """
+你是一个高级系统诊断专家。上一次 Actor 生成的代码执行失败。
+【原始任务】: {task}
+【崩溃代码】: {code}
+【环境 Traceback Log】: {error_log}
+
+请分析错误根因，并输出 3 句以内的【反思规则 (Self-Reflection Rules)】。
+注意：不要输出代码，只输出供下一轮 Actor 遵守的预防性禁忌法则。
+"""</pre>
+                    </div>
+                </div>
+
+                <!-- Tab 4 -->
+                <div id="tab-replan-dynamic" class="tab-content">
+                    <h3 style="font-family: var(--font-serif); font-size: 1.15rem; margin-bottom: 0.75rem;">Dynamic Re-planning 降级重构视觉流</h3>
+                    
+                    <div class="visual-flow">
+                        <div class="v-step">
+                            <span class="v-tag">Execution Phase</span>
+                            <div class="v-title">执行器运行 Step 2 (请求外部 API)</div>
+                        </div>
+                        <div class="v-arrow">↓</div>
+                        <div class="v-step" style="background: var(--error-bg); border-color: rgba(186,26,26,0.3);">
+                            <span class="v-tag" style="color: var(--error-red);">Observation Feedback</span>
+                            <div style="font-size: 0.85rem; color: var(--error-red);">
+                                返回异常: <code>{"status": 503, "error": "API_OFFLINE"}</code>
+                            </div>
+                        </div>
+                        <div class="v-arrow">↓ (触发条件路由边 Edge Router)</div>
+                        <div class="v-step" style="background: var(--accent-clay-light); border-color: var(--accent-clay);">
+                            <span class="v-tag">Re-planner Node (Plan Mutation)</span>
+                            <div class="v-title">重写后续 Plan 拓扑：</div>
+                            <div style="font-size: 0.85rem; color: var(--text-main);">
+                                ❌ [删除] 原定 Step 2: 线上 API 查询<br>
+                                ➕ [插入] 新 Step 2.1: 读取本地 Mock 缓存文件<br>
+                                ➕ [插入] 新 Step 2.2: 标记 Warning 数据降级通知
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5 -->
+                <div id="tab-critic-game" class="tab-content">
+                    <h3 style="font-family: var(--font-serif); font-size: 1.15rem; margin-bottom: 0.75rem;">LLM-as-Critic 双模型博弈视觉节点</h3>
+                    
+                    <div class="visual-flow">
+                        <div class="v-step">
+                            <span class="v-tag">Generator Node</span>
+                            <div class="v-title">生成分析报告草稿 Draft</div>
+                        </div>
+                        <div class="v-arrow">↓</div>
+                        <div class="v-step" style="background: var(--surface-white); border: 1px solid var(--accent-clay);">
+                            <span class="v-tag">Critic Node (独立法官)</span>
+                            <div class="v-title">独立 System 约束扫描排版与逻辑漏洞：</div>
+                            <div class="v-parallel-grid" style="margin-top: 0.5rem;">
+                                <div class="v-sub-node" style="border-color: var(--success-green); background: var(--success-bg);">
+                                    <strong style="color: var(--success-green);">Score >= 85 (PASS)</strong><br>
+                                    ➔ 直接路由到 END Node 输出
+                                </div>
+                                <div class="v-sub-node" style="border-color: var(--error-red); background: var(--error-bg);">
+                                    <strong style="color: var(--error-red);">Score < 85 (REJECT)</strong><br>
+                                    ➔ 携带修改 Payload 强制路由回 Generator 重构
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="code-block-container">
+                        <div class="code-header">
+                            <span>Critic 审查结果数据结构契约 (Python)</span>
+                            <span>Pydantic BaseModel</span>
+                        </div>
+                        <pre class="code-snippet">class CriticReview(BaseModel):
+    decision: Literal["PASS", "REJECT"] = Field(description="审查结论")
+    score: int = Field(ge=0, le=100, description="评分 0-100")
+    hallucination_risks: list[str] = Field(default_factory=list, description="潜在幻觉点")
+    critique_feedback: str = Field(description="具体的修改指令")</pre>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>AI 导师 26 周 Agent 架构师深度培养计划 — Week 12 学习全景图谱</p>
+    </footer>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
