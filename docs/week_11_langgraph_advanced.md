@@ -16,10 +16,11 @@
 
 ## Day 72：工具调用人工审批与运行时拦截重写
 *   **核心知识点**：
-    *   **运行时状态覆写**：利用 `graph.update_state` 对当前 Checkpoint 的 State 字典执行强制写入。
-    *   **工具参数拦截修改**：当 Agent 决策参数错误时，在挂起状态下重写大模型生成的 `tool_calls` 中的 arguments 值，然后再放行。
-*   **Agent 核心关联**：如果大模型生成了错误的工具参数（如 SQL 语句拼写错误、转账金额多打了一个零），人类可以通过 update_state 在运行时直接纠偏，无需大模型重新生成，大幅提升人机协作的纠错效率。
-*   **🎯 过关验证标准**：运行带断点的 RAG 客服图，当大模型生成了错误的数据库查询 ID 时，通过 `graph.update_state(config, {"messages": [...]})` 将错误的参数强制修改为正确的 ID，并恢复运行图，验证图使用修改后的参数执行了正确的本地查询。
+    *   **LLM tool_calls 原位覆写**：解析挂起快照中的 `AIMessage.tool_calls`，在 `update_state` 中修正工具入参 arguments，防止重新生成产生的 Token 浪费与随机抖动。
+    *   **`as_node` 挂载点控制**：使用 `graph.update_state(config, patch, as_node="agent")` 明确状态覆写的节点锚点，确保控制流无缝推进至 `ToolNode`。
+    *   **工具安全审批与风控拦截**：组合静态/动态中断，实现高危 SQL/API 调用的“审核-修正-放行-审计”全链路防护。
+*   **Agent 核心关联**：当大模型生成的工具参数有误（如 SQL ID 拼错、转账金额多打零）时，人类安全员可直接在 Checkpoint 原位纠偏 `tool_calls` 参数并无缝放行，大幅提升人机协作效率与执行确定性。
+*   **🎯 过关验证标准**：构建带工具调用的客服 DB 查询状态图。当 LLM 决策生成错误的查询参数 `{"user_id": "ERR_999"}` 并触发表单挂起时，通过 `update_state(config, {"messages": [...]}, as_node="agent")` 将 `tool_calls` 的参数修改为正确的 `{"user_id": "USR_1001"}` 并解冻运行，验证 `ToolNode` 执行了正确的数据库查询并返回预期结果。
 
 ---
 
