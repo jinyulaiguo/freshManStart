@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Agent 人工审批与时间旅行调试看板</title>
+    <!-- 引入 Google Fonts: Source Serif 4 (知性衬线标题) & Inter (UI 正文) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Warm Intellectual Minimalism 配色与变量系统 */
+        :root {
+            --bg-main: #faf9f4;
+            --surface: #ffffff;
+            --surface-container-low: #f5f4ef;
+            --surface-container-high: #e9e8e3;
+            --text-main: #141413;
+            --text-muted: #464742;
+            --accent: #D97757;
+            --accent-hover: #c46445;
+            --border-line: #e9e8e3;
+            --border-dark: #d8d7d0;
+            
+            --error-text: #ba1a1a;
+            --error-bg: #ffdad6;
+            --success-text: #2e623a;
+            --success-bg: #edf6ef;
+            --warning-text: #855300;
+            --warning-bg: #fff8f0;
+
+            --font-title: 'Source Serif 4', serif;
+            --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+            --radius-sm: 4px;
+            --radius-lg: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            line-height: 1.5;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 顶部知性 Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-line);
+        }
+
+        h1 {
+            font-family: var(--font-title);
+            font-size: 1.875rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input[type="text"], textarea, select {
+            font-family: var(--font-ui);
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-line);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            font-family: var(--font-ui);
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-line);
+            background: var(--surface);
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        button:hover {
+            background: var(--surface-container-low);
+            border-color: var(--border-dark);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        button.btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+
+        button.btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        button.btn-danger {
+            background: var(--error-bg);
+            color: var(--error-text);
+            border-color: #f7b4b0;
+        }
+
+        /* 布局网格 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 1.5rem;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* 温润极简卡片容器 */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border-line);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--surface-container-low);
+        }
+
+        .card-title {
+            font-family: var(--font-title);
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            text-transform: uppercase;
+        }
+
+        .badge-safe { background: var(--success-bg); color: var(--success-text); }
+        .badge-sensitive { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-blocked { background: var(--error-bg); color: var(--error-text); }
+
+        /* 图形化执行步骤条 (Flow Visualizer) */
+        .flow-visualizer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface-container-low);
+            padding: 1.25rem 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-line);
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            flex: 1;
+        }
+
+        .flow-step::after {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: var(--border-dark);
+            z-index: 1;
+            transition: background 0.3s ease;
+        }
+
+        .flow-step:last-child::after {
+            display: none;
+        }
+
+        .flow-step.completed::after {
+            background: var(--success-text);
+        }
+
+        .flow-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--border-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 2;
+            transition: all 0.25s ease;
+        }
+
+        .flow-step.active .flow-circle {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(217, 119, 87, 0.25);
+        }
+
+        .flow-step.completed .flow-circle {
+            border-color: var(--success-text);
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .flow-step.interrupted .flow-circle {
+            border-color: var(--warning-text);
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            box-shadow: 0 0 0 4px rgba(133, 83, 0, 0.2);
+        }
+
+        .flow-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .flow-step.active .flow-label {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .flow-step.completed .flow-label {
+            color: var(--success-text);
+            font-weight: 500;
+        }
+
+        .flow-step.interrupted .flow-label {
+            color: var(--warning-text);
+            font-weight: 600;
+        }
+
+        /* 旋转加载 Indicator */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .action-guide-box {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .action-guide-safe {
+            background: var(--success-bg);
+            border: 1px solid #cce8d2;
+            color: var(--success-text);
+        }
+
+        .action-guide-sensitive {
+            background: var(--warning-bg);
+            border: 1px solid #fce3c7;
+            color: var(--warning-text);
+        }
+
+        .action-guide-blocked {
+            background: var(--error-bg);
+            border: 1px solid #f7b4b0;
+            color: var(--error-text);
+        }
+
+        pre {
+            background: var(--bg-main);
+            border: 1px solid var(--border-line);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8125rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .data-table-container {
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid var(--border-line);
+        }
+
+        th {
+            background: var(--surface-container-low);
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        tr:hover td {
+            background: var(--bg-main);
+        }
+
+        .approval-banner {
+            background: var(--warning-bg);
+            border: 1px solid #fce3c7;
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            animation: pulse-border 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: #fce3c7; }
+            50% { border-color: var(--accent); }
+        }
+
+        .approval-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .history-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0.8rem;
+            background: var(--surface-container-low);
+            border: 1px solid var(--border-line);
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent);
+        }
+
+        .audit-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 260px;
+            overflow-y: auto;
+            font-size: 0.8125rem;
+        }
+
+        .audit-item {
+            padding: 0.5rem 0.75rem;
+            border-left: 3px solid var(--accent);
+            background: var(--surface-container-low);
+            color: var(--text-main);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .audit-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* 模态框 Modal 样式 (知性极简) */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(20, 20, 19, 0.4);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-backdrop.active {
+            opacity: 1; pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border-line);
+            border-radius: var(--radius-lg);
+            width: 520px;
+            max-width: 90vw;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            transform: translateY(10px);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-backdrop.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--surface-container-low);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-title {
+            font-family: var(--font-title);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border-line);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .mode-option:hover {
+            border-color: var(--accent);
+            background: var(--surface-container-low);
+        }
+
+        .mode-option.selected {
+            border-color: var(--accent);
+            background: #fff8f5;
+        }
+
+        .mode-radio {
+            margin-top: 0.2rem;
+        }
+
+        .mode-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>SQL Agent 人工审批与时间旅行调试看板</h1>
+            <div class="subtitle">LangGraph 进阶框架实战 · SSE 物理流式与 3 维 Time Travel 故障重发</div>
+        </div>
+        <div class="header-actions">
+            <div class="input-group">
+                <label for="threadIdInput">Session Thread:</label>
+                <input type="text" id="threadIdInput" value="web_session_9901" style="width: 160px;">
+            </div>
+            <button onclick="resetDatabase()" class="btn-danger">重置 PG 沙箱</button>
+        </div>
+    </header>
+
+    <!-- 顶部核心交互区: 自然语言推演 + 图形化 5 步状态流 + 实时流式过程日志 -->
+    <div class="card full-width">
+        <div class="card-header">
+            <div class="card-title">自然语言查询推演控制台</div>
+            <div id="statusIndicator" style="font-size: 0.875rem; color: var(--text-muted);">状态: 空闲就绪</div>
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem;">
+            <input type="text" id="queryInput" placeholder="例如：将用户 Ethan 的状态更新为 active，或查询所有用户订单..." style="flex: 1;">
+            <button id="runBtn" onclick="sendQueryStream()" class="btn-primary">
+                <span id="btnText">运行 Agent 推演</span>
+            </button>
+        </div>
+
+        <!-- 节点连线流水线 (Execution Flow Visualizer) -->
+        <div class="flow-visualizer">
+            <div id="step-1" class="flow-step">
+                <div class="flow-circle">1</div>
+                <div class="flow-label">LLM 生成 SQL</div>
+            </div>
+            <div id="step-2" class="flow-step">
+                <div class="flow-circle">2</div>
+                <div class="flow-label">双重风控研判</div>
+            </div>
+            <div id="step-3" class="flow-step">
+                <div class="flow-circle">3</div>
+                <div class="flow-label">PG 执行 / HITL 拦截</div>
+            </div>
+            <div id="step-4" class="flow-step">
+                <div class="flow-circle">4</div>
+                <div class="flow-label">并发分析 (2s Barrier)</div>
+            </div>
+            <div id="step-5" class="flow-step">
+                <div class="flow-circle">5</div>
+                <div class="flow-label">结果汇总</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 挂起审批提示 Banner (触发敏感操作时动态显示) -->
+    <div id="approvalBanner" class="approval-banner" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-family: var(--font-title); color: var(--warning-text);">⛔ 触发 HITL 安全审批断点</h3>
+            <span class="badge badge-sensitive">Pending Approval</span>
+        </div>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem; color: var(--text-main);">
+            检测到敏感写操作 SQL，系统在执行节点前强制阻断，等待人类安全员响应：
+        </p>
+        <div style="margin-top: 0.75rem;">
+            <label>编辑修正 SQL (若需要纠偏原参数):</label>
+            <input type="text" id="editSqlInput" style="width: 100%; margin-top: 0.25rem;">
+        </div>
+        <div class="approval-actions">
+            <button id="approveBtn" onclick="submitApprovalStream('approve')" class="btn-primary">✅ 批准放行 (Approve)</button>
+            <button id="editBtn" onclick="submitApprovalStream('edit')" style="background: #fff; border-color: var(--accent); color: var(--accent);">✏️ 执行修正 SQL (Edit & Run)</button>
+            <button id="rejectBtn" onclick="submitApprovalStream('reject')" class="btn-danger">❌ 拒绝执行 (Reject)</button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        
+        <!-- 左侧栏: 真实 SSE 物理流式推演过程日志 -->
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📌 实时物理流式日志 (SSE Stream Log)</div>
+                    <span id="logCountBadge" class="badge badge-safe">0 条条目</span>
+                </div>
+                <ul id="auditList" class="audit-list">
+                    <li class="audit-item">
+                        <span>系统就绪，支持 SSE 逐节点物理流式日志推送。</span>
+                        <span class="audit-time">Ready</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- LLM SQL 生成与风控结果 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">生成的 SQL 与双重风控研判</div>
+                    <span id="riskBadge" class="badge badge-safe">SAFE</span>
+                </div>
+                
+                <div style="margin-bottom: 0.75rem;">
+                    <label>生成的 SQL 语句:</label>
+                    <pre id="generatedSqlDisplay">-- 等待提交推演...</pre>
+                </div>
+                
+                <div style="margin-bottom: 0.75rem;">
+                    <label>风控研判分析 (规则初筛 + LLM 语义):</label>
+                    <pre id="riskAnalysisDisplay">-- 暂无评估原因</pre>
+                </div>
+
+                <div id="riskActionGuide" class="action-guide-box action-guide-safe">
+                    <div><strong>💡 系统控制流动作与响应指南:</strong></div>
+                    <div id="actionGuideContent">✅ 评估结果为 SAFE (只读操作)。系统策略：无需人类干预，已自动允许流转至 PostgreSQL 沙箱物理执行。</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧栏: PG 结果数据与 Redis 时间旅行快照链 -->
+        <div>
+            <!-- PostgreSQL 查询执行结果 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">PostgreSQL 沙箱执行结果</div>
+                </div>
+                <div id="executionResultContainer" class="data-table-container">
+                    <p style="font-size: 0.875rem; color: var(--text-muted);">暂无执行数据或未放行</p>
+                </div>
+            </div>
+
+            <!-- Redis 时间旅行 Checkpoint 时间线 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Redis Checkpoint 历史快照链 (Time Travel)</div>
+                    <button onclick="loadHistory()">刷新历史</button>
+                </div>
+                <ul id="historyList" class="history-list">
+                    <li style="font-size: 0.8125rem; color: var(--text-muted);">暂无历史快照</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 3 维 Time Travel & 故障重发控制台 Modal 模态弹窗 -->
+    <div id="forkModal" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">🚀 时间旅行与故障重发控制台</div>
+                <button onclick="closeForkModal()" style="border: none; background: none; cursor: pointer; font-size: 1.25rem;">✕</button>
+            </div>
+            
+            <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">
+                目标 Checkpoint 快照: <code id="modalCpId">--</code>
+            </p>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">选择 Time Travel 重发模式:</label>
+                
+                <div class="mode-option selected" onclick="selectMode('replay')">
+                    <input type="radio" name="forkMode" id="modeReplay" value="replay" class="mode-radio" checked>
+                    <div>
+                        <strong>🔄 原地故障重发 (Zero-Code Fault Replay)</strong>
+                        <div class="mode-desc">保持现有 State（SQL 与 Query）原封不动，擦除错误日志后物理原位置重新跑（适用于数据库断连/网络恢复场景）。</div>
+                    </div>
+                </div>
+
+                <div class="mode-option" onclick="selectMode('edit_sql')">
+                    <input type="radio" name="forkMode" id="modeEditSql" value="edit_sql" class="mode-radio">
+                    <div>
+                        <strong>✏️ 修补物理 SQL 语句 (Patch SQL Parameter)</strong>
+                        <div class="mode-desc">直接注入修改后的 SQL 语句，绕过上游生成重新发起物理 PG 查询。</div>
+                    </div>
+                </div>
+
+                <div class="mode-option" onclick="selectMode('edit_query')">
+                    <input type="radio" name="forkMode" id="modeEditQuery" value="edit_query" class="mode-radio">
+                    <div>
+                        <strong>💬 变更自然语言需求 (Re-run Query)</strong>
+                        <div class="mode-desc">修补初始自然语言 Question，锚定从 sql_generation 重新发起完整 LLM 推演与双轨风控。</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 动态参数输入区 -->
+            <div id="sqlInputContainer" style="display: none; margin-bottom: 1.25rem;">
+                <label>修补后的 SQL 语句:</label>
+                <textarea id="modalSqlInput" rows="3" style="width: 100%; margin-top: 0.25rem;"></textarea>
+            </div>
+
+            <div id="queryInputContainer" style="display: none; margin-bottom: 1.25rem;">
+                <label>全新的自然语言需求 Question:</label>
+                <input type="text" id="modalQueryInput" style="width: 100%; margin-top: 0.25rem;" placeholder="如: 查询所有订单金额大于 100 的记录...">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button onclick="closeForkModal()">取消</button>
+                <button onclick="submitForkExecution()" class="btn-primary">🚀 启动 Time Travel 物理流式重发</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000/api";
+        let timerInterval = null;
+        let startTime = 0;
+        window.checkpointCache = {};
+        window.activeCheckpointId = null;
+
+        function getThreadId() {
+            return document.getElementById("threadIdInput").value.trim() || "web_session_9901";
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function updateFlowSteps(currentStepIndex, stateStatus = "active") {
+            for (let i = 1; i <= 5; i++) {
+                const stepEl = document.getElementById(`step-${i}`);
+                stepEl.classList.remove("active", "completed", "interrupted");
+
+                if (i < currentStepIndex) {
+                    stepEl.classList.add("completed");
+                } else if (i === currentStepIndex) {
+                    if (stateStatus === "interrupted") {
+                        stepEl.classList.add("interrupted");
+                    } else if (stateStatus === "completed") {
+                        stepEl.classList.add("completed");
+                    } else {
+                        stepEl.classList.add("active");
+                    }
+                }
+            }
+        }
+
+        function startLoadingUI() {
+            const runBtn = document.getElementById("runBtn");
+            const btnText = document.getElementById("btnText");
+            const statusIndicator = document.getElementById("statusIndicator");
+
+            runBtn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span> 真实 SSE 物理流式推演中...';
+
+            startTime = Date.now();
+            statusIndicator.textContent = `⚡ SSE 流式通道建立，正在实时接收 Agent 增量 Log... (0.0s)`;
+            statusIndicator.style.color = "var(--accent)";
+
+            const listEl = document.getElementById("auditList");
+            listEl.innerHTML = '';
+            appendLogItem("⚡ 建立 SSE 物理流式连接，发起 Agent 推演...");
+
+            timerInterval = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                statusIndicator.textContent = `⚡ 正在实时接收 LangGraph 增量流式 Log... (已用时 ${elapsed}s)`;
+            }, 100);
+        }
+
+        function stopLoadingUI(message = "推演完毕", isSuccess = true) {
+            const runBtn = document.getElementById("runBtn");
+            const btnText = document.getElementById("btnText");
+            const statusIndicator = document.getElementById("statusIndicator");
+
+            clearInterval(timerInterval);
+            runBtn.disabled = false;
+            btnText.textContent = "运行 Agent 推演";
+
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            statusIndicator.textContent = `${isSuccess ? '✅' : '❌'} ${message} (总用时 ${elapsed}s)`;
+            statusIndicator.style.color = isSuccess ? "var(--success-text)" : "var(--error-text)";
+        }
+
+        function appendLogItem(logText) {
+            const listEl = document.getElementById("auditList");
+            const badge = document.getElementById("logCountBadge");
+
+            const item = document.createElement("li");
+            item.className = "audit-item";
+            const now = new Date().toLocaleTimeString();
+            item.innerHTML = `<span>${logText}</span><span class="audit-time">${now}</span>`;
+            listEl.appendChild(item);
+
+            badge.textContent = `${listEl.children.length} 条条目`;
+            listEl.scrollTop = listEl.scrollHeight;
+        }
+
+        function updateRiskActionGuide(riskLevel) {
+            const guideBox = document.getElementById("riskActionGuide");
+            const guideContent = document.getElementById("actionGuideContent");
+
+            guideBox.className = "action-guide-box";
+
+            if (riskLevel === "sensitive") {
+                guideBox.classList.add("action-guide-sensitive");
+                guideContent.innerHTML = `
+                    <div><strong>⚠️ [触发 HITL 人工介入审批断点]</strong></div>
+                    <div>LLM / 规则层评估该 SQL 存在敏感改写或删除风险！</div>
+                    <div><strong>系统动作:</strong> 静态 approval_gateway 机制已生效，系统已在【步骤 3: PG 执行】前强行暂停。</div>
+                    <div style="margin-top: 0.2rem; color: var(--accent); font-weight: 600;">👇 人类安全员操作指引: 请在【HITL 安全审批断点】面板中，选择 [✅ 批准放行]、[✏️ 修正 SQL 后执行] 或 [❌ 拒绝执行]。</div>
+                `;
+            } else if (riskLevel === "blocked") {
+                guideBox.classList.add("action-guide-blocked");
+                guideContent.innerHTML = `
+                    <div><strong>⛔ [高危物理熔断]</strong></div>
+                    <div>LLM / 规则层评估该 SQL 存在全表无 WHERE 删除或 SQL 注入特征！</div>
+                    <div><strong>系统动作:</strong> 系统已强行切断物理执行路径，拒绝流转至 PostgreSQL，自动完成拦截防护。</div>
+                `;
+            } else {
+                guideBox.classList.add("action-guide-safe");
+                guideContent.innerHTML = `
+                    <div><strong>✅ [系统自动允许放行]</strong></div>
+                    <div>LLM / 规则层评估该 SQL 为安全只读查询。</div>
+                    <div><strong>系统动作:</strong> 无需人类干预，系统已自动允许流转至 PostgreSQL 沙箱物理执行。</div>
+                `;
+            }
+        }
+
+        async function sendQueryStream() {
+            const query = document.getElementById("queryInput").value.trim();
+            if (!query) return alert("请输入自然语言查询需求！");
+
+            startLoadingUI();
+            const threadId = getThreadId();
+
+            try {
+                const response = await fetch(`${API_BASE}/stream_query`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ thread_id: threadId, query: query })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop();
+
+                    let currentEvent = null;
+                    for (const line of lines) {
+                        if (line.startsWith("event:")) {
+                            currentEvent = line.replace("event:", "").trim();
+                        } else if (line.startsWith("data:")) {
+                            const dataStr = line.replace("data:", "").trim();
+                            if (!dataStr) continue;
+
+                            try {
+                                const data = JSON.parse(dataStr);
+                                handleStreamEvent(currentEvent, data);
+                            } catch (e) {
+                                console.error("解析 SSE JSON 失败:", e);
+                            }
+                        }
+                    }
+                }
+                loadHistory();
+            } catch (e) {
+                stopLoadingUI("流式连接中断: " + e.message, false);
+                alert("流式推演失败: " + e.message);
+            }
+        }
+
+        async function submitApprovalStream(action) {
+            const threadId = getThreadId();
+            const editedSql = document.getElementById("editSqlInput").value.trim();
+            const approveBtn = document.getElementById("approveBtn");
+
+            approveBtn.disabled = true;
+            appendLogItem(`✏️ 提交审批动作: '${action}'，建立 SSE 解冻物理流...`);
+            updateFlowSteps(3, "active");
+
+            try {
+                const response = await fetch(`${API_BASE}/stream_approve`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        thread_id: threadId,
+                        action: action,
+                        edited_sql: editedSql
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop();
+
+                    let currentEvent = null;
+                    for (const line of lines) {
+                        if (line.startsWith("event:")) {
+                            currentEvent = line.replace("event:", "").trim();
+                        } else if (line.startsWith("data:")) {
+                            const dataStr = line.replace("data:", "").trim();
+                            if (!dataStr) continue;
+
+                            try {
+                                const data = JSON.parse(dataStr);
+                                handleStreamEvent(currentEvent, data);
+                            } catch (e) {
+                                console.error("解析解冻 SSE JSON 失败:", e);
+                            }
+                        }
+                    }
+                }
+                loadHistory();
+            } catch (e) {
+                alert("审批解冻流式失败: " + e.message);
+            } finally {
+                approveBtn.disabled = false;
+            }
+        }
+
+        function handleStreamEvent(event, data) {
+            if (event === "start") {
+                updateFlowSteps(1, "active");
+            } else if (event === "node_update") {
+                updateFlowSteps(data.step, "active");
+
+                if (data.log) {
+                    appendLogItem(`[${data.node}] ${data.log}`);
+                }
+
+                if (data.update) {
+                    if (data.update.generated_sql) {
+                        document.getElementById("generatedSqlDisplay").textContent = data.update.generated_sql;
+                    }
+                    if (data.update.risk_level) {
+                        const riskBadge = document.getElementById("riskBadge");
+                        const level = data.update.risk_level.toLowerCase();
+                        riskBadge.textContent = level.toUpperCase();
+                        riskBadge.className = `badge badge-${level}`;
+                        updateRiskActionGuide(level);
+                    }
+                    if (data.update.risk_analysis) {
+                        document.getElementById("riskAnalysisDisplay").textContent = data.update.risk_analysis;
+                    }
+                    if (data.update.execution_result) {
+                        renderTable(data.update.execution_result);
+                    }
+                }
+            } else if (event === "finish") {
+                const banner = document.getElementById("approvalBanner");
+                const level = (data.state.risk_level || "safe").toLowerCase();
+                updateRiskActionGuide(level);
+
+                if (data.is_interrupted) {
+                    updateFlowSteps(3, "interrupted");
+                    banner.style.display = "block";
+                    document.getElementById("editSqlInput").value = data.state.generated_sql || "";
+                    stopLoadingUI("捕获敏感操作！系统已在步骤 3 强制挂起，等待人类审批", false);
+                } else {
+                    banner.style.display = "none";
+                    updateFlowSteps(5, "completed");
+                    stopLoadingUI("推演与并发子图分析全部成功完成！", true);
+                    renderTable(data.state.execution_result);
+                }
+            }
+        }
+
+        async function loadHistory() {
+            const threadId = getThreadId();
+            try {
+                const res = await fetch(`${API_BASE}/history/${threadId}`);
+                const data = await res.json();
+                renderHistory(data.history);
+            } catch (e) {
+                console.error("加载历史失败:", e);
+            }
+        }
+
+        /* 打开 3 维 Time Travel 控制台 Modal */
+        function triggerFork(checkpointId) {
+            window.activeCheckpointId = checkpointId;
+            const itemCache = window.checkpointCache[checkpointId] || {};
+            
+            document.getElementById("modalCpId").textContent = checkpointId.substring(0, 12);
+            document.getElementById("modalSqlInput").value = itemCache.sql || "";
+            document.getElementById("modalQueryInput").value = itemCache.query || "";
+
+            selectMode('replay');
+            document.getElementById("forkModal").classList.add("active");
+        }
+
+        function closeForkModal() {
+            document.getElementById("forkModal").classList.remove("active");
+        }
+
+        function selectMode(mode) {
+            const options = document.querySelectorAll(".mode-option");
+            options.forEach(opt => opt.classList.remove("selected"));
+
+            const selectedRadio = document.querySelector(`input[value="${mode}"]`);
+            if (selectedRadio) {
+                selectedRadio.checked = true;
+                selectedRadio.closest(".mode-option").classList.add("selected");
+            }
+
+            const sqlContainer = document.getElementById("sqlInputContainer");
+            const queryContainer = document.getElementById("queryInputContainer");
+
+            sqlContainer.style.display = mode === "edit_sql" ? "block" : "none";
+            queryContainer.style.display = mode === "edit_query" ? "block" : "none";
+        }
+
+        async function submitForkExecution() {
+            const checkpointId = window.activeCheckpointId;
+            if (!checkpointId) return;
+
+            const selectedMode = document.querySelector('input[name="forkMode"]:checked').value;
+            const newSql = document.getElementById("modalSqlInput").value.trim();
+            const newQuery = document.getElementById("modalQueryInput").value.trim();
+
+            closeForkModal();
+            startLoadingUI();
+
+            let modeDesc = "🔄 原地故障重放";
+            if (selectedMode === "edit_sql") modeDesc = `✏️ 修补 SQL ('${newSql}')`;
+            if (selectedMode === "edit_query") modeDesc = `💬 变更需求 ('${newQuery}')`;
+
+            appendLogItem(`🚀 [Time Travel] 建立 SSE 物理流！触发 <code>${modeDesc}</code>...`);
+
+            const threadId = getThreadId();
+            try {
+                const response = await fetch(`${API_BASE}/stream_fork`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        thread_id: threadId,
+                        checkpoint_id: checkpointId,
+                        fork_mode: selectedMode,
+                        new_sql: newSql,
+                        new_query: newQuery
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop();
+
+                    let currentEvent = null;
+                    for (const line of lines) {
+                        if (line.startsWith("event:")) {
+                            currentEvent = line.replace("event:", "").trim();
+                        } else if (line.startsWith("data:")) {
+                            const dataStr = line.replace("data:", "").trim();
+                            if (!dataStr) continue;
+
+                            try {
+                                const data = JSON.parse(dataStr);
+                                handleStreamEvent(currentEvent, data);
+                            } catch (e) {
+                                console.error("解析分叉 SSE JSON 失败:", e);
+                            }
+                        }
+                    }
+                }
+                loadHistory();
+            } catch (e) {
+                stopLoadingUI("分叉流式重发失败: " + e.message, false);
+                alert("Time Travel 重发失败: " + e.message);
+            }
+        }
+
+        async function resetDatabase() {
+            if (!confirm("确定重新物理重置 PostgreSQL 沙箱数据库吗？")) return;
+            try {
+                const res = await fetch(`${API_BASE}/reset_db`, { method: "POST" });
+                const data = await res.json();
+                alert(data.message);
+            } catch (e) {
+                alert("重置数据库失败: " + e.message);
+            }
+        }
+
+        function renderTable(results) {
+            const container = document.getElementById("executionResultContainer");
+            if (!results || results.length === 0) {
+                container.innerHTML = '<p style="font-size: 0.875rem; color: var(--text-muted);">无数据返回或未放行执行</p>';
+                return;
+            }
+
+            const columns = Object.keys(results[0]);
+            let html = '<table><thead><tr>';
+            columns.forEach(col => html += `<th>${escapeHtml(col)}</th>`);
+            html += '</tr></thead><tbody>';
+
+            results.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => html += `<td>${row[col] !== null ? escapeHtml(row[col]) : 'NULL'}</td>`);
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            container.innerHTML = html;
+        }
+
+        function renderHistory(historyList) {
+            const listEl = document.getElementById("historyList");
+            window.checkpointCache = {}; // 刷新缓存
+
+            if (!historyList || historyList.length === 0) {
+                listEl.innerHTML = '<li style="font-size: 0.8125rem; color: var(--text-muted);">暂无 Checkpoint 历史</li>';
+                return;
+            }
+
+            let html = '';
+            historyList.forEach((item, idx) => {
+                const tag = idx === 0 ? '<strong style="color: var(--accent);">[最新]</strong> ' : '';
+                const cpShort = item.checkpoint_id.substring(0, 8);
+                const rawSql = item.generated_sql || 'N/A';
+                const sqlShort = rawSql.length > 30 ? rawSql.substring(0, 30) + '...' : rawSql;
+
+                // 物理写入缓存字典
+                window.checkpointCache[item.checkpoint_id] = {
+                    sql: rawSql,
+                    query: item.query || ''
+                };
+                
+                html += `
+                    <li class="history-item">
+                        <div>
+                            ${tag}<code>${cpShort}</code> - next: ${item.next.join(',') || 'END'}<br>
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">SQL: ${escapeHtml(sqlShort)}</span>
+                        </div>
+                        <button onclick="triggerFork('${item.checkpoint_id}')" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">分叉推演</button>
+                    </li>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
+
+        // 初始化加载
+        loadHistory();
+    </script>
+</body>
+</html>
