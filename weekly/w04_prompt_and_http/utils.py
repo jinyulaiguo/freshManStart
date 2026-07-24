@@ -82,20 +82,27 @@ class LLMClient:
         if response_format:
             payload["response_format"] = response_format
         
-        # 统一设置 120 秒的网络超时时间限制（应对大模型长文本/思维链生成与多轮博弈）
-        timeout_policy = httpx.Timeout(timeout=120.0)
+        # 统一设置细粒度网络超时控制 (读取超时放宽至 300 秒以防长研报生成超时)
+        timeout_policy = httpx.Timeout(connect=15.0, read=300.0, write=300.0, pool=300.0)
         
-        async with httpx.AsyncClient(timeout=timeout_policy) as client:
-            response = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload
-            )
-            
-            if response.status_code != 200:
-                raise RuntimeError(
-                    f"LLM API 请求错误 (HTTP {response.status_code}): {response.text}"
-                )
-                
-            data = response.json()
-            return data["choices"][0]["message"]["content"]
+        # 增加网络超时防抖重试 (最多重试 1 次)
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=timeout_policy) as client:
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload
+                    )
+                    
+                    if response.status_code != 200:
+                        raise RuntimeError(
+                            f"LLM API 请求错误 (HTTP {response.status_code}): {response.text}"
+                        )
+                        
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"]
+            except (httpx.ReadTimeout, httpx.ConnectTimeout) as net_err:
+                if attempt == 1:
+                    raise RuntimeError(f"LLM API 网络请求超时 (300s): {net_err}") from net_err
+                print(f"⚠️ [LLMClient] 网络请求超时抖动 ({net_err})，正在自动发起第 2 次尝试...")

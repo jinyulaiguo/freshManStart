@@ -49,6 +49,10 @@ class DeterministicRepairer:
         # 例如: {"a": 1,} -> {"a": 1} 或 [1, 2,] -> [1, 2]
         repaired = re.sub(r",\s*([\}\]])", r"\1", repaired)
 
+        # 步骤 1.5：补齐字段之间或闭合括号后缺失的逗号 (Missing Commas between fields/objects)
+        # 例如: "val" "key": -> "val", "key": 或 } "key": -> }, "key":
+        repaired = re.sub(r'(["}\]true|false|null|\d+])\s+(?="[a-zA-Z0-9_]+" \s*:)', r'\1, ', repaired)
+
         # 步骤 2：把非标准单引号包裹的简单 key/string 转换为标准双引号 (注意保护内部缩写)
         # 例如: 'decision': 'REJECT' -> "decision": "REJECT"
         repaired = re.sub(r"(?<=[{\s,])'([a-zA-Z0-9_]+)':", r'"\1":', repaired)

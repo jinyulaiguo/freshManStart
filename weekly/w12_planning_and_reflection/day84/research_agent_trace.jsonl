@@ -1,0 +1,17 @@
+{"timestamp": "2026-07-24 16:37:05", "event_type": "SESSION_START", "payload": {"query": "分析2026年医疗AI行业发展趋势，重点关注：\n1. 市场规模与增长率\n2. 核心技术路线与突破\n3. 主要领军厂商与竞争格局\n4. 投资机会\n5. 关键风险与合规因素\n\n输出一份严谨、带数据来源标注的行业深度报告。"}}
+{"timestamp": "2026-07-24 16:37:38", "event_type": "SESSION_START", "payload": {"query": "分析2026年医疗AI行业发展趋势，重点关注：\n1. 市场规模与增长率\n2. 核心技术路线与突破\n3. 主要领军厂商与竞争格局\n4. 投资机会\n5. 关键风险与合规因素\n\n输出一份严谨、带数据来源标注的行业深度报告。"}}
+{"timestamp": "2026-07-24 16:38:25", "event_type": "SESSION_START", "payload": {"query": "分析2026年医疗AI行业发展趋势，重点关注：\n1. 市场规模与增长率\n2. 核心技术路线与突破\n3. 主要领军厂商与竞争格局\n4. 投资机会\n5. 关键风险与合规因素\n\n输出一份严谨、带数据来源标注的行业深度报告。"}}
+{"timestamp": "2026-07-24 16:39:43", "event_type": "NODE_TRANSITION", "payload": {"node": "planner", "update_keys": ["plan", "current_step", "planner_call_count", "is_completed"]}}
+{"timestamp": "2026-07-24 16:39:55", "event_type": "SESSION_START", "payload": {"query": "分析2026年医疗AI行业发展趋势，重点关注：\n1. 市场规模与增长率\n2. 核心技术路线与突破\n3. 主要领军厂商与竞争格局\n4. 投资机会\n5. 关键风险与合规因素\n\n输出一份严谨、带数据来源标注的行业深度报告。"}}
+{"timestamp": "2026-07-24 16:40:26", "event_type": "NODE_TRANSITION", "payload": {"node": "planner", "update_keys": ["plan", "current_step", "planner_call_count", "is_completed"]}}
+{"timestamp": "2026-07-24 16:40:26", "event_type": "NODE_TRANSITION", "payload": {"node": "plan_validator", "update_keys": []}}
+{"timestamp": "2026-07-24 16:41:00", "event_type": "SESSION_START", "payload": {"query": "分析2026年医疗AI行业发展趋势，重点关注：\n1. 市场规模与增长率\n2. 核心技术路线与突破\n3. 主要领军厂商与竞争格局\n4. 投资机会\n5. 关键风险与合规因素\n\n输出一份严谨、带数据来源标注的行业深度报告。"}}
+{"timestamp": "2026-07-24 16:41:44", "event_type": "NODE_TRANSITION", "payload": {"node": "planner", "update_keys": ["plan", "current_step", "planner_call_count", "is_completed"]}}
+{"timestamp": "2026-07-24 16:41:44", "event_type": "NODE_TRANSITION", "payload": {"node": "plan_validator", "update_keys": []}}
+{"timestamp": "2026-07-24 16:42:10", "event_type": "NODE_TRANSITION", "payload": {"node": "executor", "update_keys": ["observations", "variables"]}}
+{"timestamp": "2026-07-24 16:42:10", "event_type": "NODE_TRANSITION", "payload": {"node": "obs_collector", "update_keys": []}}
+{"timestamp": "2026-07-24 16:42:10", "event_type": "NODE_TRANSITION", "payload": {"node": "context_builder", "update_keys": ["context_prompt"]}}
+{"timestamp": "2026-07-24 16:43:04", "event_type": "NODE_TRANSITION", "payload": {"node": "generator", "update_keys": ["draft_report"]}}
+{"timestamp": "2026-07-24 16:43:23", "event_type": "NODE_TRANSITION", "payload": {"node": "critic", "update_keys": ["critic_result"]}}
+{"timestamp": "2026-07-24 16:43:43", "event_type": "NODE_TRANSITION", "payload": {"node": "verifier", "update_keys": ["verification_result", "final_report", "is_completed"]}}
+{"timestamp": "2026-07-24 16:43:43", "event_type": "SESSION_END", "payload": {"final_report_length": 7623, "reflections_count": 0}}
