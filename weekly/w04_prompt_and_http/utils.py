@@ -68,8 +68,8 @@ class LLMClient:
             "max_tokens": max_tokens
         }
         
-        # 统一设置 20 秒的网络超时时间限制
-        timeout_policy = httpx.Timeout(timeout=20.0)
+        # 统一设置 60 秒的网络超时时间限制（应对大模型长文本/思维链生成）
+        timeout_policy = httpx.Timeout(timeout=60.0)
         
         async with httpx.AsyncClient(timeout=timeout_policy) as client:
             response = await client.post(
