@@ -142,10 +142,10 @@
     * **PostgreSQL 配置变量**：`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 * **解耦原则**：代码与规范中仅保留环境变量 Key 的契约定义，真正的敏感账号密码完全收拢在本地未纳管的 `.env` 中，确保代码安全的工业级解耦。
 
-
-
-
-
-
-
+### 21. LLM 可靠性中间件使用规范 (LLM Reliability Middleware Standard)
+* **中间件架构定位**：项目在与 `weekly/` 平级的 `middlewares/llm_reliability_adapter` 中沉淀了通用可复用的结构化解析中间件（提供双层门面架构）。
+* **严禁重复堆砌解析函数**：后续所有涉及大模型（LLM）结构化提取、JSON 解析与纠错场景的代码（练习、博弈引擎、工具调用等），**严禁重新编写复杂的正则解析函数或单体 parse_xxx_json 函数**。
+* **统一调用契约**：
+    * **优先使用【第一门面】`parse_structured(raw_text, response_model)`**：对于已有 LLM 调用代码的场景，一律导入并使用 `from middlewares.llm_reliability_adapter import parse_structured` 一键完成 100% 可靠提纯、字符栈匹配、Pydantic 校验与 0 延迟本地修补。
+    * **使用【第二门面】`UniversalAdapter`**：当需要中间件全面托管 LLM 网络请求、Level 2 带堆栈 Re-prompt 纠错重试及 Level 3 熔断降级时，使用 `UniversalAdapter(driver)`。
 
