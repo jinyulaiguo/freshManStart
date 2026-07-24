@@ -43,9 +43,14 @@ class Normalizer:
         text = raw_output.strip()
         
         # 步骤 1：物理剥离 <think>...</think> 或 <thought>...</thought> 思考过程段落
-        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r"<thought>.*?</thought>", "", text, flags=re.DOTALL | re.IGNORECASE)
-        text = text.strip()
+        stripped = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+        stripped = re.sub(r"<thought>.*?</thought>", "", stripped, flags=re.DOTALL | re.IGNORECASE).strip()
+        
+        # 防御性降级：若剥离思考标签后为空串，但原始文本包含 '{'，保留原文本供 BracketExtractor 提取
+        if not stripped and "{" in text:
+            text = text
+        else:
+            text = stripped
         
         # 步骤 2：识别并剥离 Markdown 代码块（如 ```json ... ``` 或 ``` ... ```）
         if "```json" in text:

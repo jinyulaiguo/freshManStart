@@ -189,6 +189,24 @@ Hope this helps!
         self.assertEqual(obj.decision, "PASS")
         self.assertEqual(obj.score, 95)
 
+    def test_scenario_08_json_inside_think_tag(self):
+        """
+        [Scenario 8] 真实场景：模型将 JSON 全部包裹在 <think> 标签内部
+        验证 Normalizer 防御性降级提取能力
+        """
+        from middlewares.llm_reliability_adapter import parse_structured
+
+        raw_llm_text = """
+<think>
+Here is my review output:
+{"decision": "PASS", "score": 88, "risk_items": [], "critique_feedback": "Looks good inside think tag"}
+</think>
+"""
+        obj = parse_structured(raw_llm_text, TargetCriticSchema)
+        self.assertIsInstance(obj, TargetCriticSchema)
+        self.assertEqual(obj.decision, "PASS")
+        self.assertEqual(obj.score, 88)
+
 
 if __name__ == "__main__":
     unittest.main()
