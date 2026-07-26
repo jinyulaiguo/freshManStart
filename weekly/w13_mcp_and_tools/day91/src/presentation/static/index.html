@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Assistant | Day 91</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>AI Research Assistant</h1>
+            <p class="subtitle">Enterprise MCP Orchestration Gateway</p>
+        </header>
+        
+        <main class="main-content">
+            <div class="chat-panel">
+                <div id="chat-history" class="chat-history">
+                    <div class="message system-msg">
+                        <div class="msg-content">您好，我是 AI 研究助手。已挂载 Qdrant 路由与多模态 MCP 微服务集群。请问需要分析什么数据？</div>
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <textarea id="query-input" placeholder="输入您的研究指令 (例如：分析 2023 年文献库的趋势)..." rows="3"></textarea>
+                    <button id="send-btn" class="primary-btn">执行分析</button>
+                </div>
+            </div>
+            
+            <div class="trace-panel">
+                <h2>Execution Trace</h2>
+                <div id="trace-log" class="trace-log">
+                    <div class="trace-item info">Waiting for instructions...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>
