@@ -106,3 +106,41 @@ class LLMClient:
                 if attempt == 1:
                     raise RuntimeError(f"LLM API 网络请求超时 (300s): {net_err}") from net_err
                 print(f"⚠️ [LLMClient] 网络请求超时抖动 ({net_err})，正在自动发起第 2 次尝试...")
+
+    async def request_llm_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.1
+    ) -> Dict[str, Any]:
+        """
+        扩展方法: 支持 Tool Calling 的大模型请求
+        返回完整的 message 结构体 (包含 content, tool_calls 等)
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "tools": tools,
+            "temperature": max(0.01, min(temperature, 1.0))
+        }
+        timeout_policy = httpx.Timeout(connect=15.0, read=60.0, write=60.0, pool=60.0)
+        
+        async with httpx.AsyncClient(timeout=timeout_policy) as client:
+            # 尝试标准 /chat/completions 或 /text/chatcompletion_v2
+            url = f"{self.base_url.rstrip('/')}/chat/completions"
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code != 200:
+                url_v2 = f"{self.base_url.rstrip('/')}/text/chatcompletion_v2"
+                response = await client.post(url_v2, headers=headers, json=payload)
+                
+            if response.status_code != 200:
+                raise RuntimeError(f"LLM API Tool Calling 请求失败 (HTTP {response.status_code}): {response.text}")
+                
+            data = response.json()
+            return data["choices"][0]["message"]
+
