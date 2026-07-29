@@ -1,0 +1,89 @@
+{
+  "summary": {
+    "final_governance_state": "stop",
+    "total_used_usd": 0.021,
+    "task_budget_usd": 0.13999999999999999,
+    "total_tokens": 4800,
+    "trace_records_count": 8
+  },
+  "trace_details": [
+    {
+      "timestamp": 1785316166.625498,
+      "phase": "PREFLIGHT",
+      "task_type": "Research_Report",
+      "predicted_cost": 0.012375,
+      "available_task_budget": 0.02,
+      "allowed": true
+    },
+    {
+      "timestamp": 1785316166.625508,
+      "phase": "RUNTIME_MONITOR",
+      "usage_ratio": 17.5,
+      "used_usd": 0.0035,
+      "task_budget_usd": 0.02,
+      "previous_state": "normal",
+      "new_state": "normal",
+      "degradation_actions": []
+    },
+    {
+      "timestamp": 1785316172.383421,
+      "phase": "RUNTIME_MONITOR",
+      "usage_ratio": 35.0,
+      "used_usd": 0.007,
+      "task_budget_usd": 0.02,
+      "previous_state": "normal",
+      "new_state": "normal",
+      "degradation_actions": []
+    },
+    {
+      "timestamp": 1785316175.734399,
+      "phase": "RUNTIME_MONITOR",
+      "usage_ratio": 52.5,
+      "used_usd": 0.0105,
+      "task_budget_usd": 0.02,
+      "previous_state": "normal",
+      "new_state": "normal",
+      "degradation_actions": []
+    },
+    {
+      "timestamp": 1785316178.0483131,
+      "phase": "RUNTIME_MONITOR",
+      "usage_ratio": 70.0,
+      "used_usd": 0.014,
+      "task_budget_usd": 0.02,
+      "previous_state": "normal",
+      "new_state": "warning",
+      "degradation_actions": []
+    },
+    {
+      "timestamp": 1785316181.232919,
+      "phase": "RUNTIME_MONITOR",
+      "usage_ratio": 87.5,
+      "used_usd": 0.0175,
+      "task_budget_usd": 0.02,
+      "previous_state": "warning",
+      "new_state": "degraded",
+      "degradation_actions": [
+        "Context Compression Triggered (Target: 40% Token Ratio)",
+        "Model Downgraded: MiniMax-M3 -> gpt-4o-mini",
+        "Disabled Expensive Tool: 'expensive_sandbox_search'"
+      ]
+    },
+    {
+      "timestamp": 1785316183.5550752,
+      "phase": "RUNTIME_MONITOR",
+      "usage_ratio": 105.0,
+      "used_usd": 0.021,
+      "task_budget_usd": 0.02,
+      "previous_state": "degraded",
+      "new_state": "stop",
+      "degradation_actions": []
+    },
+    {
+      "timestamp": 1785316184.5569391,
+      "phase": "HUMAN_APPROVAL_RESUME",
+      "approval_id": "appr_1785316183555",
+      "new_task_budget": 0.13999999999999999
+    }
+  ]
+}

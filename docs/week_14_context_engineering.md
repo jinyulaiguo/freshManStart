@@ -75,14 +75,16 @@
 
 ---
 
-## Day 94：Token Budget 多切面熔断控制 (Budget Controller)
-*   **核心目标**：构建生产级 Token 与成本实时审计治理引擎。
-*   **解决痛点**：防止 Agent 在自主循环（Planner -> Tool -> Reflection -> Retry）中陷入死循环引发天价账单。
+## Day 94：Enterprise Agent Runtime Cost Governance & AI FinOps 架构
+*   **核心目标**：构建生产级 AI FinOps 与 Agent 运行时成本治理系统（`CostGovernanceEngine`）。
+*   **解决痛点**：弃用粗暴的单体 `Token > Limit => Kill` 硬熔断，解决 Agent 自主循环中成本不可预测、多租户配额不可隔离、高成本工具穿透及缺乏人机协同（Human Approval）的痛点。
 *   **架构与实践**：
-    *   开发 `BudgetController`（支持 `check()`, `estimate()`, `interrupt()`, `report()`）；
-    *   在 LLM 调用前、Tool 调用前、Tool 结果返回后三个切面注入预检与拦截；
-    *   记录详细的 Task Budget 消耗账单。
-*   **🎯 交付与验证**：模拟 Agent 持续自主执行 100 轮循环，验证系统在触发硬限（如超过特定 Token 或美分额度）时迅速抛出熔断异常，自动中断并生成 `budget_report.json`。
+    *   **Layer 1 Pre-flight Prediction**：基于任务类型与历史步数执行事前费用预测 (`CostPredictor`)；
+    *   **Layer 2 Hierarchical Budget**：多级预算隔离 (Org -> Tenant -> User -> Task)；
+    *   **Layer 3 & 5 Circuit Breaker State Machine**：4 态熔断状态机 (`NORMAL` -> `WARNING` -> `DEGRADED` -> `STOP`)；
+    *   **Layer 4 Optimization Tree**：优雅降级策略（Context 增量压缩 -> 模型自动降级切换 -> 高成本 Tool 禁用）；
+    *   **Layer 6 Human Approval Interrupt**：基于 LangGraph 状态挂起 (`Interrupt`) 实现高危险/高费用操作的人工审批与恢复。
+*   **🎯 交付与验证**：模拟真实长任务场景，验证系统在触发 Warning/Degraded 时自动执行上下文压缩与模型降级切换，并在遇到高成本操作时挂起等待人工 Approve，生成全链路审计报告 `cost_trace.json`。
 
 ---
 
