@@ -1,0 +1,9 @@
+{
+  "total_tokens": 376,
+  "static_tokens": 343,
+  "dynamic_tokens": 33,
+  "static_prefix_ratio": 0.9122,
+  "anthropic_theoretical_cost_saving": "82.1%",
+  "openai_theoretical_cost_saving": "45.6%",
+  "cache_potential_level": "HIGH"
+}

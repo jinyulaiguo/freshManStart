@@ -99,13 +99,15 @@
 
 ---
 
-## Day 96：Prompt Cache + Context Layout Optimization
-*   **核心目标**：设计 Context Layout Engine，最大化主流 API (OpenAI/Anthropic) 的 Prompt Cache 命中率。
-*   **解决痛点**：上下文前缀微小变动导致 Cache 全量失效，带来额外费用与首字延迟 (TTFT)。
+## Day 96：Enterprise Context Layout Engine & Prompt Cache 工程化设计
+*   **核心目标**：设计生产级上下文布局引擎（`ContextLayoutEngine`），实现感知缓存、成本和稳定性的上下文编排。
+*   **解决痛点**：解决多轮、高频、多租户场景下乱序拼接 Payload 导致的 Prompt Cache 全量失效、前缀哈希穿透、API 费用高昂与首字延迟（TTFT）过大的痛点。
 *   **架构与实践**：
-    *   实现前置静态布局重排：`System -> Tools -> Rules -> Examples` 固定在最头部（前缀共享区），高频变动的 `Memory -> RAG -> History -> User Query` 放置在尾部；
-    *   开发 `ContextLayoutOptimizer`：计算 Prefix 稳定率、缓存命中概率与计费估算。
-*   **🎯 交付与验证**：对比布局调整前后的 Payload 差异，计算并打印缓存预计节省比例（预期节省 50%~80% 成本及降低首字延迟）。
+    *   **7-Layer Context Segmentation**：按稳定性降序编排七层 Context（Global Static -> Tenant Static -> User Memory -> Task State -> RAG -> Dialogue -> Query）；
+    *   **Context Segment Model**：定义 `ContextSegment` 稳定性 (`static`/`dynamic`) 与缓存作用域 (`global`/`tenant`/`user`)；
+    *   **Cache Analyzer**：计算 Static Prefix Ratio（静态前缀占比）、Cache Potential 与理论美金/延迟节省比例；
+    *   **Multi-Provider Cache Adapters**：抽象适配 Anthropic 显式 `ephemeral` 缓存断点与 OpenAI 自动前缀匹配。
+*   **🎯 交付与验证**：测试 4 大实战场景（多轮对话前缀稳定、RAG 变动不破坏前缀、多租户 Tenant 隔离防护及理论成本节省计算），验证静态前缀命中率达到 60%+。
 
 ---
 
