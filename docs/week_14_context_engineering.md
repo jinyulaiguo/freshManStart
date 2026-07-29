@@ -111,13 +111,15 @@
 
 ---
 
-## Day 97：Model Router + LLM Gateway 企业模型访问层
-*   **核心目标**：建设解耦的高可用模型访问与路由调度设施。
-*   **解决痛点**：单一 LLM API 网络超时、429 限流或服务中断导致整个 Agent 崩溃。
+## Day 97：Agent Model Control Plane & LLM Gateway 基础设施
+*   **核心目标**：构建生产级 Agent 模型控制平面（`ModelDecisionEngine`）与高可用 LLM 网关（`LLMGateway`）。
+*   **解决痛点**：解决简单分类器无法感知能力/预算/节点上下文、固定 Fallback 链无法识别错误类型、单点 API 故障与多节点（Planner/Executor/Reflection）盲目使用高价模型等痛点。
 *   **架构与实践**：
-    *   开发 `ModelRouter`：根据任务复杂度（Complexity Classifier）、延迟要求与成本预算动态选择 Provider；
-    *   开发 `LLMGateway`：封装多 Provider (GPT-4o, Claude, DeepSeek, Qwen) 接入代理，内置 Retry、Timeout 硬限、Health Check 及 Fallback 降级。
-*   **🎯 交付与验证**：模拟主模型 API (如 GPT-4o) 超时或网络异常，验证 Gateway 能在毫秒级内自动无缝降级至备用模型 (如 Claude / DeepSeek) 并完成请求。
+    *   **8-Dimension Decision Engine**：融合 Task Type (Coding/Research), Complexity, Required Capability (Tool Calling/128K Context), Latency, Cost Budget (联动 Day 94) 及 Provider Health 8 维决策；
+    *   **Dynamic Health Score**：基于 P95 Latency、Success Rate 与 Error Rate 实时计算 0~100 动态健康评分；
+    *   **Error Classifier & Smart Fallback**：分类处理 429 Rate Limit (切同级模型)、Timeout (同 Provider 重试)、Context Error (触发 Day 95 压缩) 与 Server Down (降级链)；
+    *   **Agent Node-Level Routing**：支持 LangGraph 节点级路由（Planner/Reflection 用旗舰模型，Executor 用轻量模型）。
+*   **🎯 交付与验证**：测试 6 大生产级场景（能力匹配路由、503 自动降级、Timeout 重试隔离、动态健康分打分、预算受限降级、LangGraph 节点级差异路由）。
 
 ---
 
