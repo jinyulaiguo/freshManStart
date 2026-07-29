@@ -1,0 +1,264 @@
+{
+  "timestamp": 1785313944.3966038,
+  "global_max_tokens": 2000,
+  "total_tokens_used": 1026,
+  "category_token_breakdown": {
+    "system": 24,
+    "memory": 231,
+    "retrieval": 771,
+    "dialogue": 0,
+    "runtime": 0
+  },
+  "candidates_total": 31,
+  "selected_total": 23,
+  "decision_logs": [
+    {
+      "item_id": "sys_core",
+      "context_type": "system",
+      "selected": true,
+      "score": 1.0,
+      "tokens": 24,
+      "reason": "MANDATORY SYSTEM CONTRACT (Priority 100)"
+    },
+    {
+      "item_id": "mem_10",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.92,
+      "tokens": 24,
+      "reason": "SELECTED (Rank Score: 0.9200, Category Tokens: 24/600)"
+    },
+    {
+      "item_id": "mem_09",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.875,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.8750, Category Tokens: 47/600)"
+    },
+    {
+      "item_id": "rag_01",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.835,
+      "tokens": 30,
+      "reason": "SELECTED (Rank Score: 0.8350, Category Tokens: 30/800)"
+    },
+    {
+      "item_id": "mem_08",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.83,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.8300, Category Tokens: 70/600)"
+    },
+    {
+      "item_id": "rag_02",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.815,
+      "tokens": 30,
+      "reason": "SELECTED (Rank Score: 0.8150, Category Tokens: 60/800)"
+    },
+    {
+      "item_id": "rag_03",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.795,
+      "tokens": 166,
+      "reason": "SELECTED (Rank Score: 0.7950, Category Tokens: 226/800)"
+    },
+    {
+      "item_id": "mem_07",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.785,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.7850, Category Tokens: 93/600)"
+    },
+    {
+      "item_id": "rag_04",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.775,
+      "tokens": 30,
+      "reason": "SELECTED (Rank Score: 0.7750, Category Tokens: 256/800)"
+    },
+    {
+      "item_id": "rag_05",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.755,
+      "tokens": 30,
+      "reason": "SELECTED (Rank Score: 0.7550, Category Tokens: 286/800)"
+    },
+    {
+      "item_id": "mem_06",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.74,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.7400, Category Tokens: 116/600)"
+    },
+    {
+      "item_id": "rag_06",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.735,
+      "tokens": 166,
+      "reason": "SELECTED (Rank Score: 0.7350, Category Tokens: 452/800)"
+    },
+    {
+      "item_id": "rag_07",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.715,
+      "tokens": 30,
+      "reason": "SELECTED (Rank Score: 0.7150, Category Tokens: 482/800)"
+    },
+    {
+      "item_id": "mem_05",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.695,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.6950, Category Tokens: 139/600)"
+    },
+    {
+      "item_id": "rag_08",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.695,
+      "tokens": 30,
+      "reason": "SELECTED (Rank Score: 0.6950, Category Tokens: 512/800)"
+    },
+    {
+      "item_id": "rag_09",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.675,
+      "tokens": 166,
+      "reason": "SELECTED (Rank Score: 0.6750, Category Tokens: 678/800)"
+    },
+    {
+      "item_id": "rag_10",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.655,
+      "tokens": 31,
+      "reason": "SELECTED (Rank Score: 0.6550, Category Tokens: 709/800)"
+    },
+    {
+      "item_id": "mem_04",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.65,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.6500, Category Tokens: 162/600)"
+    },
+    {
+      "item_id": "rag_11",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.635,
+      "tokens": 31,
+      "reason": "SELECTED (Rank Score: 0.6350, Category Tokens: 740/800)"
+    },
+    {
+      "item_id": "rag_12",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.615,
+      "tokens": 167,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (907/800)"
+    },
+    {
+      "item_id": "mem_03",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.605,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.6050, Category Tokens: 185/600)"
+    },
+    {
+      "item_id": "rag_13",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.595,
+      "tokens": 31,
+      "reason": "SELECTED (Rank Score: 0.5950, Category Tokens: 771/800)"
+    },
+    {
+      "item_id": "rag_14",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.575,
+      "tokens": 31,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+    },
+    {
+      "item_id": "mem_02",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.56,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.5600, Category Tokens: 208/600)"
+    },
+    {
+      "item_id": "rag_15",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.555,
+      "tokens": 167,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (938/800)"
+    },
+    {
+      "item_id": "rag_16",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.535,
+      "tokens": 31,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+    },
+    {
+      "item_id": "mem_01",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.515,
+      "tokens": 23,
+      "reason": "SELECTED (Rank Score: 0.5150, Category Tokens: 231/600)"
+    },
+    {
+      "item_id": "rag_17",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.515,
+      "tokens": 31,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+    },
+    {
+      "item_id": "rag_18",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.495,
+      "tokens": 167,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (938/800)"
+    },
+    {
+      "item_id": "rag_19",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.475,
+      "tokens": 31,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+    },
+    {
+      "item_id": "rag_20",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.455,
+      "tokens": 31,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+    }
+  ]
+}
