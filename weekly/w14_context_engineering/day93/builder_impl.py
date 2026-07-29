@@ -115,6 +115,58 @@ class ContextRanker:
         candidate.score = round(min(1.0, max(0.0, total_score)), 4)
         return candidate.score
 
+    def rank(
+        self,
+        candidates: List[AssemblyCandidate],
+        query: Optional[str] = None,
+        current_time: Optional[float] = None
+    ) -> List[AssemblyCandidate]:
+        """批量对候选集打分并按 score 降序排序"""
+        now = current_time or time.time()
+        for cand in candidates:
+            self.calculate_score(cand, now)
+        return sorted(candidates, key=lambda x: x.score, reverse=True)
+
+
+class BuildResult(dict):
+    """
+    上下文编译结果对象 (BuildResult)
+    同时支持:
+    1. 字典风格访问: result["context_object"], result["payload"], result["audit_summary"]
+    2. 三元组解包: selected, rejected, decision_entries = builder.build(...)
+    3. 属性风格访问: result.selected, result.rejected, result.decision_logs
+    """
+    def __init__(
+        self,
+        selected: List[AssemblyCandidate],
+        rejected: List[AssemblyCandidate],
+        decision_logs: List[Dict[str, Any]],
+        context_object: ContextObject,
+        payload: List[Dict[str, str]],
+        audit_summary: Dict[str, Any],
+        decision_log_path: str
+    ):
+        super().__init__({
+            "selected": selected,
+            "rejected": rejected,
+            "decision_logs": decision_logs,
+            "context_object": context_object,
+            "payload": payload,
+            "audit_summary": audit_summary,
+            "decision_log_path": decision_log_path
+        })
+        self.selected = selected
+        self.rejected = rejected
+        self.decision_logs = decision_logs
+        self.context_object = context_object
+        self.payload = payload
+        self.audit_summary = audit_summary
+        self.decision_log_path = decision_log_path
+
+    def __iter__(self):
+        # 允许三元组解包 (selected, rejected, decision_logs)
+        return iter((self.selected, self.rejected, self.decision_logs))
+
 
 class ContextBuilder:
     """
@@ -125,8 +177,20 @@ class ContextBuilder:
         self,
         policy: Optional[ContextPolicy] = None,
         global_max_tokens: int = 2500,
-        ranker: Optional[ContextRanker] = None
+        ranker: Optional[ContextRanker] = None,
+        type_budgets: Optional[Dict[Any, int]] = None,
+        global_budget: Optional[int] = None
     ):
+        if global_budget is not None:
+            global_max_tokens = global_budget
+        if policy is None and type_budgets:
+            from context_impl import ContextPolicyRule
+            rules = {}
+            for ctype, b in type_budgets.items():
+                p = getattr(ctype, 'default_priority', 50)
+                rules[ctype] = ContextPolicyRule(max_tokens=b, priority=p)
+            policy = ContextPolicy(rules=rules)
+
         self.policy = policy or ContextPolicy()
         self.global_max_tokens = global_max_tokens
         self.ranker = ranker or ContextRanker()
@@ -134,8 +198,9 @@ class ContextBuilder:
     def build(
         self,
         candidates: List[AssemblyCandidate],
-        system_instructions: str
-    ) -> Dict[str, Any]:
+        system_instructions: Optional[str] = None,
+        **kwargs
+    ) -> BuildResult:
         """
         执行动态上下文编译主逻辑
         """
@@ -150,30 +215,33 @@ class ContextBuilder:
 
         context_obj = ContextObject(policy=self.policy)
         decision_logs: List[Dict[str, Any]] = []
+        selected_candidates: List[AssemblyCandidate] = []
+        rejected_candidates: List[AssemblyCandidate] = []
 
         # 追踪分类已消耗 Token 计数与全局已消耗 Token 计数
         category_tokens: Dict[ContextType, int] = {ctype: 0 for ctype in ContextType}
         global_used_tokens = 0
 
-        # 行内步骤 A：强行打入最高优先级 System 指令 (Priority 100)
-        sys_item = context_obj.add_item(
-            item_id="sys_core",
-            context_type=ContextType.SYSTEM,
-            content=system_instructions,
-            source="system_policy"
-        )
-        sys_tokens = estimate_tokens(system_instructions)
-        category_tokens[ContextType.SYSTEM] += sys_tokens
-        global_used_tokens += sys_tokens
+        # 行内步骤 A：强行打入最高优先级 System 指令 (Priority 100) (若提供)
+        if system_instructions:
+            sys_item = context_obj.add_item(
+                item_id="sys_core",
+                context_type=ContextType.SYSTEM,
+                content=system_instructions,
+                source="system_policy"
+            )
+            sys_tokens = estimate_tokens(system_instructions)
+            category_tokens[ContextType.SYSTEM] += sys_tokens
+            global_used_tokens += sys_tokens
 
-        decision_logs.append({
-            "item_id": "sys_core",
-            "context_type": ContextType.SYSTEM.key,
-            "selected": True,
-            "score": 1.0,
-            "tokens": sys_tokens,
-            "reason": "MANDATORY SYSTEM CONTRACT (Priority 100)"
-        })
+            decision_logs.append({
+                "item_id": "sys_core",
+                "context_type": ContextType.SYSTEM.key,
+                "selected": True,
+                "score": 1.0,
+                "tokens": sys_tokens,
+                "reason": "MANDATORY SYSTEM CONTRACT (Priority 100)"
+            })
 
         # 行内步骤 B：按分数降序装载非 System 候选条目
         for cand in sorted_candidates:
@@ -196,6 +264,7 @@ class ContextBuilder:
                 )
                 category_tokens[cand.context_type] += item_tokens
                 global_used_tokens += item_tokens
+                selected_candidates.append(cand)
 
                 decision_logs.append({
                     "item_id": cand.item_id,
@@ -207,6 +276,7 @@ class ContextBuilder:
                 })
             else:
                 # 配额超限，拦截淘汰并记录原因
+                rejected_candidates.append(cand)
                 reject_reason = []
                 if cat_exceeded:
                     reject_reason.append(f"Category [{cand.context_type.key}] Budget Exceeded ({curr_cat_used + item_tokens}/{rule.max_tokens})")
@@ -229,20 +299,26 @@ class ContextBuilder:
             "global_max_tokens": self.global_max_tokens,
             "total_tokens_used": global_used_tokens,
             "category_token_breakdown": {k.key: v for k, v in category_tokens.items()},
-            "candidates_total": len(candidates) + 1,
+            "candidates_total": len(candidates) + (1 if system_instructions else 0),
             "selected_total": len([d for d in decision_logs if d["selected"]]),
             "decision_logs": decision_logs
         }
 
-        with open(log_file_path, "w", encoding="utf-8") as f:
-            json.dump(audit_payload, f, ensure_ascii=False, indent=2)
+        try:
+            with open(log_file_path, "w", encoding="utf-8") as f:
+                json.dump(audit_payload, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
-        return {
-            "context_object": context_obj,
-            "payload": context_obj.compile_payload(),
-            "audit_summary": audit_payload,
-            "decision_log_path": log_file_path
-        }
+        return BuildResult(
+            selected=selected_candidates,
+            rejected=rejected_candidates,
+            decision_logs=decision_logs,
+            context_object=context_obj,
+            payload=context_obj.compile_payload(),
+            audit_summary=audit_payload,
+            decision_log_path=log_file_path
+        )
 
 
 # ===============================================================================

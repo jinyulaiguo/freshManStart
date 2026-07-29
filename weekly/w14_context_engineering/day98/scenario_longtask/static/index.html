@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Long Task Agent — Context Runtime Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root{--bone:#F9F8F3;--white:#FFF;--charcoal:#141413;--sv:#464742;--clay:#D97757;
+        --border:#e9e8e3;--bh:#c7c7c0;--sc:#efeee9;--error:#ba1a1a;--errbg:#ffdad6;
+        --ok:#2e623a;--okbg:#edf6ef;--warnbg:#fff3e0;--warn:#e65100;
+        --serif:'Source Serif 4',serif;--sans:'Inter',sans-serif;--rsm:4px;--rmd:8px;}
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:var(--sans);background:var(--bone);color:var(--charcoal);font-size:14px;}
+        .header{background:var(--white);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+        .header h1{font-family:var(--serif);font-size:20px;font-weight:600;}
+        .badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--sv);background:var(--sc);padding:4px 10px;border-radius:var(--rsm);}
+        .btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 14px;border:1px solid var(--border);border-radius:var(--rsm);cursor:pointer;background:var(--white);}
+        .btn:hover{border-color:var(--charcoal);}
+        .btn-go{background:var(--ok);color:var(--white);border:none;}
+        .btn-stop{background:var(--error);color:var(--white);border:none;}
+
+        .main{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;height:calc(100vh - 49px - 36px);gap:1px;background:var(--border);}
+        .panel{background:var(--white);overflow-y:auto;padding:16px;}
+        .panel-title{font-family:var(--serif);font-size:15px;font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+        /* Progress */
+        .progress-bar{width:100%;height:24px;background:var(--sc);border-radius:var(--rsm);overflow:hidden;position:relative;margin:8px 0;}
+        .progress-fill{height:100%;background:var(--ok);transition:width 0.3s;border-radius:var(--rsm);}
+        .progress-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:600;color:var(--charcoal);}
+        .module-progress{padding:4px 0;font-size:12px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);}
+
+        /* Snapshot */
+        .snapshot-card{padding:10px;margin-bottom:6px;border:1px solid var(--border);border-radius:var(--rmd);font-size:12px;}
+        .snapshot-card .version{font-weight:600;color:var(--clay);}
+        .snapshot-metric{display:flex;gap:12px;margin-top:4px;font-size:11px;color:var(--sv);}
+
+        /* Log */
+        .log-entry{padding:4px 8px;margin-bottom:2px;border-radius:var(--rsm);font-size:11px;}
+        .log-entry.vuln{background:var(--errbg);color:var(--error);}
+        .log-entry.compress{background:var(--okbg);color:var(--ok);}
+        .log-entry.fault{background:var(--warnbg);color:var(--warn);}
+        .log-entry.normal{background:var(--sc);color:var(--sv);}
+
+        /* Health */
+        .health-bar{height:6px;background:var(--sc);border-radius:3px;margin:4px 0;overflow:hidden;}
+        .health-fill{height:100%;background:var(--ok);border-radius:3px;transition:width 0.3s,background 0.3s;}
+        .health-label{font-size:11px;display:flex;justify-content:space-between;}
+
+        /* Enhanced Token Chart */
+        .chart-card{background:var(--sc);border-radius:var(--rmd);padding:10px;margin-top:8px;border:1px solid var(--border);}
+        .chart-stats{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--sv);margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed var(--border);}
+        .chart-stats strong{color:var(--charcoal);font-weight:600;}
+        .chart-svg-box{width:100%;height:130px;position:relative;}
+        .chart-line{stroke:var(--clay);stroke-width:2;fill:none;stroke-linejoin:round;}
+        .chart-area{fill:url(#clayGradient);opacity:0.6;}
+        .chart-grid{stroke:var(--border);stroke-dasharray:3 3;stroke-width:1;}
+        .chart-axis-text{font-size:9px;fill:var(--sv);font-family:var(--sans);}
+
+        .footer{background:var(--white);border-top:1px solid var(--border);padding:8px 24px;display:flex;gap:24px;font-size:12px;color:var(--sv);}
+        .footer-item strong{color:var(--charcoal);}
+        .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--clay);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        ::-webkit-scrollbar{width:5px;}
+        ::-webkit-scrollbar-thumb{background:var(--bh);border-radius:3px;}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <h1>Long Task Audit Agent</h1>
+            <span class="badge">📡 Port 8100</span>
+            <span class="badge" id="statusBadge">⏳ 就绪</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge" id="scanProgress">0 / 120</span>
+            <button class="btn btn-go" id="startBtn" onclick="startAudit()">▶ 启动审计</button>
+            <button class="btn btn-stop" onclick="stopAudit()" style="display:none;" id="stopBtn">⏹ 停止</button>
+            <button class="btn" onclick="resetAgent()">🔄 重置</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- TL: Progress & Vulnerability -->
+        <div class="panel">
+            <div class="panel-title">📊 扫描进度 & 漏洞发现</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+            <div id="moduleProgress"></div>
+            <div class="panel-title" style="margin-top:12px;">🔴 漏洞发现</div>
+            <div id="vulnList"><div class="placeholder-hint" style="font-size:12px;color:var(--sv);">扫描后显示</div></div>
+        </div>
+
+        <!-- TR: Snapshot Evolution -->
+        <div class="panel">
+            <div class="panel-title">📸 增量快照演进</div>
+            <div id="snapshotTimeline"><div class="placeholder-hint" style="font-size:12px;color:var(--sv);">子模块完成后生成快照</div></div>
+            <div class="panel-title" style="margin-top:12px;">📈 Token 增长趋势</div>
+            <div class="chart-card">
+                <div class="chart-stats">
+                    <span>当前: <strong id="curTokens">0</strong> tokens</span>
+                    <span>峰值: <strong id="peakTokens">0</strong> tokens</span>
+                    <span>采样时间: <strong id="lastSampleTime">--:--:--</strong></span>
+                </div>
+                <div class="chart-svg-box" id="tokenChart">
+                    <svg width="100%" height="100%" id="tokenSvg" viewBox="0 0 460 130">
+                        <defs>
+                            <linearGradient id="clayGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#D97757" stop-opacity="0.35"/>
+                                <stop offset="100%" stop-color="#D97757" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- BL: Audit Log -->
+        <div class="panel">
+            <div class="panel-title">📜 审计事件流</div>
+            <div id="auditLog" style="max-height:100%;overflow-y:auto;">
+                <div class="placeholder-hint" style="font-size:12px;color:var(--sv);">启动后实时显示</div>
+            </div>
+        </div>
+
+        <!-- BR: Health & Budget -->
+        <div class="panel">
+            <div class="panel-title">💚 Provider 健康监控</div>
+            <div id="healthMonitor">
+                <div style="margin-bottom:8px;">
+                    <div class="health-label"><span>gpt-4o (Primary)</span><span id="healthGpt4o">100%</span></div>
+                    <div class="health-bar"><div class="health-fill" id="healthBarGpt4o" style="width:100%"></div></div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <div class="health-label"><span>MiniMax-M3 (Secondary)</span><span id="healthMiniMax">100%</span></div>
+                    <div class="health-bar"><div class="health-fill" id="healthBarMiniMax" style="width:100%"></div></div>
+                </div>
+            </div>
+            <div class="panel-title" style="margin-top:12px;">💰 预算消耗</div>
+            <div style="font-size:12px;">
+                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                    <span>预算</span><strong>$0.500</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                    <span>已消耗</span><strong id="usedCost">$0.000</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                    <span>状态</span><strong id="budgetState">NORMAL</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-item">已扫描: <strong id="footerScanned">0</strong></div>
+        <div class="footer-item">漏洞: <strong id="footerVulns" style="color:var(--error);">0</strong></div>
+        <div class="footer-item">压缩: <strong id="footerCompress">0</strong></div>
+        <div class="footer-item">故障恢复: <strong id="footerFaults">0</strong></div>
+        <div class="footer-item">费用: <strong id="footerCost">$0.000</strong></div>
+    </div>
+
+    <script>
+        let ws=null,totalFiles=120,scannedFiles=0,vulnCount=0,compressCount=0,faultCount=0;
+        let tokenHistory=[],firstLogEntry=true,peakTokenValue=0;
+
+        function connectWS(){
+            const p=location.protocol==='https:'?'wss:':'ws:';
+            ws=new WebSocket(`${p}//${location.host}/ws/audit`);
+            ws.onopen=()=>{document.getElementById('statusBadge').textContent='🟢 已连接';};
+            ws.onmessage=e=>{const m=JSON.parse(e.data);handleEvent(m.type,m.data);};
+            ws.onclose=()=>{document.getElementById('statusBadge').textContent='🔴 断开';setTimeout(connectWS,2000);};
+        }
+
+        function handleEvent(type,data){
+            switch(type){
+                case 'module_start':
+                    addLog(`📁 开始扫描: ${data.module} (${data.files} 文件) — ${data.description}`,'normal');
+                    break;
+                case 'scan_progress':
+                    scannedFiles=data.global_index;
+                    updateProgress(scannedFiles,totalFiles);
+                    document.getElementById('scanProgress').textContent=`${scannedFiles} / ${totalFiles}`;
+                    document.getElementById('footerScanned').textContent=scannedFiles;
+                    break;
+                case 'token_growth':
+                    const timeStr=new Date().toLocaleTimeString('zh-CN',{hour12:false});
+                    tokenHistory.push({x:data.scan_index,y:data.total_tokens,time:timeStr});
+                    if(data.total_tokens>peakTokenValue) peakTokenValue=data.total_tokens;
+                    document.getElementById('curTokens').textContent=data.total_tokens.toLocaleString();
+                    document.getElementById('peakTokens').textContent=peakTokenValue.toLocaleString();
+                    document.getElementById('lastSampleTime').textContent=timeStr;
+                    drawTokenChart();
+                    break;
+                case 'cost_update':
+                    document.getElementById('usedCost').textContent=`$${data.used_usd.toFixed(4)}`;
+                    document.getElementById('footerCost').textContent=`$${data.used_usd.toFixed(4)}`;
+                    document.getElementById('budgetState').textContent=data.state.toUpperCase();
+                    break;
+                case 'vulnerability_found':
+                    vulnCount++;
+                    document.getElementById('footerVulns').textContent=vulnCount;
+                    addVuln(data);
+                    addLog(`⚠️ 漏洞: [${data.filename}] ${data.type} (${data.severity}) ${data.cve}`,'vuln');
+                    break;
+                case 'compression_event':
+                    compressCount++;
+                    document.getElementById('footerCompress').textContent=compressCount;
+                    if(tokenHistory.length>0){
+                        tokenHistory[tokenHistory.length-1].compressed=true;
+                    }
+                    addSnapshot(data);
+                    addLog(`📸 压缩: ${data.module} — v${data.version} | ${data.before_tokens}→${data.after_tokens} tokens (${(data.compression_ratio*100).toFixed(0)}% 压缩)`,'compress');
+                    drawTokenChart();
+                    break;
+                case 'provider_fault':
+                    faultCount++;
+                    document.getElementById('footerFaults').textContent=faultCount;
+                    addLog(`⚡ 故障: #${data.scan_index} ${data.model} → Fallback: ${data.fallback}`,'fault');
+                    if(data.health_snapshot)updateHealth(data.health_snapshot);
+                    break;
+                case 'audit_complete':
+                    document.getElementById('statusBadge').textContent='✅ 完成';
+                    document.getElementById('startBtn').style.display='inline-block';
+                    document.getElementById('stopBtn').style.display='none';
+                    addLog(`🎉 审计完成: ${data.total_files} 文件 | ${data.total_vulns} 漏洞 | ${data.compressions} 次压缩 | ${data.faults} 次故障`,'normal');
+                    break;
+                case 'error':
+                    addLog(`❌ ${data.message}`,'fault');
+                    break;
+            }
+        }
+
+        function startAudit(){
+            if(!ws||ws.readyState!==1)return;
+            scannedFiles=0;vulnCount=0;compressCount=0;faultCount=0;tokenHistory=[];peakTokenValue=0;
+            document.getElementById('curTokens').textContent='0';
+            document.getElementById('peakTokens').textContent='0';
+            document.getElementById('lastSampleTime').textContent='--:--:--';
+            document.getElementById('statusBadge').innerHTML='<span class="spinner"></span>审计中...';
+            document.getElementById('startBtn').style.display='none';
+            document.getElementById('stopBtn').style.display='inline-block';
+            document.getElementById('auditLog').innerHTML='';firstLogEntry=true;
+            document.getElementById('vulnList').innerHTML='<div class="placeholder-hint" style="font-size:12px;color:var(--sv);">扫描后显示</div>';
+            document.getElementById('snapshotTimeline').innerHTML='<div class="placeholder-hint" style="font-size:12px;color:var(--sv);">子模块完成后生成快照</div>';
+            drawTokenChart();
+            ws.send(JSON.stringify({action:'start'}));
+        }
+
+        function stopAudit(){
+            if(ws&&ws.readyState===1)ws.send(JSON.stringify({action:'stop'}));
+            document.getElementById('statusBadge').textContent='⏸ 已停止';
+            document.getElementById('startBtn').style.display='inline-block';
+            document.getElementById('stopBtn').style.display='none';
+        }
+
+        function updateProgress(current,total){
+            const pct=Math.round(current/total*100);
+            document.getElementById('progressFill').style.width=pct+'%';
+            document.getElementById('progressText').textContent=pct+'%';
+        }
+
+        function addLog(text,cls){
+            const c=document.getElementById('auditLog');
+            if(firstLogEntry){c.innerHTML='';firstLogEntry=false;}
+            const d=document.createElement('div');
+            d.className=`log-entry ${cls}`;
+            d.textContent=text;
+            c.appendChild(d);
+            c.scrollTop=c.scrollHeight;
+        }
+
+        function addVuln(data){
+            const c=document.getElementById('vulnList');
+            const hint=c.querySelector('.placeholder-hint');
+            if(hint) hint.remove();
+            const sevColor={CRITICAL:'var(--error)',HIGH:'var(--warn)',MEDIUM:'var(--sv)'};
+            const d=document.createElement('div');
+            d.style.cssText=`padding:6px 8px;margin-bottom:4px;border:1px solid var(--border);border-left:3px solid ${sevColor[data.severity]||'var(--sv)'};border-radius:var(--rsm);font-size:12px;`;
+            d.innerHTML=`<strong style="color:${sevColor[data.severity]}">[${data.severity}]</strong> ${data.type} — <span style="font-size:11px;color:var(--sv)">${data.filename} | ${data.cve}</span>`;
+            c.appendChild(d);
+        }
+
+        function addSnapshot(data){
+            const c=document.getElementById('snapshotTimeline');
+            const hint=c.querySelector('.placeholder-hint');
+            if(hint) hint.remove();
+            const d=document.createElement('div');
+            d.className='snapshot-card';
+            d.innerHTML=`<span class="version">v${data.version}</span> — ${data.module}
+                <div class="snapshot-metric">
+                    <span>压缩率: ${(data.compression_ratio*100).toFixed(0)}%</span>
+                    <span>留存率: ${(data.retention_rate*100).toFixed(0)}%</span>
+                    <span>修复: ${data.repairs_count}</span>
+                    <span>${data.before_tokens}→${data.after_tokens} tokens</span>
+                </div>`;
+            c.appendChild(d);
+        }
+
+        function updateHealth(snapshot){
+            for(const[model,score]of Object.entries(snapshot)){
+                const rawPct = score > 1 ? score : score * 100;
+                const pct = Math.min(100, Math.max(0, Math.round(rawPct)));
+                if(model.includes('gpt-4o')){
+                    document.getElementById('healthGpt4o').textContent=pct+'%';
+                    const bar=document.getElementById('healthBarGpt4o');
+                    bar.style.width=pct+'%';
+                    bar.style.background=pct<50?'var(--error)':pct<80?'var(--warn)':'var(--ok)';
+                } else if(model.includes('MiniMax') || model.includes('minimax')){
+                    document.getElementById('healthMiniMax').textContent=pct+'%';
+                    const bar=document.getElementById('healthBarMiniMax');
+                    bar.style.width=pct+'%';
+                    bar.style.background=pct<50?'var(--error)':pct<80?'var(--warn)':'var(--ok)';
+                }
+            }
+        }
+
+        function drawTokenChart(){
+            const svg=document.getElementById('tokenSvg');
+            const width=460, height=130;
+            const padL=42, padR=12, padT=12, padB=22;
+            const chartW=width-padL-padR, chartH=height-padT-padB;
+            const maxStep=totalFiles || 120;
+
+            let maxVal=20000;
+            if(tokenHistory.length>0){
+                const observedMax=Math.max(...tokenHistory.map(p=>p.y));
+                if(observedMax>0) maxVal=Math.ceil((observedMax*1.15)/5000)*5000;
+            }
+            if(maxVal<10000) maxVal=10000;
+
+            const gridY1=padT, gridY2=padT+chartH/2, gridY3=padT+chartH;
+
+            let html=`
+                <defs>
+                    <linearGradient id="clayGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#D97757" stop-opacity="0.35"/>
+                        <stop offset="100%" stop-color="#D97757" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <!-- Grid lines -->
+                <line x1="${padL}" y1="${gridY1}" x2="${padL+chartW}" y2="${gridY1}" class="chart-grid"/>
+                <line x1="${padL}" y1="${gridY2}" x2="${padL+chartW}" y2="${gridY2}" class="chart-grid"/>
+                <line x1="${padL}" y1="${gridY3}" x2="${padL+chartW}" y2="${gridY3}" class="chart-grid" style="stroke-dasharray:none;stroke:#c7c7c0;"/>
+                
+                <!-- Y-Axis Labels -->
+                <text x="${padL-6}" y="${gridY1+4}" text-anchor="end" class="chart-axis-text">${(maxVal/1000).toFixed(0)}k</text>
+                <text x="${padL-6}" y="${gridY2+3}" text-anchor="end" class="chart-axis-text">${(maxVal/2000).toFixed(0)}k</text>
+                <text x="${padL-6}" y="${gridY3}" text-anchor="end" class="chart-axis-text">0</text>
+
+                <!-- X-Axis Labels (Steps 0, 30, 60, 90, 120) -->
+            `;
+
+            [0, 30, 60, 90, 120].forEach(step => {
+                const xPos = padL + (step / maxStep) * chartW;
+                html += `<text x="${xPos}" y="${height-5}" text-anchor="middle" class="chart-axis-text">Step ${step}</text>`;
+                html += `<line x1="${xPos}" y1="${gridY3}" x2="${xPos}" y2="${gridY3-3}" stroke="#c7c7c0" stroke-width="1"/>`;
+            });
+
+            if(tokenHistory.length===0){
+                html += `<text x="${padL + chartW/2}" y="${padT + chartH/2}" text-anchor="middle" font-size="11" fill="var(--sv)">等待审计数据...</text>`;
+                svg.innerHTML=html;
+                return;
+            }
+
+            const points = tokenHistory.map(p => {
+                const xPos = padL + (Math.min(p.x, maxStep) / maxStep) * chartW;
+                const yPos = (padT + chartH) - (p.y / maxVal) * chartH;
+                return { x: xPos, y: yPos, raw: p };
+            });
+
+            const ptsString = points.map(pt => `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join(' ');
+            const firstPt = points[0];
+            const lastPt = points[points.length - 1];
+            const areaString = `M ${firstPt.x.toFixed(1)},${gridY3} ` + points.map(pt => `L ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join(' ') + ` L ${lastPt.x.toFixed(1)},${gridY3} Z`;
+
+            html += `<path d="${areaString}" class="chart-area"/>`;
+            html += `<polyline points="${ptsString}" class="chart-line"/>`;
+
+            points.forEach(pt => {
+                if(pt.raw.compressed){
+                    html += `<circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="4" fill="var(--ok)" stroke="#ffffff" stroke-width="1.5"/>`;
+                }
+            });
+
+            // Highlight latest point
+            html += `<circle cx="${lastPt.x.toFixed(1)}" cy="${lastPt.y.toFixed(1)}" r="4.5" fill="var(--clay)" stroke="#ffffff" stroke-width="1.5"/>`;
+
+            svg.innerHTML=html;
+        }
+
+        async function resetAgent(){
+            await fetch('/api/reset',{method:'POST'});
+            location.reload();
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>

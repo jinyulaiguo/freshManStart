@@ -1,264 +1,304 @@
 {
-  "timestamp": 1785313944.3966038,
-  "global_max_tokens": 2000,
-  "total_tokens_used": 1026,
+  "timestamp": 1785325669.490635,
+  "global_max_tokens": 4000,
+  "total_tokens_used": 2283,
   "category_token_breakdown": {
-    "system": 24,
-    "memory": 231,
-    "retrieval": 771,
+    "system": 0,
+    "memory": 353,
+    "retrieval": 1930,
     "dialogue": 0,
     "runtime": 0
   },
-  "candidates_total": 31,
-  "selected_total": 23,
+  "candidates_total": 36,
+  "selected_total": 19,
   "decision_logs": [
     {
-      "item_id": "sys_core",
-      "context_type": "system",
+      "item_id": "paper_001",
+      "context_type": "retrieval",
       "selected": true,
-      "score": 1.0,
-      "tokens": 24,
-      "reason": "MANDATORY SYSTEM CONTRACT (Priority 100)"
+      "score": 0.769,
+      "tokens": 187,
+      "reason": "SELECTED (Rank Score: 0.7690, Category Tokens: 187/2000)"
     },
     {
-      "item_id": "mem_10",
+      "item_id": "paper_003",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.75,
+      "tokens": 174,
+      "reason": "SELECTED (Rank Score: 0.7500, Category Tokens: 361/2000)"
+    },
+    {
+      "item_id": "mem_001",
       "context_type": "memory",
-      "selected": true,
-      "score": 0.92,
-      "tokens": 24,
-      "reason": "SELECTED (Rank Score: 0.9200, Category Tokens: 24/600)"
-    },
-    {
-      "item_id": "mem_09",
-      "context_type": "memory",
-      "selected": true,
-      "score": 0.875,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.8750, Category Tokens: 47/600)"
-    },
-    {
-      "item_id": "rag_01",
-      "context_type": "retrieval",
-      "selected": true,
-      "score": 0.835,
-      "tokens": 30,
-      "reason": "SELECTED (Rank Score: 0.8350, Category Tokens: 30/800)"
-    },
-    {
-      "item_id": "mem_08",
-      "context_type": "memory",
-      "selected": true,
-      "score": 0.83,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.8300, Category Tokens: 70/600)"
-    },
-    {
-      "item_id": "rag_02",
-      "context_type": "retrieval",
-      "selected": true,
-      "score": 0.815,
-      "tokens": 30,
-      "reason": "SELECTED (Rank Score: 0.8150, Category Tokens: 60/800)"
-    },
-    {
-      "item_id": "rag_03",
-      "context_type": "retrieval",
-      "selected": true,
-      "score": 0.795,
-      "tokens": 166,
-      "reason": "SELECTED (Rank Score: 0.7950, Category Tokens: 226/800)"
-    },
-    {
-      "item_id": "mem_07",
-      "context_type": "memory",
-      "selected": true,
-      "score": 0.785,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.7850, Category Tokens: 93/600)"
-    },
-    {
-      "item_id": "rag_04",
-      "context_type": "retrieval",
-      "selected": true,
-      "score": 0.775,
-      "tokens": 30,
-      "reason": "SELECTED (Rank Score: 0.7750, Category Tokens: 256/800)"
-    },
-    {
-      "item_id": "rag_05",
-      "context_type": "retrieval",
-      "selected": true,
-      "score": 0.755,
-      "tokens": 30,
-      "reason": "SELECTED (Rank Score: 0.7550, Category Tokens: 286/800)"
-    },
-    {
-      "item_id": "mem_06",
-      "context_type": "memory",
-      "selected": true,
-      "score": 0.74,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.7400, Category Tokens: 116/600)"
-    },
-    {
-      "item_id": "rag_06",
-      "context_type": "retrieval",
       "selected": true,
       "score": 0.735,
-      "tokens": 166,
-      "reason": "SELECTED (Rank Score: 0.7350, Category Tokens: 452/800)"
+      "tokens": 51,
+      "reason": "SELECTED (Rank Score: 0.7350, Category Tokens: 51/800)"
     },
     {
-      "item_id": "rag_07",
+      "item_id": "paper_005",
       "context_type": "retrieval",
       "selected": true,
-      "score": 0.715,
-      "tokens": 30,
-      "reason": "SELECTED (Rank Score: 0.7150, Category Tokens: 482/800)"
+      "score": 0.7313,
+      "tokens": 168,
+      "reason": "SELECTED (Rank Score: 0.7313, Category Tokens: 529/2000)"
     },
     {
-      "item_id": "mem_05",
+      "item_id": "paper_002",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.73,
+      "tokens": 201,
+      "reason": "SELECTED (Rank Score: 0.7300, Category Tokens: 730/2000)"
+    },
+    {
+      "item_id": "paper_020",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.729,
+      "tokens": 134,
+      "reason": "SELECTED (Rank Score: 0.7290, Category Tokens: 864/2000)"
+    },
+    {
+      "item_id": "mem_002",
       "context_type": "memory",
       "selected": true,
-      "score": 0.695,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.6950, Category Tokens: 139/600)"
+      "score": 0.716,
+      "tokens": 55,
+      "reason": "SELECTED (Rank Score: 0.7160, Category Tokens: 106/800)"
     },
     {
-      "item_id": "rag_08",
+      "item_id": "paper_008",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.699,
+      "tokens": 146,
+      "reason": "SELECTED (Rank Score: 0.6990, Category Tokens: 1010/2000)"
+    },
+    {
+      "item_id": "paper_004",
       "context_type": "retrieval",
       "selected": true,
       "score": 0.695,
-      "tokens": 30,
-      "reason": "SELECTED (Rank Score: 0.6950, Category Tokens: 512/800)"
+      "tokens": 156,
+      "reason": "SELECTED (Rank Score: 0.6950, Category Tokens: 1166/2000)"
     },
     {
-      "item_id": "rag_09",
+      "item_id": "mem_004",
+      "context_type": "memory",
+      "selected": true,
+      "score": 0.689,
+      "tokens": 49,
+      "reason": "SELECTED (Rank Score: 0.6890, Category Tokens: 155/800)"
+    },
+    {
+      "item_id": "paper_025",
       "context_type": "retrieval",
       "selected": true,
-      "score": 0.675,
-      "tokens": 166,
-      "reason": "SELECTED (Rank Score: 0.6750, Category Tokens: 678/800)"
+      "score": 0.67,
+      "tokens": 125,
+      "reason": "SELECTED (Rank Score: 0.6700, Category Tokens: 1291/2000)"
     },
     {
-      "item_id": "rag_10",
+      "item_id": "paper_007",
       "context_type": "retrieval",
       "selected": true,
-      "score": 0.655,
-      "tokens": 31,
-      "reason": "SELECTED (Rank Score: 0.6550, Category Tokens: 709/800)"
+      "score": 0.665,
+      "tokens": 144,
+      "reason": "SELECTED (Rank Score: 0.6650, Category Tokens: 1435/2000)"
     },
     {
-      "item_id": "mem_04",
+      "item_id": "paper_010",
+      "context_type": "retrieval",
+      "selected": true,
+      "score": 0.662,
+      "tokens": 115,
+      "reason": "SELECTED (Rank Score: 0.6620, Category Tokens: 1550/2000)"
+    },
+    {
+      "item_id": "mem_003",
       "context_type": "memory",
       "selected": true,
       "score": 0.65,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.6500, Category Tokens: 162/600)"
+      "tokens": 67,
+      "reason": "SELECTED (Rank Score: 0.6500, Category Tokens: 222/800)"
     },
     {
-      "item_id": "rag_11",
-      "context_type": "retrieval",
-      "selected": true,
-      "score": 0.635,
-      "tokens": 31,
-      "reason": "SELECTED (Rank Score: 0.6350, Category Tokens: 740/800)"
-    },
-    {
-      "item_id": "rag_12",
-      "context_type": "retrieval",
-      "selected": false,
-      "score": 0.615,
-      "tokens": 167,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (907/800)"
-    },
-    {
-      "item_id": "mem_03",
+      "item_id": "mem_005",
       "context_type": "memory",
       "selected": true,
-      "score": 0.605,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.6050, Category Tokens: 185/600)"
+      "score": 0.645,
+      "tokens": 53,
+      "reason": "SELECTED (Rank Score: 0.6450, Category Tokens: 275/800)"
     },
     {
-      "item_id": "rag_13",
+      "item_id": "paper_012",
       "context_type": "retrieval",
       "selected": true,
-      "score": 0.595,
-      "tokens": 31,
-      "reason": "SELECTED (Rank Score: 0.5950, Category Tokens: 771/800)"
+      "score": 0.634,
+      "tokens": 136,
+      "reason": "SELECTED (Rank Score: 0.6340, Category Tokens: 1686/2000)"
     },
     {
-      "item_id": "rag_14",
+      "item_id": "paper_018",
       "context_type": "retrieval",
-      "selected": false,
-      "score": 0.575,
-      "tokens": 31,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+      "selected": true,
+      "score": 0.61,
+      "tokens": 107,
+      "reason": "SELECTED (Rank Score: 0.6100, Category Tokens: 1793/2000)"
     },
     {
-      "item_id": "mem_02",
+      "item_id": "mem_006",
       "context_type": "memory",
       "selected": true,
-      "score": 0.56,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.5600, Category Tokens: 208/600)"
+      "score": 0.609,
+      "tokens": 78,
+      "reason": "SELECTED (Rank Score: 0.6090, Category Tokens: 353/800)"
     },
     {
-      "item_id": "rag_15",
+      "item_id": "paper_006",
       "context_type": "retrieval",
-      "selected": false,
-      "score": 0.555,
-      "tokens": 167,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (938/800)"
-    },
-    {
-      "item_id": "rag_16",
-      "context_type": "retrieval",
-      "selected": false,
-      "score": 0.535,
-      "tokens": 31,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
-    },
-    {
-      "item_id": "mem_01",
-      "context_type": "memory",
       "selected": true,
-      "score": 0.515,
-      "tokens": 23,
-      "reason": "SELECTED (Rank Score: 0.5150, Category Tokens: 231/600)"
+      "score": 0.606,
+      "tokens": 137,
+      "reason": "SELECTED (Rank Score: 0.6060, Category Tokens: 1930/2000)"
     },
     {
-      "item_id": "rag_17",
+      "item_id": "paper_022",
       "context_type": "retrieval",
       "selected": false,
-      "score": 0.515,
-      "tokens": 31,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+      "score": 0.594,
+      "tokens": 113,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2043/2000)"
     },
     {
-      "item_id": "rag_18",
+      "item_id": "paper_011",
       "context_type": "retrieval",
       "selected": false,
-      "score": 0.495,
-      "tokens": 167,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (938/800)"
+      "score": 0.585,
+      "tokens": 133,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2063/2000)"
     },
     {
-      "item_id": "rag_19",
+      "item_id": "paper_021",
       "context_type": "retrieval",
       "selected": false,
-      "score": 0.475,
-      "tokens": 31,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+      "score": 0.57,
+      "tokens": 116,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2046/2000)"
     },
     {
-      "item_id": "rag_20",
+      "item_id": "paper_013",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.569,
+      "tokens": 136,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2066/2000)"
+    },
+    {
+      "item_id": "paper_009",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.545,
+      "tokens": 133,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2063/2000)"
+    },
+    {
+      "item_id": "paper_016",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.529,
+      "tokens": 146,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2076/2000)"
+    },
+    {
+      "item_id": "paper_014",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.505,
+      "tokens": 121,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2051/2000)"
+    },
+    {
+      "item_id": "paper_015",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.484,
+      "tokens": 125,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2055/2000)"
+    },
+    {
+      "item_id": "paper_017",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.465,
+      "tokens": 96,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2026/2000)"
+    },
+    {
+      "item_id": "paper_019",
       "context_type": "retrieval",
       "selected": false,
       "score": 0.455,
-      "tokens": 31,
-      "reason": "REJECTED: Category [retrieval] Budget Exceeded (802/800)"
+      "tokens": 87,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2017/2000)"
+    },
+    {
+      "item_id": "paper_023",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.425,
+      "tokens": 139,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2069/2000)"
+    },
+    {
+      "item_id": "paper_024",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.394,
+      "tokens": 125,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2055/2000)"
+    },
+    {
+      "item_id": "inject_002",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.376,
+      "tokens": 154,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2084/2000)"
+    },
+    {
+      "item_id": "inject_001",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.345,
+      "tokens": 130,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2060/2000)"
+    },
+    {
+      "item_id": "inject_004",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.324,
+      "tokens": 150,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2080/2000)"
+    },
+    {
+      "item_id": "inject_003",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.295,
+      "tokens": 163,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2093/2000)"
+    },
+    {
+      "item_id": "inject_005",
+      "context_type": "retrieval",
+      "selected": false,
+      "score": 0.265,
+      "tokens": 164,
+      "reason": "REJECTED: Category [retrieval] Budget Exceeded (2094/2000)"
     }
   ]
 }

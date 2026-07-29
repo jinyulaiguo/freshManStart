@@ -190,6 +190,14 @@ class ProviderHealthTracker:
                 st["isolated_until"] = time.time() + 30.0
                 print(f"⚠️ [Health Isolation] 模型 [{model_name}] 连续失败 3 次，触发被动隔离 30 秒！")
 
+    def record_success(self, model_name: str, latency_ms: int = 200):
+        """记录成功调用的快捷方法"""
+        self.record_result(model_name, is_success=True, latency_ms=latency_ms)
+
+    def record_failure(self, model_name: str, latency_ms: int = 2000):
+        """记录失败调用的快捷方法"""
+        self.record_result(model_name, is_success=False, latency_ms=latency_ms)
+
     def get_health_score(self, model_name: str) -> float:
         """
         计算 0 ~ 100 动态健康分值
@@ -238,8 +246,8 @@ class ModelDecisionEngine:
     Agent 模型决策控制平面 (Model Control Plane)
     执行 8 维路由匹配与 Day 94 预算约束联动。
     """
-    def __init__(self, health_tracker: ProviderHealthTracker):
-        self.health_tracker = health_tracker
+    def __init__(self, health_tracker: Optional[ProviderHealthTracker] = None):
+        self.health_tracker = health_tracker or ProviderHealthTracker()
 
     def select_best_provider(self, req: TaskRequirement) -> Tuple[ProviderCandidate, List[ProviderCandidate]]:
         """
@@ -285,10 +293,20 @@ class ModelDecisionEngine:
 
         return primary, fallback_chain
 
+    def select_provider(self, req: TaskRequirement, health_tracker: Optional[Any] = None) -> ProviderCandidate:
+        """兼容接口：返回最佳匹配的 ProviderCandidate"""
+        if health_tracker and health_tracker != self.health_tracker:
+            self.health_tracker = health_tracker
+        primary, _ = self.select_best_provider(req)
+        return primary
+
 
 class LLMGateway:
     """高可用 Agent LLM 网关 (LLM Gateway)"""
-    def __init__(self, decision_engine: ModelDecisionEngine):
+    def __init__(self, decision_engine: Optional[Any] = None, health_tracker: Optional[ProviderHealthTracker] = None):
+        if decision_engine is None:
+            ht = health_tracker or ProviderHealthTracker()
+            decision_engine = ModelDecisionEngine(health_tracker=ht)
         self.decision_engine = decision_engine
         self.llm_client = LLMClient()
         self.trace_logs: List[Dict[str, Any]] = []
@@ -325,7 +343,7 @@ class LLMGateway:
             try:
                 # 动态把 Model Name 设置给真实客户端
                 self.llm_client.model_name = model_name
-                resp = await self.llm_client.request_llm(messages=messages, max_tokens=150)
+                resp = await self.llm_client.request_llm(messages=messages, max_tokens=4096)
                 
                 latency_ms = int((time.time() - req_start) * 1000)
                 self.decision_engine.health_tracker.record_result(model_name, is_success=True, latency_ms=latency_ms)
