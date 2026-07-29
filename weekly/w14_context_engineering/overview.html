@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 14 - Enterprise Agent Context Runtime Platform 全景总览</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <!-- Mermaid CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #faf9f4;
+            --surface-color: #ffffff;
+            --text-primary: #141413;
+            --text-secondary: #464742;
+            --accent-color: #D97757;
+            --border-color: #e9e8e3;
+            --success-color: #2e623a;
+            --success-bg: #edf6ef;
+            --error-color: #ba1a1a;
+            --error-bg: #ffdad6;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            padding: 2.5rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.8rem;
+        }
+
+        .section-card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .diagram-container {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 1.5rem;
+            margin: 1.2rem 0;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pain-point-list {
+            list-style: none;
+        }
+
+        .pain-point-list li {
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.6rem;
+            border-left: 3px solid var(--accent-color);
+            background-color: #fdfbf7;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+
+        .pain-point-list strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .timeline-day {
+            display: flex;
+            gap: 1.2rem;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.2rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .timeline-day:hover {
+            border-color: var(--accent-color);
+        }
+
+        .day-tag {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius-sm);
+            height: fit-content;
+            white-space: nowrap;
+        }
+
+        .day-content h3 {
+            font-size: 1.15rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .day-content p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .day-content .key-deliverable {
+            font-size: 0.85rem;
+            color: var(--success-color);
+            background-color: var(--success-bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span class="badge">Week 14 Architecture Overview</span>
+        <h1>Enterprise Agent Context Runtime Platform</h1>
+        <p>把 LangGraph Runtime、Memory、MCP、RAG、Eval、Observability & Reliability 能力整合重构为生产级 Context 基础设施</p>
+    </header>
+
+    <!-- 业务痛点与解决方案 -->
+    <div class="section-card">
+        <h2>企业级 Context 核心痛点与系统对策</h2>
+        <div class="grid-2" style="margin-top: 1rem;">
+            <div>
+                <h3 style="font-size: 1.05rem; margin-bottom: 0.8rem; color: var(--error-color);">💥 生产环境核心痛点</h3>
+                <ul class="pain-point-list">
+                    <li><strong>Context 无限膨胀：</strong>多轮循环导致 Token 与费用几何级爆发。</li>
+                    <li><strong>信息混杂与逃逸：</strong>RAG、Memory、User 消息平权导致恶意 Prompt 注入劫持。</li>
+                    <li><strong>Tool 输出污染：</strong>巨量 Raw 工具返回值瞬间吞噬有效上下文。</li>
+                    <li><strong>长任务崩溃不可复原：</strong>无增量快照机制，会话中断后无法无损重建。</li>
+                    <li><strong>Prompt Cache 失效：</strong>前缀布局无序，API Cache 命中率为零。</li>
+                </ul>
+            </div>
+            <div>
+                <h3 style="font-size: 1.05rem; margin-bottom: 0.8rem; color: var(--success-color);">🛡️ Enterprise Context Runtime 架构解法</h3>
+                <ul class="pain-point-list" style="border-color: var(--success-color);">
+                    <li><strong>Domain Layering (Day 92)：</strong>物理拓扑隔离 System/Memory/RAG/Dialogue 区域。</li>
+                    <li><strong>Dynamic Assembly (Day 93)：</strong>带 Ranking 打分与 Decision Log 可观测的上下文编译器。</li>
+                    <li><strong>Multi-Aspect Budgeting (Day 94)：</strong>在 LLM 及 Tool 切面实施硬限熔断。</li>
+                    <li><strong>Incremental Compression (Day 95)：</strong>基于 `new msg + old snapshot` 的状态快照。</li>
+                    <li><strong>Layout Optimization (Day 96)：</strong>静态不变前缀置顶，最大化 Prompt Cache 命中率。</li>
+                    <li><strong>LLM Gateway & Router (Day 97)：</strong>智能模型分流与 Timeout/Fallback 高可用容灾。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 总体架构链路图 -->
+    <div class="section-card">
+        <h2>系统全景数据与控制流 (Enterprise Context Architecture)</h2>
+        <div class="diagram-container">
+            <pre class="mermaid">
+graph TD
+    User["User Request"] --> LangGraph["LangGraph Agent Runtime"]
+    
+    subgraph ContextRuntime ["Enterprise Context Runtime Platform"]
+        Domain["Context Domain Model<br/>(System/Memory/RAG/Dialogue)"]
+        Policy["Context Policy Guard<br/>(Immutable Priority)"]
+        Assembly["Dynamic Context Assembly<br/>(Ranker & Decision Log)"]
+        Compressor["Incremental Compressor<br/>(Snapshot Vault)"]
+        Budget["Budget Controller<br/>(LLM/Tool Interceptor)"]
+        Optimizer["Layout & Cache Optimizer<br/>(Static Prefix Placement)"]
+    end
+    
+    LangGraph --> Domain
+    Domain --> Policy
+    Policy --> Assembly
+    Assembly --> Budget
+    Budget --> Optimizer
+    Compressor -.-> Domain
+    
+    subgraph GatewayLayer ["Model Router & LLM Gateway"]
+        Router["Task Complexity Router"]
+        Gateway["HA Gateway Agent"]
+        Fallback["Fallback & Health Check"]
+    end
+    
+    Optimizer --> Router
+    Router --> Gateway
+    Gateway --> Fallback
+    
+    Fallback --> Model1["GPT-4o"]
+    Fallback --> Model2["Claude-3.5"]
+    Fallback --> Model3["DeepSeek / Qwen"]
+            </pre>
+        </div>
+    </div>
+
+    <!-- 每日知识链路与项目推进 -->
+    <div class="section-card">
+        <h2>本周 7 天核心能力建设链路 (Daily Milestones)</h2>
+        <div class="timeline">
+            
+            <div class="timeline-day">
+                <div class="day-tag">Day 92</div>
+                <div class="day-content">
+                    <h3>企业级 Context Architecture 设计与实现</h3>
+                    <p>构建 `ContextObject` (System/Memory/Retrieval/Dialogue/Runtime) 拓扑模型与 `ContextPolicy`。重构 LangGraph `AgentState`，解决恶意 RAG 注入契约失效问题。</p>
+                    <span class="key-deliverable">交付物：context-runtime/domain & integration/langgraph_adapter.py</span>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="day-tag">Day 93</div>
+                <div class="day-content">
+                    <h3>Context Assembly Engine (动态上下文编译器)</h3>
+                    <p>实现 `ContextBuilder` 动态按 Relevance/Importance/Recency 打分排序与预算裁切，产出透明可审计的 `decision_log.json`。</p>
+                    <span class="key-deliverable">交付物：context-builder/ (builder.py, ranker.py, decision_log.json)</span>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="day-tag">Day 94</div>
+                <div class="day-content">
+                    <h3>Token Budget 多切面熔断控制 (Budget Controller)</h3>
+                    <p>打造 `BudgetController`，在 LLM 前、Tool 前及 Tool 后注入切面熔断，防止自主循环爆卡与天价账单。</p>
+                    <span class="key-deliverable">交付物：budget/ (controller.py, cost_tracker.py, budget_report.json)</span>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="day-tag">Day 95</div>
+                <div class="day-content">
+                    <h3>Context Compression 与 Incremental Consolidation</h3>
+                    <p>开发 `IncrementalCompressor`，基于增量摘要算法压缩长历史为结构化 `DialogueSnapshot`，校验核心变量 100% 留存。</p>
+                    <span class="key-deliverable">交付物：compression/ (compressor.py, snapshot.py, validator.py)</span>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="day-tag">Day 96</div>
+                <div class="day-content">
+                    <h3>Prompt Cache + Context Layout Optimization</h3>
+                    <p>设计静态前缀前置的 `ContextLayoutOptimizer`，实现高命中率 Prompt Cache，降低 50%-80% 成本及首字延迟。</p>
+                    <span class="key-deliverable">交付物：cache/ (layout_optimizer.py, cache_analysis.md)</span>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="day-tag">Day 97</div>
+                <div class="day-content">
+                    <h3>Model Router + LLM Gateway 企业模型访问层</h3>
+                    <p>实现任务复杂度路由 `ModelRouter` 与内置 Retry/Timeout/Fallback 容灾降级的高可用 Gateway。</p>
+                    <span class="key-deliverable">交付物：gateway/ (router.py, gateway.py, provider.py)</span>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="day-tag">Day 98</div>
+                <div class="day-content">
+                    <h3>Enterprise Context Runtime 综合实战交付</h3>
+                    <p>全集成测试（Research Agent、Coding Agent、30分钟+ 长任务），交付完整代码库、`architecture.md` 与一键启动 Dashboard。</p>
+                    <span class="key-deliverable">交付物：enterprise-context-runtime/ 全套组件与 Dashboard</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        <p>Enterprise Agent Context Runtime Platform · Week 14 Masterclass Curriculum</p>
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'neutral',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html>

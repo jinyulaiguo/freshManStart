@@ -1,74 +1,126 @@
-# 📅 Week 14: Context Engineering
+# 📅 Week 14: Production Agent Context Engineering
 
-> **第十四周目标**：精通上下文分层架构（System/Memory/Retrieval/Dialogue）的设计，掌握前缀重用与 Prompt Cache（提示词缓存）的性能与计费优化，实现长会话上下文的异步提取压缩，能够使用基于分类器的模型路由（Model Routing）及 Fallback 降级机制降低 Agent 的整体运行成本。
-
----
-
-## Day 92：上下文分层架构（System/Memory/Retrieval/Dialogue）设计
-*   **核心知识点**：
-    *   **上下文拓扑分层**：
-        1. **System 约束层**：核心人设、工作流规范、Guides 硬性规则；
-        2. **Memory 偏好层**：长期偏好实体 facts 段落；
-        3. **Retrieval 知识层**：RAG 召回的 Top-K 文本块；
-        4. **Dialogue 对话层**：多轮会话消息流。
-    *   **Jinja2 嵌套组装**：通过模板实现各层内容的物理区隔与有序拼接，防止语义交叉混淆。
-*   **Agent 核心关联**：如果上下文是一团浆糊地强行拼接发送给大模型，模型会把“检索出的参考资料”误当作“用户的指令”去执行，发生严重的指令逃逸。清晰的分层能保护模型注意力并提升指令执行精准度。
-*   **🎯 过关验证标准**：使用 Jinja2 模板手写一个标准的 `ContextLayeredTemplate`，包含 System、Memory、Retrieval 和 Chat 四个隔离区域。编写测试输入冲突的数据，验证大模型仍能死死遵守 System 区域的指令契约，不被 Retrieval 区域的数据误导。
+> **第十四周目标**：构建生产级 **Enterprise Agent Context Runtime Platform**。将前期的 LangGraph Runtime、Memory System、MCP、RAG、Eval、Observability 及 Reliability 等核心能力重构与组合为统一的 Agent 上下文基础设施，解决企业级 Agent 在生产环境中 Context 无限增长导致成本失控、Memory/RAG/History 混杂混淆、Tool 输出污染、长任务恢复及多模型路由降级等核心痛点。
 
 ---
 
-## Day 93：Token 精确计量与预算熔断防护（Budget Guard）
-*   **核心知识点**：
-    *   **双向 Token 审计**：每次 API 请求前，利用 `tiktoken` 精确计量发送 Prompt 的 Token 消耗；请求返回后，审计 `usage` 里的实际消耗。
-    *   **单次运行预算硬限（Budget Breaker）**：在 Agent 执行的主 `while` 循环上，统计所有步骤累加的 Token 总额和产生的美分费用。
-    *   **费用熔断拦截**。
-*   **Agent 核心关联**：Agent 在执行自主循环时极易因逻辑打转引发“天价账单”。通过在循环中注入 Token 计费与预算熔断机制，能在单次任务费用超出阈值（如超过 0.5 美元）时，直接断电拦截，防止资金失控。
-*   **🎯 过关验证标准**：在 `MiniReActEngine` 循环中实现 `BudgetGuard` 模块。设定单次最大 Token 限制为 10,000 Token（或 0.1 美元费用）。模拟高频工具调用测试，验证在达到阈值的刹那，引擎抛出 `BudgetExceededException` 强制中止并输出当前的审计账单。
+## 🏗️ 最终系统能力全景
+
+完成 Week 14 后，Agent 上下文运行时平台支持：
+- **Context 拓扑分层管理** (System, Memory, Retrieval, Dialogue, Runtime 隔离)
+- **Dynamic Context Assembly** (动态上下文编译器与 Decision Log 审计)
+- **Token Budget 多切面控制** (LLM 前、Tool 前后多维熔断拦截)
+- **Prompt Cache 布局优化** (前置静态稳定前缀与缓存命中率计算)
+- **Context Compression & Memory Consolidation** (增量式摘要压缩与状态快照恢复)
+- **Model Router & LLM Gateway** (多 Provider 路由、Retry/Timeout/Fallback 容灾)
+- **Context Observability** (全链路上下文决策追踪与耗时/计费透视)
 
 ---
 
-## Day 94：Prompt Cache (提示词缓存) 策略与前缀重用优化
-*   **核心知识点**：
-    *   **Prompt Cache 运行机制**：Anthropic 和 OpenAI 的 Prompt 缓存命中机制（首段 1024/2048 Token 相同则命中缓存，按半价或更低计费，读取时延大幅下降）。
-    *   **上下文重排列与顺序设计**：将静态的、极长且不变的块（如 System Prompt、大量 Few-shot 示例、不变的 Tools 声明）放在提示词的最头部；将高频变动的部分（如用户最新一轮的提问）放在尾部，以最大化缓存命中率。
-*   **Agent 核心关联**：在 Agent 多轮长对话中，每次交互都要发送几万字的 RAG 历史。通过优化上下文排列，让前缀完美命中 Prompt Cache，能够直接将大模型调用费用降低 50%-80%，并且将首字时延（TTFT）缩短一倍以上。
-*   **🎯 过关验证标准**：设计一个包含 System Prompt、RAG 资料和多轮历史的 Payload 生成类。优化拼接顺序以完美适配 Anthropic Prompt Cache 规范，计算并打印出不同排序策略下的预计缓存命中率（以及调用计费节省估算）。
+## 🏛️ 系统总体架构
+
+```text
+                 User Request
+                      |
+                      v
+              Agent Runtime (LangGraph)
+                      |
+                      v
+          +-----------------------------------+
+          | Enterprise Context Runtime        |
+          |                                   |
+          |  ├── Context Domain Model         |
+          |  ├── Context Policy Guard         |
+          |  ├── Dynamic Context Assembly     |
+          |  ├── Token Budget Controller      |
+          |  ├── Incremental Compressor       |
+          |  └── Layout & Cache Optimizer     |
+          +-----------------------------------+
+                      |
+                      v
+          +-----------------------------------+
+          | Model Router & LLM Gateway        |
+          |  (Retry / Timeout / Fallback)     |
+          +-----------------------------------+
+                      |
+        ---------------------------------
+        |               |               |
+     GPT-4o        Claude-3.5       DeepSeek / Qwen
+                      |
+                      v
+               Agent Execution
+```
 
 ---
 
-## Day 95：长对话上下文的异步提取式压缩与无损合并
-*   **核心知识点**：
-    *   **语义提炼压缩（Extractive Compression）**：利用大模型分析前 10 轮对话，过滤掉日常寒暄和冗余语气词，提取出包含“事实、决策路径、核心数据”的结构化 Markdown 段落。
-    *   **无损合并算法**：将新提炼的摘要与原有的历史背景合并，进行去重和时序排列，生成高度浓缩的会话快照（Dialogue Snapshot）。
-*   **Agent 核心关联**：直接使用滑动窗口剪断对话历史会导致 Agent 丢掉核心细节（如前文做出的决策结论）。通过异步提取式压缩，能以 1/10 的 Token 长度完美继承 100% 的历史逻辑脉络，是长对话性能优化的底牌。
-*   **🎯 过关验证标准**：实现一个 `ContextCompressor` 模块。输入一段长达 5000 Token 的开发对话日志，自动运行异步压缩，将其浓缩为 300 Token 的 Markdown 结构化摘要，且摘要中 100% 包含历史中讨论到的“核心代码路径”与“数据库端口号”等关键变量。
+## Day 92：企业级 Context Architecture 设计与实现
+*   **核心目标**：设计 Context Runtime 的核心数据模型（Context Domain Model）与上下文安全策略（Context Policy），实现与 LangGraph Agent State 的解耦集成。
+*   **解决痛点**：解决传统扁平 `messages` 列表中所有消息“平权”导致的指令逃逸与恶意 RAG 注入风险。
+*   **架构与实践**：
+    *   定义 `ContextObject` (包含 `SystemContext`, `MemoryContext`, `RetrievalContext`, `DialogueContext`, `RuntimeContext`)，明确优先级、生命周期、Token 上限与数据源契约；
+    *   实现 `ContextPolicy`，对各层配置优先级与不可变性标记；
+    *   重构 LangGraph `AgentState`，嵌入 `context` 拓扑与 `memory_snapshot`。
+*   **🎯 交付与验证**：输入恶意 RAG 注入载荷（`Ignore previous instruction...`），验证 Agent 保持 System 契约不变形，且在控制台生成防御可观测日志。
 
 ---
 
-## Day 96：动态模型路由（Model Routing）与任务复杂度分类器
-*   **核心知识点**：
-    *   **模型路由（Model Routing）原理**：根据用户任务的难易度，将任务路由分发给不同规格、不同费率的模型（如简单闲聊路由给轻量小模型，复杂代码生成路由给旗舰大模型）。
-    *   **复杂度分类器（Complexity Classifier）构建**：基于本地 FastText 文本分类、小模型少样本分类、或者基于规则（检查关键字、正则匹配）的快速判定。
-*   **Agent 核心关联**：把所有的简单招呼和琐碎逻辑都发给最贵的大模型是极大的资源浪费。通过模型路由实现“小任务便宜模型，大任务旗舰模型”，能在保持同等系统效果的情况下，直接缩减 40% 以上的总体运行成本。
-*   **🎯 过关验证标准**：实现一个 `ModelRouter` 分类器。对输入的一组混合指令进行路由分类，验证其能将“你好 / 查下天气 / 翻译一下这句”等简单请求 100% 路由分发给 Qwen-Lite/DeepSeek-Lite，将“帮我重构这个类的异步多线程代码并优化 SQL 索引”等高难度请求路由给 DeepSeek-Coder/GPT-4o。
+## Day 93：Context Assembly Engine (动态上下文编译器) 开发
+*   **核心目标**：实现 LLM 调用前的动态上下文编译打包引擎（`ContextBuilder`）。
+*   **解决痛点**：避免全量 Memory + 全量 RAG + 全部历史强行喂给 LLM 造成的上下文污染与 Token 浪费。
+*   **架构与实践**：
+    *   设计排序打分器（`Ranker`）：`score = relevance + importance + recency`；
+    *   实现 `ContextBuilder` 逻辑：动态按 Policy 排序与预算裁切；
+    *   实现 `Context Decision Log`：记录每一条 Memory/RAG 的选取原因、Token 占用及弃用决策。
+*   **🎯 交付与验证**：提供 10 条 Memory 和 20 条 RAG 检索结果，验证 `ContextBuilder` 能在严格 Token 预算内精准挑选最高分条目，并产出规范的 `decision_log.json`。
 
 ---
 
-## Day 97：Fallback 容灾降级路由与模型高可用部署
-*   **核心知识点**：
-    *   **容灾降级路由（Fallback Routing）**：当首选大模型 API 遭遇网络超时（Timeout）、服务端限流（429 Rate Limit）或停机故障（50x 错误）时，自动且迅速地降级请求备用模型（如 DeepSeek-Chat 失败降级到 Qwen-Max 或 OpenAI）。
-    *   **状态同步回滚**：切换模型后，保持之前的消息历史格式兼容性。
-*   **Agent 核心关联**：任何单一的 LLM API 提供商都不能保证 100% 的可用率。对于企业生产级 Agent，没有 Fallback 机制的直连客户端是非常危险的，Fallback 机制是系统高可用性的根本保障。
-*   **🎯 过关验证标准**：编写一个支持高可用 Fallback 的 `HAClient` 包装类。设置首选为 DeepSeek-Chat，备选为 OpenAI。人为切断网络或模拟 API 超时（设置超时硬限为 1 秒），验证系统能在超时发生的毫秒级内自动无缝重试备用 OpenAI API 成功返回结果。
+## Day 94：Token Budget 多切面熔断控制 (Budget Controller)
+*   **核心目标**：构建生产级 Token 与成本实时审计治理引擎。
+*   **解决痛点**：防止 Agent 在自主循环（Planner -> Tool -> Reflection -> Retry）中陷入死循环引发天价账单。
+*   **架构与实践**：
+    *   开发 `BudgetController`（支持 `check()`, `estimate()`, `interrupt()`, `report()`）；
+    *   在 LLM 调用前、Tool 调用前、Tool 结果返回后三个切面注入预检与拦截；
+    *   记录详细的 Task Budget 消耗账单。
+*   **🎯 交付与验证**：模拟 Agent 持续自主执行 100 轮循环，验证系统在触发硬限（如超过特定 Token 或美分额度）时迅速抛出熔断异常，自动中断并生成 `budget_report.json`。
 
 ---
 
-## Day 98：第十四周综合实战：超低成本、毫秒级响应的模型路由与缓存优化 Agent 引擎
-*   **实战任务**：**为“AI 研究助手”重新设计并交付高性能、高容错、低成本的 Context 工程管理底座。**
-    *   **要求**：
-        1. 采用 Day 92 的 Jinja2 分层架构，对提示词头尾排序以完美命中 Prompt Cache；
-        2. 全局装配 Day 93 的 `BudgetGuard` Token 计费审计与预算熔断防护，设定 0.1 美元的单次会话熔断安全线；
-        3. 接入 Day 96 的 `ModelRouter`，闲聊和基础工具检索分流给轻量小模型，深度分析和规划分流给大模型；
-        4. 模型客户端全面包裹 Day 97 的 `HAClient` 超时 Fallback 机制，确保高可用；
-        5. 短期消息超出 Token 阈值时，触发后台的异步 `ContextCompressor` 提取浓缩摘要进行状态归约。
-    *   **🎯 交付件**：分层模板文件、HAClient 源码、模型路由器、BudgetGuard 类、单元测试套件，以及展示路由分配、缓存节省率和 Fallback 触发运行的控制台详细日志。\n
+## Day 95：Context Compression 与 Incremental Memory Consolidation
+*   **核心目标**：解决长任务长时间运行下的上下文膨胀与状态保持问题。
+*   **解决痛点**：传统滑动窗口丢失核心决策与变量；全量压缩速度慢且极其昂贵。
+*   **架构与实践**：
+    *   设计 `IncrementalCompressor`：基于 `new messages + old snapshot => new snapshot` 范式；
+    *   抽取结构化快照 (`DialogueSnapshot`)：保留 Task、Decision、Important Facts 及 Open Issues；
+    *   快照无损校验器 (`SnapshotValidator`)：确保关键变量（数据库端口、路径、配置等）100% 留存。
+*   **🎯 交付与验证**：输入 10,000 Token 的长对话历史，通过增量压缩将其收缩至 1,000 Token 内，验证关键事实保留率达到 100%。
+
+---
+
+## Day 96：Prompt Cache + Context Layout Optimization
+*   **核心目标**：设计 Context Layout Engine，最大化主流 API (OpenAI/Anthropic) 的 Prompt Cache 命中率。
+*   **解决痛点**：上下文前缀微小变动导致 Cache 全量失效，带来额外费用与首字延迟 (TTFT)。
+*   **架构与实践**：
+    *   实现前置静态布局重排：`System -> Tools -> Rules -> Examples` 固定在最头部（前缀共享区），高频变动的 `Memory -> RAG -> History -> User Query` 放置在尾部；
+    *   开发 `ContextLayoutOptimizer`：计算 Prefix 稳定率、缓存命中概率与计费估算。
+*   **🎯 交付与验证**：对比布局调整前后的 Payload 差异，计算并打印缓存预计节省比例（预期节省 50%~80% 成本及降低首字延迟）。
+
+---
+
+## Day 97：Model Router + LLM Gateway 企业模型访问层
+*   **核心目标**：建设解耦的高可用模型访问与路由调度设施。
+*   **解决痛点**：单一 LLM API 网络超时、429 限流或服务中断导致整个 Agent 崩溃。
+*   **架构与实践**：
+    *   开发 `ModelRouter`：根据任务复杂度（Complexity Classifier）、延迟要求与成本预算动态选择 Provider；
+    *   开发 `LLMGateway`：封装多 Provider (GPT-4o, Claude, DeepSeek, Qwen) 接入代理，内置 Retry、Timeout 硬限、Health Check 及 Fallback 降级。
+*   **🎯 交付与验证**：模拟主模型 API (如 GPT-4o) 超时或网络异常，验证 Gateway 能在毫秒级内自动无缝降级至备用模型 (如 Claude / DeepSeek) 并完成请求。
+
+---
+
+## Day 98：综合项目交付：Enterprise Agent Context Runtime 平台集成
+*   **核心目标**：将所有微引擎打通组装，交付完整的生产级 Context Infrastructure。
+*   **实战场景验证**：
+    1. **Research Agent 场景**：论文检索与深度总结（验证 RAG、Memory 与 Assembly）；
+    2. **Coding Agent 场景**：多文件修改与重构（验证 Context 分层与 Tool 结果净化）；
+    3. **30分钟+ 长任务场景**：持续自主演进（验证 Token 增长控制、增量压缩与 Model Router 降级）。
+*   **🎯 交付物**：`enterprise-context-runtime` 完整代码库、架构设计文档 `architecture.md`、微引擎单元测试套件、一键启动脚本 `start.sh` 及可视化 Web Dashboard。
