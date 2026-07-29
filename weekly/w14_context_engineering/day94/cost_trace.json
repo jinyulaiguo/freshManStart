@@ -8,7 +8,7 @@
   },
   "trace_details": [
     {
-      "timestamp": 1785316166.625498,
+      "timestamp": 1785317502.512623,
       "phase": "PREFLIGHT",
       "task_type": "Research_Report",
       "predicted_cost": 0.012375,
@@ -16,7 +16,7 @@
       "allowed": true
     },
     {
-      "timestamp": 1785316166.625508,
+      "timestamp": 1785317502.512634,
       "phase": "RUNTIME_MONITOR",
       "usage_ratio": 17.5,
       "used_usd": 0.0035,
@@ -26,7 +26,7 @@
       "degradation_actions": []
     },
     {
-      "timestamp": 1785316172.383421,
+      "timestamp": 1785317505.229082,
       "phase": "RUNTIME_MONITOR",
       "usage_ratio": 35.0,
       "used_usd": 0.007,
@@ -36,7 +36,7 @@
       "degradation_actions": []
     },
     {
-      "timestamp": 1785316175.734399,
+      "timestamp": 1785317508.0958998,
       "phase": "RUNTIME_MONITOR",
       "usage_ratio": 52.5,
       "used_usd": 0.0105,
@@ -46,7 +46,7 @@
       "degradation_actions": []
     },
     {
-      "timestamp": 1785316178.0483131,
+      "timestamp": 1785317510.2785301,
       "phase": "RUNTIME_MONITOR",
       "usage_ratio": 70.0,
       "used_usd": 0.014,
@@ -56,7 +56,7 @@
       "degradation_actions": []
     },
     {
-      "timestamp": 1785316181.232919,
+      "timestamp": 1785317515.0960472,
       "phase": "RUNTIME_MONITOR",
       "usage_ratio": 87.5,
       "used_usd": 0.0175,
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "timestamp": 1785316183.5550752,
+      "timestamp": 1785317523.5870569,
       "phase": "RUNTIME_MONITOR",
       "usage_ratio": 105.0,
       "used_usd": 0.021,
@@ -80,9 +80,9 @@
       "degradation_actions": []
     },
     {
-      "timestamp": 1785316184.5569391,
+      "timestamp": 1785317524.589736,
       "phase": "HUMAN_APPROVAL_RESUME",
-      "approval_id": "appr_1785316183555",
+      "approval_id": "appr_1785317523587",
       "new_task_budget": 0.13999999999999999
     }
   ]

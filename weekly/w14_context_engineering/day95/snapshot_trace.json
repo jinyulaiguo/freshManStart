@@ -1,0 +1,20 @@
+[
+  {
+    "version": 2,
+    "timestamp": 1785317607.156617,
+    "delta_messages_count": 3,
+    "retention_rate": 1.0,
+    "repairs_count": 0,
+    "repairs_detail": [],
+    "snapshot_md_length": 387
+  },
+  {
+    "version": 3,
+    "timestamp": 1785317617.1687171,
+    "delta_messages_count": 3,
+    "retention_rate": 1.0,
+    "repairs_count": 0,
+    "repairs_detail": [],
+    "snapshot_md_length": 565
+  }
+]
