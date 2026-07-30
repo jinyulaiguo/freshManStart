@@ -21,6 +21,7 @@ echo
 echo "[w16] 已启动。访问地址（请用 0.0.0.0 或 127.0.0.1，勿用 localhost）："
 echo "  Phoenix UI     http://0.0.0.0:6006"
 echo "  Prometheus UI  http://0.0.0.0:9090"
+echo "  Alertmanager   http://0.0.0.0:9093"
 echo "  Grafana UI     http://0.0.0.0:3000  (账号见 .env 中 GF_SECURITY_*)"
 echo
 echo "[w16] 课前总纲: weekly/w16_observability/overview.html"

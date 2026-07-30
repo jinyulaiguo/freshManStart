@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: "w16-observability"
+    orgId: 1
+    folder: "Week16"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

@@ -1,0 +1,47 @@
+groups:
+  - name: ai_research_assistant_alerts
+    rules:
+      - alert: AgentHighErrorRate
+        expr: rate(agent_requests_total{status="error"}[5m]) / clamp_min(sum(rate(agent_requests_total[5m])), 0.0001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent error rate > 5%"
+          description: "Error ratio over 5 minutes is above 5%."
+
+      - alert: AgentP95LatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(agent_request_latency_seconds_bucket[5m]))) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent P95 latency high"
+          description: "P95 request latency is above 5 seconds for 5 minutes."
+
+      - alert: AgentToolErrorRateHigh
+        expr: sum(rate(agent_tool_calls_total{status="error"}[10m])) / clamp_min(sum without(status) (rate(agent_tool_calls_total[10m])), 0.0001) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tool error rate above 10%"
+          description: "Tool failures exceed 10% in last 10 minutes."
+
+      - alert: AgentCostBurnRateHigh
+        expr: rate(agent_cost_usd_total[10m]) * 3600 > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cost burn rate high"
+          description: "Estimated cost burn rate exceeds 5 USD/hour."
+
+      - alert: AgentTrafficDrop
+        expr: sum(rate(agent_requests_total[5m])) < (sum(rate(agent_requests_total[30m] offset 1h)) * 0.5)
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Traffic drop detected"
+          description: "Current request rate dropped below 50% of baseline."
