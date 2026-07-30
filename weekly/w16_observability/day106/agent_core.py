@@ -82,3 +82,31 @@ def run_agent(query: str) -> str:
     last = messages[-1]
     content = getattr(last, "content", None)
     return content if isinstance(content, str) else str(last)
+
+
+def main() -> None:
+    """真实可执行入口：绑定 LangSmith 后跑真实 MiniMax ReAct。"""
+    import sys
+    from pathlib import Path
+
+    day_dir = Path(__file__).resolve().parent
+    if str(day_dir) not in sys.path:
+        sys.path.insert(0, str(day_dir))
+
+    from tracing_env import enable_langsmith_tracing
+
+    status = enable_langsmith_tracing()
+    print("[day106] LangSmith bound:", status)
+    query = (
+        "请查询 SKU-1001 的库存与单价，然后按采购 4 件计算报价小计，"
+        "并说明库存是否足够。"
+    )
+    print("[day106] query:", query)
+    answer = run_agent(query)
+    print("[day106] answer:")
+    print(answer)
+    print(f"[day106] 打开 LangSmith 项目验收: {status['LANGSMITH_PROJECT']}")
+
+
+if __name__ == "__main__":
+    main()

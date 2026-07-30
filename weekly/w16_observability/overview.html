@@ -232,9 +232,10 @@
 <div class="section-card">
     <h2>本周材料约定</h2>
     <div class="convention">
-        <strong>日常（Day 106–111）：</strong>只维护 <code>notes.md</code> 讲义 + 当日实现代码 / 测试；<strong>不写每日 README</strong>。<br>
+        <strong>日常（Day 106–111）：</strong>只维护 <code>notes.md</code> 讲义 + 当日<strong>可执行实现代码</strong> / 测试；<strong>不写每日 README</strong>；<strong>禁止 practice.py</strong>——入口写在真实模块的 <code>if __name__ == "__main__"</code>。<br>
+        <strong>真实场景硬约束：</strong>必须真实调用 LLM（根 <code>.env</code> 的 MiniMax）；Trace/Metrics 必须推到真实组件（Phoenix / Prometheus），禁止 <code>asyncio.sleep</code> 假流水线冒充过关。<br>
         <strong>终局（Day 112）：</strong>才提供项目级 <code>README.md</code>（启动、验收、截图清单）。<br>
-        <strong>基建：</strong><code>infra/docker-compose.yml</code>（Phoenix :6006 · Prometheus :9090 · Grafana :3000）；连接地址请用 <code>0.0.0.0</code> / <code>127.0.0.1</code>，勿用 <code>localhost</code>（macOS 易走 IPv6）。<br>
+        <strong>基建：</strong><code>infra/docker-compose.yml</code>（Phoenix :6006 · Prometheus :9090 · Grafana :3000）；地址用 <code>0.0.0.0</code> / <code>127.0.0.1</code>，勿用 <code>localhost</code>。<br>
         <strong>环境契约：</strong>仓库根 <code>.env.example</code> → 本地 <code>.env</code>。
     </div>
 </div>
@@ -432,18 +433,18 @@ flowchart TB
             <div class="day-tag">Day 108</div>
             <div class="day-content">
                 <h3>Trace / Span / Event 嵌套拓扑</h3>
-                <p>手写装饰器与上下文管理器，理解自动埋点背后的树；输出 JSON 嵌套链路。</p>
+                <p>手写 OTel 嵌套包装（<code>otel_nesting</code>）+ 真实语料/MiniMax；Trace 进 Phoenix。模块 <code>research_pipeline.py</code> 自可执行。</p>
                 <span class="key-deliverable">材料：notes.md</span>
-                <span class="key-deliverable">终局贡献：Span 包装类</span>
+                <span class="key-deliverable">终局贡献：嵌套包装 → Phoenix 真树</span>
             </div>
         </div>
         <div class="timeline-day">
             <div class="day-tag">Day 109</div>
             <div class="day-content">
                 <h3>Latency · Token · 美分成本</h3>
-                <p>monotonic 计时；子节点账单上卷到根 Trace；商业化计费数据规约。</p>
+                <p>在 <strong>OTel Span</strong> 上做 monotonic 计时与 Token/美分上卷（不再扩展 Day108 手写器）；载体改为研究助手形最小图。</p>
                 <span class="key-deliverable">材料：notes.md</span>
-                <span class="key-deliverable">终局贡献：成本 Attribute / TTFT 基础</span>
+                <span class="key-deliverable">终局贡献：成本 Attribute / TTFT（OTel）</span>
             </div>
         </div>
         <div class="timeline-day">
@@ -473,6 +474,63 @@ flowchart TB
                 <span class="key-deliverable">验收：Phoenix 树 + /metrics + 日志</span>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 计划风险与收敛 -->
+<div class="section-card">
+    <h2>计划风险与收敛策略（执行中修订）</h2>
+    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem;">
+        课纲方向正确，但若机械执行会有双栈与胶水债。以下为对本周计划的评审结论与后续收敛规则。
+    </p>
+    <table class="metric-table">
+        <thead>
+            <tr>
+                <th>风险</th>
+                <th>为何成立</th>
+                <th>收敛策略（Day 109+ 强制）</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+<td>Day 108 曾平行手写非 OTel 运行时</td>
+                <td>易与 Phoenix 主链脱节</td>
+                <td>已收敛为 <code>otel_nesting</code> 薄包装 + <code>research_pipeline.py</code> 真 LLM/真 Phoenix；禁止 practice.py</td>
+            </tr>
+            <tr>
+                <td>演示 Agent ≠ 研究助手</td>
+                <td>采购 ReAct / 模拟 pipeline 与 Day 112 目标系统脱节，末日胶水过重</td>
+                <td>从 Day 109 起用「研究助手形」最小图（可 mock LLM）：至少含 load/RAG/LLM/tool 四类 Node 命名</td>
+            </tr>
+            <tr>
+                <td>Day 106 LangSmith 对终局零件弱</td>
+                <td>终局是私有化 Phoenix；LangSmith 偏直觉</td>
+                <td>保留对照价值；不再在 LangSmith 路径上堆新功能</td>
+            </tr>
+            <tr>
+                <td>prometheus_client 直出 ≠ 唯一生产标准</td>
+                <td>生产常 OTel Meter → Collector → Prometheus</td>
+                <td>Day 111 学会直出即可；总纲承认这是学习路径，Day 112 README 注明演进选项</td>
+            </tr>
+            <tr>
+                <td>异常日志带 locals 泄密</td>
+                <td>排障有用，合规危险</td>
+                <td>Day 110 默认<strong>脱敏/白名单</strong>字段，禁止默认 dump 全部局部变量</td>
+            </tr>
+            <tr>
+                <td>EvalTrace（W15）与生产 Trace 混淆</td>
+                <td>字段名都叫 trace，用途不同</td>
+                <td>评测轨迹留在 w15；本周只产出 OTLP/Phoenix + /metrics，两套存储不合并</td>
+            </tr>
+            <tr>
+                <td>本机网络陷阱</td>
+                <td><code>localhost</code>→IPv6；HTTP 漏 <code>/v1/traces</code>→405</td>
+                <td>统一 <code>0.0.0.0</code>/<code>127.0.0.1</code>；HTTP endpoint 必须带 <code>/v1/traces</code>；学习用 Simple，生产用 Batch</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="convention" style="margin-top: 1rem;">
+        <strong>一句话收敛：</strong>Day 106–108 建立直觉与拓扑；<strong>Day 109 起所有新能力只加在 Phoenix/OTel 主链</strong>，零件命名对齐研究助手，直通 Day 112。
     </div>
 </div>
 

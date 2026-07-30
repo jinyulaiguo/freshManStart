@@ -1,0 +1,22 @@
+[
+  {
+    "doc_id": "paper_oi_01",
+    "title": "OpenInference on OpenTelemetry",
+    "text": "OpenInference adds GenAI semantic conventions on top of OpenTelemetry spans, including llm.input_messages, llm.output_messages, tool.name, and openinference.span.kind values such as LLM, TOOL, RETRIEVER, and AGENT."
+  },
+  {
+    "doc_id": "paper_rag_02",
+    "title": "RAG Latency Bottlenecks",
+    "text": "In agent pipelines, nested spans reveal where time goes. Coarse vector retrieval and reranking often dominate end-to-end latency compared with local post-processing. Measuring duration_ms per span is required to justify index or cache investments."
+  },
+  {
+    "doc_id": "paper_obs_03",
+    "title": "Private Agent Observability",
+    "text": "Enterprise agents frequently cannot ship prompts to SaaS tracers. A local Phoenix collector receiving OTLP from OpenInference instrumented LangGraph nodes keeps data on-prem while preserving AI-aware trace views."
+  },
+  {
+    "doc_id": "paper_cost_04",
+    "title": "Token Cost Rollup",
+    "text": "Child spans should report input and output token counts so the root trace can roll up total tokens and estimated USD cost. Time to first token (TTFT) belongs on LLM spans for streaming UX monitoring."
+  }
+]

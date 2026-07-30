@@ -6,11 +6,12 @@
 
 ```bash
 cd weekly/w16_observability/day106
-python practice.py
+python agent_core.py
 pytest tests/ -q
 ```
 
-LangSmith UI：项目名见根 `.env` 的 `LANGSMITH_PROJECT`。
+LangSmith UI：项目名见根 `.env` 的 `LANGSMITH_PROJECT`。  
+（无 `practice.py`：入口在 `agent_core.py`。）
 
 ---
 

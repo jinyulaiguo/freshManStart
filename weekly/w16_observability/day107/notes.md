@@ -8,16 +8,16 @@
 # 基建（若未启动）
 cd weekly/w16_observability/infra && ./start.sh
 
-# 仅冒烟 OTEL 绑定
 cd weekly/w16_observability/day107
+# 仅冒烟 OTEL 绑定
 python phoenix_otel.py
-
-# 完整 ReAct → Phoenix
-python practice.py
+# 真实 MiniMax ReAct → Phoenix
+python traced_agent.py
 pytest tests/ -q
 ```
 
-Phoenix UI：`http://0.0.0.0:6006`（勿用 `localhost`）。项目名见 `PHOENIX_PROJECT_NAME`。
+Phoenix UI：`http://0.0.0.0:6006`（勿用 `localhost`）。项目名见 `PHOENIX_PROJECT_NAME`。  
+（无 `practice.py`。）
 
 ---
 
