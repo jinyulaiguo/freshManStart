@@ -1,0 +1,244 @@
+"""
+Week 15 Eval Pipeline 共享数据契约 (contracts/schemas.py)
+
+===============================================================================
+设计方案说明 (Architecture Design Specification)
+===============================================================================
+
+1. 设计意图 (Design Intent):
+   Golden Dataset、Agent 运行轨迹 (EvalTrace) 与评测结果 (EvalResult) 是 Week 15
+   全链路评测流水线的唯一数据格式真相源 (Single Source of Truth)。所有微引擎
+   (SyntheticGenerator、ToolExecutionEvaluator、FaithfulnessEvaluator、EvalReporter)
+   均依赖本模块的 Pydantic 契约进行序列化/反序列化与防御性校验，杜绝 JSONL
+   字段漂移导致的 Silent Failure。
+
+2. 核心类与数据流结构 (Class & Data Flow):
+   - ExpectedToolCall: 期望工具名 + 参数字典
+   - GoldenCaseMetadata: 难度、边界 Case 标记、Memory 依赖、来源文档
+   - GoldenCase: Golden Dataset 单条测试用例完整契约
+   - ToolCallRecord: Agent 实际运行轨迹中的单次工具调用
+   - EvalTrace: Agent 单次运行的完整 Trace 快照
+   - CaseEvalResult: 单条用例的多指标评测结果
+   - EvalRunReport: 整次评测运行的聚合报告 (持久化为 eval_result.json)
+
+3. 核心用例设计意图 (Test Case Design Intent):
+   GoldenCase 必须能表达 W14 Research Agent 的全部评测维度：RAG 检索参数
+   (rag_search)、Memory 召回 (retrieve_memory)、路由决策 (model_router) 及
+   最终回答 ground_truth，供 Day 101-105 各 Evaluator 无歧义消费。
+===============================================================================
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, Literal, Optional
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Golden Dataset 契约
+# ═══════════════════════════════════════════════════════════════════════════
+
+class DifficultyLevel(str, Enum):
+    """测试用例难度分级"""
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
+
+
+class GoldenCategory(str, Enum):
+    """Golden Dataset 业务意图分类 (与 W14 Research Agent 场景对齐)"""
+    NORMAL_RETRIEVAL = "normal_retrieval_summary"
+    MULTI_PAPER_COMPARISON = "multi_paper_comparison"
+    PROMPT_INJECTION = "prompt_injection_boundary"
+    MEMORY_DEPENDENT = "memory_dependent"
+    TOOL_PARAM_EDGE = "tool_param_edge"
+    ROUTING_FALLBACK = "routing_fallback"
+    CROSS_DOCUMENT = "cross_document_reasoning"
+
+
+class ExpectedToolCall(BaseModel):
+    """期望 Agent 调用的工具及其标准参数"""
+    name: str = Field(..., min_length=1, description="工具注册名，如 rag_search")
+    args: dict[str, Any] = Field(default_factory=dict, description="期望参数字典")
+
+
+class GoldenCaseMetadata(BaseModel):
+    """Golden Case 扩展元数据"""
+    difficulty: DifficultyLevel = DifficultyLevel.MEDIUM
+    edge_case: Optional[str] = Field(None, description="边界 Case 描述标签")
+    requires_memory: bool = False
+    source_doc: Optional[str] = Field(None, description="合成来源文档 ID 或路径")
+    is_injection_test: bool = False
+    paper_ids: list[str] = Field(default_factory=list, description="关联论文语料 ID")
+    dataset_version: str = "v1"
+
+
+class GoldenCase(BaseModel):
+    """
+    Golden Dataset 单条测试用例完整契约
+
+    对应 docs/week_15_eval_system.md Day 99 定义的 JSONL 行格式。
+    """
+    test_case_id: str = Field(..., pattern=r"^research_\d{3}$")
+    query: str = Field(..., min_length=10)
+    category: GoldenCategory
+    expected_tools: list[ExpectedToolCall] = Field(..., min_length=1)
+    ground_truth: str = Field(..., min_length=20)
+    metadata: GoldenCaseMetadata = Field(default_factory=GoldenCaseMetadata)
+
+    @field_validator("test_case_id")
+    @classmethod
+    def validate_id_prefix(cls, v: str) -> str:
+        if not v.startswith("research_"):
+            raise ValueError("test_case_id 必须以 research_ 为前缀")
+        return v
+
+    def to_jsonl_line(self) -> str:
+        """序列化为 JSONL 单行"""
+        return self.model_dump_json()
+
+    @classmethod
+    def from_jsonl_line(cls, line: str) -> "GoldenCase":
+        """从 JSONL 单行反序列化"""
+        return cls.model_validate_json(line.strip())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Agent 运行轨迹 (EvalTrace) 契约 — Day 101+ 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ToolCallRecord(BaseModel):
+    """Agent 实际执行的单次工具调用记录"""
+    name: str
+    args: dict[str, Any] = Field(default_factory=dict)
+    result_summary: Optional[str] = None
+    latency_ms: Optional[float] = None
+    success: bool = True
+
+
+class EvalTrace(BaseModel):
+    """
+    Agent 单次运行的完整 Trace 快照
+
+    run_eval.py 收集后传递给各 Evaluator 进行打分。
+    """
+    test_case_id: str
+    query: str
+    tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+    retrieved_contexts: list[str] = Field(default_factory=list)
+    final_answer: str = ""
+    routing_decision: Optional[str] = None
+    token_usage: dict[str, int] = Field(default_factory=dict)
+    errors: list[str] = Field(default_factory=list)
+    duration_ms: Optional[float] = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 评测结果契约 — Day 104 EvalReporter 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class CaseEvalResult(BaseModel):
+    """单条 Golden Case 的多维度评测结果"""
+    test_case_id: str
+    passed: bool
+    tool_precision: Optional[float] = None
+    tool_recall: Optional[float] = None
+    tool_f1: Optional[float] = None
+    param_accuracy: Optional[float] = None
+    faithfulness: Optional[float] = None
+    relevance: Optional[float] = None
+    professionalism: Optional[float] = None
+    failure_reasons: list[str] = Field(default_factory=list)
+
+
+class EvalRunReport(BaseModel):
+    """整次评测运行的聚合报告 (持久化为 eval_result.json)"""
+    run_id: str
+    git_sha: Optional[str] = None
+    judge_model: Optional[str] = None
+    dataset_version: str = "v1"
+    dataset_path: str = ""
+    started_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    finished_at: Optional[str] = None
+    aggregate: dict[str, float] = Field(default_factory=dict)
+    thresholds: dict[str, float] = Field(default_factory=dict)
+    cases: list[CaseEvalResult] = Field(default_factory=list)
+
+    def save_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            self.model_dump_json(indent=2),
+            encoding="utf-8"
+        )
+
+    @classmethod
+    def load_json(cls, path: Path) -> "EvalRunReport":
+        return cls.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# JSONL 文件读写工具
+# ═══════════════════════════════════════════════════════════════════════════
+
+def load_golden_dataset(path: Path) -> list[GoldenCase]:
+    """从 JSONL 文件加载 Golden Dataset，跳过空行"""
+    cases: list[GoldenCase] = []
+    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            cases.append(GoldenCase.from_jsonl_line(stripped))
+        except Exception as exc:
+            raise ValueError(f"JSONL 第 {line_no} 行解析失败: {exc}") from exc
+    return cases
+
+
+def save_golden_dataset(cases: list[GoldenCase], path: Path) -> None:
+    """将 Golden Dataset 写入 JSONL 文件 (每行一条)"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [case.to_jsonl_line() for case in cases]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def validate_dataset_uniqueness(cases: list[GoldenCase]) -> None:
+    """防御性校验 test_case_id 全局唯一"""
+    seen: set[str] = set()
+    for case in cases:
+        if case.test_case_id in seen:
+            raise ValueError(f"重复的 test_case_id: {case.test_case_id}")
+        seen.add(case.test_case_id)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LLM 合成批次响应契约 — 配合 llm_reliability_adapter.parse_structured
+# ═══════════════════════════════════════════════════════════════════════════
+
+class SyntheticCaseDraft(BaseModel):
+    """
+    LLM 合成的单条 Golden Case 草稿 (不含 test_case_id，由系统分配)
+
+    供 SyntheticGenerator 通过 parse_structured 解析 LLM 批次响应后，
+    再升级为完整 GoldenCase。
+    """
+    query: str = Field(..., min_length=10)
+    expected_tools: list[ExpectedToolCall] = Field(..., min_length=1)
+    ground_truth: str = Field(..., min_length=20)
+    metadata: GoldenCaseMetadata = Field(default_factory=GoldenCaseMetadata)
+
+
+class GoldenBatchResponse(BaseModel):
+    """
+    LLM 批次合成响应契约
+
+    必须使用 JSON 对象 {\"cases\": [...]} 格式，以便 llm_reliability_adapter
+    的 BracketExtractor 精准提取并剥离 <think> 污染。
+    """
+    cases: list[SyntheticCaseDraft] = Field(..., min_length=1)
