@@ -35,6 +35,14 @@ dependencies = [
     "structlog>=24.1.0",
     "tenacity>=8.3.0",
     "matplotlib>=3.9.0",
+    # Week 16 · Observability
+    "langsmith>=0.3.0",
+    "arize-phoenix>=8.0.0",
+    "arize-phoenix-otel>=0.9.0",
+    "openinference-instrumentation-langchain>=0.1.0",
+    "opentelemetry-sdk>=1.28.0",
+    "opentelemetry-exporter-otlp>=1.28.0",
+    "prometheus-client>=0.21.0",
 ]
 
 

@@ -1,0 +1,20 @@
+# Prometheus 刮取配置（Week 16）
+# Agent 侧请在宿主机暴露 /metrics，默认端口见 .env 的 AGENT_METRICS_PORT=9108
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Day 111+：练习脚本用 prometheus_client 暴露的 Agent 指标
+  - job_name: ai-research-assistant
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:9108"]
+        labels:
+          service: "ai-research-assistant"
+          week: "w16"
