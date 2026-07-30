@@ -1,0 +1,279 @@
+{
+  "run_id": "day105-mock-20260730T051811Z",
+  "git_sha": "994f32b",
+  "judge_model": "MiniMax-M3",
+  "dataset_version": "v1",
+  "dataset_path": "/Users/zhouyi/03.AI/03.freshManStart/weekly/w15_eval_system/day105/golden_dataset.jsonl",
+  "started_at": "2026-07-30T05:18:11.273975+00:00",
+  "finished_at": "2026-07-30T05:18:11.287617+00:00",
+  "aggregate": {
+    "tool_f1": 0.8,
+    "tool_precision": 0.8,
+    "tool_recall": 0.8,
+    "param_accuracy": 0.8,
+    "pass_rate": 0.8,
+    "faithfulness": 0.81
+  },
+  "thresholds": {
+    "tool_f1": 0.85,
+    "faithfulness": 0.9
+  },
+  "cases": [
+    {
+      "test_case_id": "research_001",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_002",
+      "passed": false,
+      "tool_precision": 0.0,
+      "tool_recall": 0.0,
+      "tool_f1": 0.0,
+      "param_accuracy": 0.0,
+      "faithfulness": 0.05,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": [
+        "tool_f1=0.0000<0.85",
+        "missing_tools=rag_search",
+        "faithfulness=0.0500<0.9"
+      ]
+    },
+    {
+      "test_case_id": "research_003",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_004",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_005",
+      "passed": false,
+      "tool_precision": 0.0,
+      "tool_recall": 0.0,
+      "tool_f1": 0.0,
+      "param_accuracy": 0.0,
+      "faithfulness": 0.05,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": [
+        "tool_f1=0.0000<0.85",
+        "missing_tools=rag_search",
+        "faithfulness=0.0500<0.9"
+      ]
+    },
+    {
+      "test_case_id": "research_006",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_007",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_008",
+      "passed": false,
+      "tool_precision": 0.0,
+      "tool_recall": 0.0,
+      "tool_f1": 0.0,
+      "param_accuracy": 0.0,
+      "faithfulness": 0.05,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": [
+        "tool_f1=0.0000<0.85",
+        "missing_tools=rag_search",
+        "faithfulness=0.0500<0.9"
+      ]
+    },
+    {
+      "test_case_id": "research_009",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_010",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_011",
+      "passed": false,
+      "tool_precision": 0.0,
+      "tool_recall": 0.0,
+      "tool_f1": 0.0,
+      "param_accuracy": 0.0,
+      "faithfulness": 0.05,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": [
+        "tool_f1=0.0000<0.85",
+        "missing_tools=rag_search",
+        "faithfulness=0.0500<0.9"
+      ]
+    },
+    {
+      "test_case_id": "research_012",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_013",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_014",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_015",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_016",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_017",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_018",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_019",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    },
+    {
+      "test_case_id": "research_020",
+      "passed": true,
+      "tool_precision": 1.0,
+      "tool_recall": 1.0,
+      "tool_f1": 1.0,
+      "param_accuracy": 1.0,
+      "faithfulness": 1.0,
+      "relevance": null,
+      "professionalism": null,
+      "failure_reasons": []
+    }
+  ]
+}

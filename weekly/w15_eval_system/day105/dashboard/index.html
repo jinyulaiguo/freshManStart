@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day 105 · Eval Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --surface: #fffcf7;
+      --text: #1a1916;
+      --muted: #5a574f;
+      --accent: #c45c26;
+      --border: #e4dfd4;
+      --ok: #2a6b3a;
+      --bad: #b42318;
+      --ink: #102a43;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 420px at 85% -10%, rgba(196, 92, 38, 0.12), transparent 60%),
+        linear-gradient(165deg, #ebe4d6 0%, var(--bg) 42%, #f8f5ef 100%);
+    }
+    .top {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+      background: rgba(255,252,247,0.86); backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .top h1 {
+      margin: 0; font-family: "Source Serif 4", Georgia, serif;
+      font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em;
+    }
+    .badge {
+      font-size: 0.75rem; color: var(--muted);
+      background: #efe9dd; padding: 0.3rem 0.65rem; border-radius: 999px;
+    }
+    .badge.ok { color: var(--ok); background: #e7f3ea; }
+    .badge.bad { color: var(--bad); background: #fdecea; }
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1rem;
+      padding: 1rem 1.5rem 2rem;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+    .panel h2 {
+      margin: 0 0 0.85rem;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 1.05rem;
+    }
+    label {
+      display: block; font-size: 0.78rem; color: var(--muted);
+      margin: 0.65rem 0 0.25rem; font-weight: 500;
+    }
+    select, input[type="number"] {
+      width: 100%; padding: 0.45rem 0.55rem;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: #fff; font: inherit; color: var(--text);
+    }
+    .checks { display: grid; gap: 0.45rem; margin-top: 0.85rem; font-size: 0.86rem; }
+    .checks label { display: flex; align-items: center; gap: 0.45rem; margin: 0; color: var(--text); }
+    .btn-row { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+    button {
+      font: inherit; border: 0; border-radius: 7px; cursor: pointer;
+      padding: 0.55rem 0.9rem; font-weight: 600;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--ink); color: #fff; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-ghost { background: #efe9dd; color: var(--text); }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.75rem; line-height: 1.45; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.55rem;
+      margin-bottom: 0.85rem;
+    }
+    .metric {
+      border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 0.75rem;
+      background: #fff;
+    }
+    .metric .k { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric .v { font-size: 1.25rem; font-weight: 600; margin-top: 0.2rem; }
+    .pass { color: var(--ok); }
+    .fail { color: var(--bad); }
+    .log {
+      height: 220px; overflow: auto; background: #1b1a17; color: #e8e2d6;
+      border-radius: 8px; padding: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem; line-height: 1.45;
+    }
+    .log .warn { color: #ffb454; }
+    .log .err { color: #ff7b72; }
+    .log .ok { color: #7ee787; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th, td { text-align: left; padding: 0.45rem 0.35rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; }
+    pre.diff {
+      white-space: pre-wrap; background: #f3eee4; border-radius: 8px;
+      padding: 0.85rem; font-size: 0.78rem; max-height: 280px; overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .stack { display: grid; gap: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>Eval Dashboard · Day 105</h1>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <span class="badge" id="wsBadge">WS 未连接</span>
+      <span class="badge" id="apiBadge">API Key …</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="panel">
+      <h2>评测控制台</h2>
+      <label for="agent">Agent</label>
+      <select id="agent">
+        <option value="live" selected>live · 真实 ResearchAgent（调 LLM）</option>
+        <option value="mock">mock · 注入 Trace（Judge 仍可走真实 LLM）</option>
+      </select>
+
+      <label for="metrics">Metrics</label>
+      <select id="metrics">
+        <option value="gate" selected>gate · Tool F1 + Faithfulness（真实 Judge）</option>
+        <option value="full">full · + Relevance + G-Eval</option>
+        <option value="tool">tool · 仅 Tool F1（无 LLM）</option>
+      </select>
+
+      <label for="scenario">Scenario</label>
+      <select id="scenario">
+        <option value="default" selected>default · 正常</option>
+        <option value="demo_fail">demo_fail · 注入漏调+幻觉（应拦截）</option>
+      </select>
+
+      <label for="limit">Case Limit（0 = 全量 50）</label>
+      <input id="limit" type="number" min="0" max="50" value="0" />
+
+      <label for="concurrency">Concurrency（并发展开）</label>
+      <input id="concurrency" type="number" min="1" max="32" value="8" />
+
+      <div class="checks">
+        <label><input type="checkbox" id="enforceGate" checked /> ThresholdGate 拦截</label>
+        <label><input type="checkbox" id="compareBaseline" checked /> 对比 Baseline Diff</label>
+        <label><input type="checkbox" id="saveBaseline" /> 保存本次为 Baseline</label>
+        <label><input type="checkbox" id="offline" /> Offline（不调 LLM，仅调试）</label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-accent" id="btnRun" type="button">运行评测</button>
+        <button class="btn-ghost" id="btnClear" type="button">清空日志</button>
+      </div>
+      <p class="hint">
+        默认 <strong>全量 50 Case + 并发 8</strong>，且 <strong>不勾 Offline</strong>：
+        Faithfulness / Relevance / G-Eval 走真实 MiniMax Judge。
+        live Agent 还会调用 W14 ResearchAgent。后端终端会打印每条 LLM 调用日志。
+      </p>
+    </aside>
+
+    <main class="stack">
+      <section class="panel">
+        <h2>实时状态</h2>
+        <p class="hint" id="statusLine">等待操作…</p>
+        <div class="metrics" id="metricsBox"></div>
+        <div class="log" id="log"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Case 结果</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Pass</th><th>F1</th><th>Faith</th><th>Rel</th><th>Prof</th><th>Reasons</th>
+              </tr>
+            </thead>
+            <tbody id="casesBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Gate / Regression</h2>
+        <p class="hint" id="gateLine">尚未裁决</p>
+        <pre class="diff" id="diffBox">（运行后显示 regression markdown）</pre>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
+    const casesBody = $("casesBody");
+    let ws = null;
+    let running = false;
+    const caseRows = new Map();
+
+    function fmt(v) {
+      if (v === null || v === undefined) return "—";
+      return typeof v === "number" ? v.toFixed(3) : String(v);
+    }
+
+    function log(msg, cls = "") {
+      const line = document.createElement("div");
+      if (cls) line.className = cls;
+      const ts = new Date().toLocaleTimeString();
+      line.textContent = `[${ts}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setRunning(v) {
+      running = v;
+      $("btnRun").disabled = v;
+      $("btnRun").textContent = v ? "评测进行中…" : "运行评测";
+    }
+
+    function renderMetrics(agg = {}, thr = {}) {
+      const keys = ["tool_f1", "faithfulness", "relevance", "professionalism", "pass_rate"];
+      $("metricsBox").innerHTML = keys.map((k) => {
+        if (!(k in agg)) return "";
+        const ok = thr[k] == null ? true : agg[k] >= thr[k];
+        return `<div class="metric"><div class="k">${k}</div><div class="v ${ok ? "pass" : "fail"}">${fmt(agg[k])}</div></div>`;
+      }).join("");
+    }
+
+    function upsertCase(c) {
+      caseRows.set(c.test_case_id, c);
+      casesBody.innerHTML = [...caseRows.values()].map((row) => `
+        <tr>
+          <td>${row.test_case_id}</td>
+          <td class="${row.passed ? "pass" : "fail"}">${row.passed ? "PASS" : "FAIL"}</td>
+          <td>${fmt(row.tool_f1)}</td>
+          <td>${fmt(row.faithfulness)}</td>
+          <td>${fmt(row.relevance)}</td>
+          <td>${fmt(row.professionalism)}</td>
+          <td>${(row.failure_reasons || []).join("; ")}</td>
+        </tr>
+      `).join("");
+    }
+
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(`${proto}//${location.host}/ws/eval`);
+      ws.onopen = () => {
+        $("wsBadge").textContent = "WS 已连接";
+        $("wsBadge").className = "badge ok";
+        log("WebSocket 已连接", "ok");
+      };
+      ws.onclose = () => {
+        $("wsBadge").textContent = "WS 断开 · 重连中";
+        $("wsBadge").className = "badge bad";
+        setRunning(false);
+        setTimeout(connect, 1500);
+      };
+      ws.onerror = () => log("WebSocket 错误", "err");
+      ws.onmessage = (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch { return; }
+        const { type, data } = msg;
+        handleEvent(type, data || {});
+      };
+    }
+
+    function handleEvent(type, data) {
+      if (type === "status") {
+        $("statusLine").textContent = data.message || data.phase || "…";
+        log(data.message || JSON.stringify(data));
+      } else if (type === "trace_start") {
+        log(`Trace 开始 ${data.test_case_id} (${data.index}/${data.total}) agent=${data.agent}`);
+      } else if (type === "trace_done") {
+        log(`Trace 完成 ${data.test_case_id} tools=${data.tool_count}`, "ok");
+      } else if (type === "llm_call") {
+        log(`LLM 调用 → ${data.metric} @ ${data.test_case_id}`, "warn");
+      } else if (type === "llm_done") {
+        log(`LLM 完成 ← ${data.metric} @ ${data.test_case_id} score=${fmt(data.score)}`, "ok");
+      } else if (type === "case_start") {
+        log(`Judge 打分 ${data.test_case_id} (${data.index}/${data.total})`);
+      } else if (type === "case_done") {
+        upsertCase(data);
+        log(
+          `Case ${data.test_case_id} → ${data.passed ? "PASS" : "FAIL"} f1=${fmt(data.tool_f1)} faith=${fmt(data.faithfulness)}`,
+          data.passed ? "ok" : "warn"
+        );
+      } else if (type === "diff") {
+        $("diffBox").textContent = data.markdown || "";
+        log(`回归 Diff：regressed=${(data.regressed_ids || []).join(",") || "[]"}`, "warn");
+      } else if (type === "gate") {
+        const ok = !!data.passed;
+        $("gateLine").innerHTML = `<span class="${ok ? "pass" : "fail"}">${data.message || (ok ? "GATE PASS" : "GATE FAIL")}</span>`;
+        log(data.message || "gate", ok ? "ok" : "err");
+      } else if (type === "report") {
+        const report = data.report || {};
+        renderMetrics(report.aggregate || data.aggregate || {}, report.thresholds || {});
+        (report.cases || []).forEach(upsertCase);
+        log(`报告已写入 ${data.out_path || ""}`, "ok");
+      } else if (type === "error") {
+        log(data.message || "error", "err");
+        $("statusLine").textContent = data.message || "错误";
+        setRunning(false);
+      } else if (type === "complete") {
+        setRunning(false);
+        $("statusLine").textContent = `${data.message || "完成"} · exit=${data.exit_code}`;
+        log(`完成 exit=${data.exit_code}`, data.exit_code === 0 ? "ok" : "err");
+      }
+    }
+
+    async function refreshHealth() {
+      try {
+        const res = await fetch("/api/health");
+        const h = await res.json();
+        if (h.has_api_key) {
+          $("apiBadge").textContent = `API Key OK · ${h.judge_model || "model?"}`;
+          $("apiBadge").className = "badge ok";
+        } else {
+          $("apiBadge").textContent = "无 MINIMAX_API_KEY";
+          $("apiBadge").className = "badge bad";
+        }
+        // 用健康检查回填默认全量/并发
+        if (typeof h.dataset_cases === "number") {
+          $("limit").placeholder = `0=全量(${h.dataset_cases})`;
+        }
+        if (typeof h.default_concurrency === "number") {
+          $("concurrency").value = String(h.default_concurrency);
+        }
+        if (typeof h.default_limit === "number") {
+          $("limit").value = String(h.default_limit);
+        }
+        log(`健康检查：cases=${h.dataset_cases} baseline=${h.baseline_exists} concurrency=${h.default_concurrency}`);
+      } catch (e) {
+        $("apiBadge").textContent = "health 失败";
+        $("apiBadge").className = "badge bad";
+      }
+    }
+
+    $("btnRun").addEventListener("click", () => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log("WebSocket 未就绪", "err");
+        return;
+      }
+      if (running) return;
+      caseRows.clear();
+      casesBody.innerHTML = "";
+      $("diffBox").textContent = "（运行中…）";
+      $("gateLine").textContent = "裁决中…";
+      renderMetrics({});
+      setRunning(true);
+      const payload = {
+        action: "run_eval",
+        agent: $("agent").value,
+        metrics: $("metrics").value,
+        scenario: $("scenario").value,
+        limit: Number($("limit").value),
+        concurrency: Number($("concurrency").value || 8),
+        offline: $("offline").checked,
+        enforce_gate: $("enforceGate").checked,
+        compare_baseline: $("compareBaseline").checked,
+        save_as_baseline: $("saveBaseline").checked,
+        geval_samples: 1,
+      };
+      log(`发起评测 ${JSON.stringify(payload)}`, "warn");
+      ws.send(JSON.stringify(payload));
+    });
+
+    $("btnClear").addEventListener("click", () => { logEl.innerHTML = ""; });
+
+    connect();
+    refreshHealth();
+  </script>
+</body>
+</html>

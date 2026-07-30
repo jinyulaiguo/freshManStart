@@ -1,5 +1,5 @@
-# Week 15 Day 103 — Agent Eval CI Gate
-# 真实调用 Tool F1 + Faithfulness，阈值不达标则非 0 退出拦截合入。
+# Week 15 Day 105 — AI 研究助手 QA 自动化评测流水线
+# mock Agent + 真实/离线 Judge + ThresholdGate；Artifact 上传回归报告。
 name: eval-gate
 
 on:
@@ -14,12 +14,27 @@ on:
       - "weekly/w15_eval_system/**"
       - "middlewares/**"
       - ".github/workflows/eval.yml"
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "default (应通过) 或 demo_fail (应拦截)"
+        required: true
+        default: "default"
+        type: choice
+        options:
+          - default
+          - demo_fail
+      limit:
+        description: "评测 Case 数量"
+        required: true
+        default: "20"
+        type: string
 
 jobs:
   threshold-gate:
-    name: ThresholdGate (real evaluators)
+    name: run_eval ThresholdGate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -36,20 +51,83 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run Eval Gate (PR subset)
-        if: github.event_name == 'pull_request'
-        env:
-          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
-          MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL }}
-          MINIMAX_MODEL: ${{ secrets.MINIMAX_MODEL }}
+      - name: Resolve eval flags
+        id: flags
         run: |
-          uv run python weekly/w15_eval_system/gate/threshold_gate_impl.py --mode=pr
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "limit=${{ inputs.limit }}" >> "$GITHUB_OUTPUT"
+            echo "scenario=${{ inputs.scenario }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "limit=20" >> "$GITHUB_OUTPUT"
+            echo "scenario=default" >> "$GITHUB_OUTPUT"
+          else
+            echo "limit=50" >> "$GITHUB_OUTPUT"
+            echo "scenario=default" >> "$GITHUB_OUTPUT"
+          fi
+          # 有 API Key 则真实 Judge；否则 offline 启发式（保证 fork / 缺 secret 仍可跑结构）
+          if [ -n "${{ secrets.MINIMAX_API_KEY }}" ]; then
+            echo "offline=" >> "$GITHUB_OUTPUT"
+          else
+            echo "offline=--offline" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Run Eval Gate (full / push)
-        if: github.event_name == 'push'
+      - name: Run Eval Pipeline
+        id: eval
         env:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL }}
           MINIMAX_MODEL: ${{ secrets.MINIMAX_MODEL }}
         run: |
-          uv run python weekly/w15_eval_system/gate/threshold_gate_impl.py --mode=full
+          set +e
+          uv run python weekly/w15_eval_system/run_eval.py \
+            --dataset weekly/w15_eval_system/day105/golden_dataset.jsonl \
+            --agent=mock \
+            --metrics=gate \
+            --limit="${{ steps.flags.outputs.limit }}" \
+            --scenario="${{ steps.flags.outputs.scenario }}" \
+            --concurrency=4 \
+            --enforce-gate \
+            --baseline weekly/w15_eval_system/reports/eval_baseline.json \
+            --out weekly/w15_eval_system/reports/eval_result.json \
+            --diff-out weekly/w15_eval_system/reports/regression_diff.md \
+            ${{ steps.flags.outputs.offline }}
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit $code
+
+      - name: Upload Eval Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports-${{ github.run_id }}
+          path: |
+            weekly/w15_eval_system/reports/eval_result.json
+            weekly/w15_eval_system/reports/regression_diff.md
+          if-no-files-found: warn
+
+  demo-fail-proof:
+    name: demo_fail intercept proof (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.scenario == 'demo_fail'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: Expect exit 1
+        run: |
+          set +e
+          uv run python weekly/w15_eval_system/run_eval.py \
+            --agent=mock --offline --metrics=gate --limit=20 \
+            --scenario=demo_fail --enforce-gate \
+            --out weekly/w15_eval_system/reports/eval_demo_fail.json
+          code=$?
+          if [ "$code" -eq 1 ]; then
+            echo "✅ demo_fail 按预期拦截 (exit 1)"
+            exit 0
+          fi
+          echo "❌ 期望 exit 1，实际 $code"
+          exit 1
