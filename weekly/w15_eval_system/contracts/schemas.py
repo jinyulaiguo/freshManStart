@@ -242,3 +242,44 @@ class GoldenBatchResponse(BaseModel):
     的 BracketExtractor 精准提取并剥离 <think> 污染。
     """
     cases: list[SyntheticCaseDraft] = Field(..., min_length=1)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G-Eval LLM-as-Judge 契约 — Day 100 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class GEvalEvaluationStep(BaseModel):
+    """G-Eval CoT 评测步骤单条记录"""
+    step_number: int = Field(..., ge=1, le=10)
+    analysis: str = Field(..., min_length=3)
+
+
+class GEvalJudgeResponse(BaseModel):
+    """
+    G-Eval 单次 Judge 响应契约
+
+    强制 LLM 先输出分步推理 (evaluation_steps)，再给出 1-5 分最终评分。
+    供 parse_structured 解析，剥离思考链污染。
+    """
+    evaluation_steps: list[GEvalEvaluationStep] = Field(..., min_length=2)
+    chain_of_thought_summary: str = Field(..., min_length=5)
+    score: int = Field(..., ge=1, le=5, description="1-5 分 Likert 专业度评分")
+    score_rationale: str = Field(..., min_length=5)
+
+    @property
+    def normalized_score(self) -> float:
+        """将 1-5 分映射至 [0.2, 1.0] 归一化区间"""
+        return self.score / 5.0
+
+
+class GEvalAggregateResult(BaseModel):
+    """多次独立采样的 G-Eval 聚合评测结果"""
+    metric_name: str
+    sample_count: int
+    raw_scores: list[int] = Field(..., min_length=1)
+    normalized_scores: list[float] = Field(..., min_length=1)
+    weights: list[float] = Field(default_factory=list)
+    weighted_mean: float
+    std_dev: float
+    converged: bool = Field(description="归一化分数标准差是否 < 0.2")
+    individual_responses: list[GEvalJudgeResponse] = Field(default_factory=list)
