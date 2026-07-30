@@ -57,9 +57,8 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    extra_hosts:
-      # 让容器能刮取宿主机上的 Agent /metrics（macOS / Windows Docker Desktop）
-      - "host.docker.internal:host-gateway"
+    # 在 macOS/Windows Docker Desktop 下，host.docker.internal 内置可用；
+    # 不要再用 extra_hosts 覆盖，否则可能映射到错误网关地址导致 connection refused。
 
   grafana:
     image: grafana/grafana:11.3.1
