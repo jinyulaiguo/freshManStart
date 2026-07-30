@@ -426,3 +426,34 @@ class ProbeScoreResult(BaseModel):
         description="Judge 原始结构化响应摘要，供审计",
     )
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CI Threshold Gate 契约 — Day 103 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class GateCheckItem(BaseModel):
+    """单指标阈值比对明细"""
+    metric_name: str
+    actual: float
+    threshold: float
+    passed: bool
+    delta: float = Field(description="actual - threshold，负值表示未达标差额")
+
+
+class GateVerdict(BaseModel):
+    """
+    ThresholdGate 对整次 EvalRunReport 的门禁裁决
+
+    passed=False 时 CI 必须以非 0 exit code 退出以拦截合入。
+    """
+    passed: bool
+    mode: str = Field(description="pr | full | demo_pass | demo_fail")
+    checks: list[GateCheckItem] = Field(default_factory=list)
+    failed_metrics: list[str] = Field(default_factory=list)
+    message: str = ""
+
+    @property
+    def exit_code(self) -> int:
+        """CI 退出码：通过 0，拦截 1"""
+        return 0 if self.passed else 1
+

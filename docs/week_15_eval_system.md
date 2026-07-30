@@ -45,11 +45,12 @@
 
 ## Day 103：基于 GitHub Actions 的自动化 CI/CD 评测流水线集成
 *   **核心知识点**：
-    *   **自动化测试流水线设计**：在每次 `git push` 或 PR 合并时自动拉起环境跑评测集。
-    *   **GitHub Actions 工作流配置**：编写 `.github/workflows/eval.yml` 脚本。
-    *   **测试拦截机制**：当平均评分低于预设阈值（如 Faithfulness < 0.9 或 $F_1	ext{-score} < 0.85$）时，强制工作流报错中断，禁止代码合入主干。
+    *   **自动化测试流水线设计**：在每次 `git push` 或 PR 时自动拉起环境，对真实评测指标执行阈值门禁。
+    *   **GitHub Actions 工作流配置**：编写 `.github/workflows/eval.yml`，PR 子集 / push 可扩量，注入 `MINIMAX_API_KEY` 调用真实 Judge。
+    *   **ThresholdGate 拦截机制**：当 `tool_f1 < 0.85` 或 `faithfulness < 0.90` 时返回非 0 exit code，阻断合入。
+    *   **真实评测输入**：门禁消费的聚合指标必须来自 Day 101 Tool F1 与 Day 102 Faithfulness 的真实评测（禁止假 JSON 凑过关）。
 *   **Agent 核心关联**：防止在多人协作开发下，“为了改好一个 Bug 而改了 Prompt，结果导致其他 20 个功能全部发生性能退化（回归错误）”的悲剧。这是大厂工程化流水线的标配。
-*   **🎯 过关验证标准**：手写一份 `.github/workflows/eval.yml` 配置文件，并在本地通过 Mock 执行，验证当评测脚本抛出测试不通过异常时，工作流能返回错误退出码（非0），成功起到持续集成自动拦截的作用。
+*   **🎯 过关验证标准**：实现 `ThresholdGate` + `.github/workflows/eval.yml`。本地用真实 API 跑通正样本（exit 0）与负样本（漏调/幻觉 → exit 1），验证门禁退出码契约。
 
 ---
 

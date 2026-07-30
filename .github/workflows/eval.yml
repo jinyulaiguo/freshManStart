@@ -1,0 +1,55 @@
+# Week 15 Day 103 — Agent Eval CI Gate
+# 真实调用 Tool F1 + Faithfulness，阈值不达标则非 0 退出拦截合入。
+name: eval-gate
+
+on:
+  pull_request:
+    paths:
+      - "weekly/w15_eval_system/**"
+      - "middlewares/**"
+      - ".github/workflows/eval.yml"
+  push:
+    branches: [main]
+    paths:
+      - "weekly/w15_eval_system/**"
+      - "middlewares/**"
+      - ".github/workflows/eval.yml"
+
+jobs:
+  threshold-gate:
+    name: ThresholdGate (real evaluators)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Eval Gate (PR subset)
+        if: github.event_name == 'pull_request'
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL }}
+          MINIMAX_MODEL: ${{ secrets.MINIMAX_MODEL }}
+        run: |
+          uv run python weekly/w15_eval_system/gate/threshold_gate_impl.py --mode=pr
+
+      - name: Run Eval Gate (full / push)
+        if: github.event_name == 'push'
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL }}
+          MINIMAX_MODEL: ${{ secrets.MINIMAX_MODEL }}
+        run: |
+          uv run python weekly/w15_eval_system/gate/threshold_gate_impl.py --mode=full
