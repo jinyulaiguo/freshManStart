@@ -1,5 +1,19 @@
 # Day 106 课堂笔记：可观测性与 LangSmith 平台追踪机制
 
+> **材料约定**：本周日常只维护 `notes.md`；运行与终局规划见 [`../overview.html`](../overview.html)。README 仅出现在 Day 112 综合项目。
+
+## 运行（本课）
+
+```bash
+cd weekly/w16_observability/day106
+python practice.py
+pytest tests/ -q
+```
+
+LangSmith UI：项目名见根 `.env` 的 `LANGSMITH_PROJECT`。
+
+---
+
 ## 一、为什么 Agent 特别需要「可观测性」
 
 传统后端靠日志（log）排查：打印一行 `"error: timeout"` 往往够用。  

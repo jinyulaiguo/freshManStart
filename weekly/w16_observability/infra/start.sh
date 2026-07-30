@@ -18,14 +18,13 @@ echo "[w16] 启动 compose: ${COMPOSE_FILE}"
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d
 
 echo
-echo "[w16] 已启动。访问地址："
-echo "  Phoenix UI     http://localhost:6006"
-echo "  Prometheus UI  http://localhost:9090"
-echo "  Grafana UI     http://localhost:3000  (账号见 .env 中 GF_SECURITY_*)"
+echo "[w16] 已启动。访问地址（请用 0.0.0.0 或 127.0.0.1，勿用 localhost）："
+echo "  Phoenix UI     http://0.0.0.0:6006"
+echo "  Prometheus UI  http://0.0.0.0:9090"
+echo "  Grafana UI     http://0.0.0.0:3000  (账号见 .env 中 GF_SECURITY_*)"
 echo
-echo "[w16] OTLP 导出端点（写入应用 .env）："
-echo "  PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006"
-echo "  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006/v1/traces"
+echo "[w16] 课前总纲: weekly/w16_observability/overview.html"
+echo "[w16] OTLP: OTEL_EXPORTER_OTLP_ENDPOINT=http://0.0.0.0:6006/v1/traces"
 echo
 echo "[w16] 查看日志: docker compose -f ${COMPOSE_FILE} logs -f"
 echo "[w16] 停止集群: docker compose -f ${COMPOSE_FILE} down"
