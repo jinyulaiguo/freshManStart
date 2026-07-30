@@ -25,10 +25,11 @@
 
 ## Day 101：任务完成度、工具调用召回率与参数准确率评估
 *   **核心知识点**：
-    *   **工具调用准确度评估指标**：计算工具选择的精确率（Precision）与召回率（Recall），并计算 $F_1	ext{-score}$。
-    *   **参数误差计算**：提取大模型生成的工具参数，与 expected_tools 中的标准参数对比，计算数值误差和字符错乱比率。
-*   **Agent 核心关联**：对于以工具驱动的 ReAct Agent，工具调用选错了、或参数漏传了是致命的。定量计算 $F_1	ext{-score}$ 能直观反映出模型在调用底层本地/外部工具链时的健壮性。
-*   **🎯 过关验证标准**：实现一个 `ToolExecutionEvaluator` 类。比对 Agent 运行生成的轨迹 trace 日志与测试集中的 ground truth 期望，精确统计并在终端以表格输出本次测试用例的 Precision、Recall、和 $F_1$ 值。
+    *   **工具调用准确度评估指标**：计算工具选择的精确率（Precision）与召回率（Recall），并计算 $F_1\text{-score}$。采用 Multiset（多重集合）匹配，顺序无关，兼容同一工具多次调用。
+    *   **参数归一化与误差计算**：字符串 strip/lower 归一化；数值参数容差比对（默认绝对容差 0）；键级 diff 输出参数误差明细。
+    *   **参数准确率（Parameter Accuracy）**：在工具名已匹配的对上，计算参数完全正确的比例。
+*   **Agent 核心关联**：对于以工具驱动的 ReAct Agent，工具调用选错了、或参数漏传了是致命的。定量计算 $F_1\text{-score}$ 能直观反映出模型在调用底层本地/外部工具链时的健壮性。
+*   **🎯 过关验证标准**：实现一个 `ToolExecutionEvaluator` 类。比对 Agent 运行生成的轨迹 `EvalTrace` 与 Golden Case 的 `expected_tools`，精确统计并在终端以表格输出 Precision、Recall、$F_1$ 与 param_accuracy；用 Mock Trace（完美 / 漏调 / 多调 / 参数错误）验证四类场景指标正确。
 
 ---
 

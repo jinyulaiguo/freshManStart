@@ -283,3 +283,61 @@ class GEvalAggregateResult(BaseModel):
     std_dev: float
     converged: bool = Field(description="归一化分数标准差是否 < 0.2")
     individual_responses: list[GEvalJudgeResponse] = Field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Tool Execution 评测契约 — Day 101 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ToolMatchDetail(BaseModel):
+    """
+    单次期望工具调用与实际 Trace 的匹配明细
+
+    供 Day 104 EvalReporter Diff 报告定位具体参数误差。
+    """
+    expected_name: str
+    actual_name: Optional[str] = None
+    name_matched: bool = False
+    param_matched: bool = False
+    param_errors: list[str] = Field(
+        default_factory=list,
+        description="参数级误差描述，如 'top_k: expected=30 actual=5'",
+    )
+
+
+class ToolExecutionResult(BaseModel):
+    """
+    单条 Golden Case 的工具调用 Precision / Recall / F1 评测结果
+
+    确定性指标，无需 LLM，可在 CI 中零成本复现。
+    """
+    test_case_id: str
+    precision: float = Field(..., ge=0.0, le=1.0)
+    recall: float = Field(..., ge=0.0, le=1.0)
+    f1: float = Field(..., ge=0.0, le=1.0)
+    param_accuracy: float = Field(
+        ..., ge=0.0, le=1.0,
+        description="name 已匹配的对中，参数完全正确的比例",
+    )
+    true_positives: int = Field(..., ge=0)
+    false_positives: int = Field(..., ge=0)
+    false_negatives: int = Field(..., ge=0)
+    matched_details: list[ToolMatchDetail] = Field(default_factory=list)
+    unmatched_actual: list[str] = Field(
+        default_factory=list,
+        description="实际多调且未被期望消费的工具名列表",
+    )
+    unmatched_expected: list[str] = Field(
+        default_factory=list,
+        description="期望中未被实际调用消费的工具名列表",
+    )
+
+
+class ToolExecutionBatchResult(BaseModel):
+    """批量评测聚合结果 (供 Day 103 CI 阈值门禁消费)"""
+    case_count: int
+    mean_precision: float
+    mean_recall: float
+    mean_f1: float
+    mean_param_accuracy: float
+    cases: list[ToolExecutionResult] = Field(default_factory=list)
