@@ -35,11 +35,11 @@
 
 ## Day 102：回答忠实度（Faithfulness）与相关性（Relevance）数学打分
 *   **核心知识点**：
-    *   **忠实度（Faithfulness）判定**：评估 Agent 生成的回复内容是否完全来自于检索出的 Context 段落（检查是否存在幻觉）。
-    *   **相关性（Relevance）判定**：评估 Agent 回复是否切实解答了用户的 Query，是否有偏题或答非所问。
-    *   **数学指标计算**。
-*   **Agent 核心关联**：大模型生成可能看似通顺专业，实际上充满了编造数据（幻觉）。通过定量测量 Faithfulness 分值，能从根本上控制知识型 Agent 的回答合规性与可信度。
-*   **🎯 过关验证标准**：基于大模型设计两个用于计算 Faithfulness 和 Relevance 值的独立评测探针。传入包含故意编造的假回复的测试样本，验证 Faithfulness 探针能够敏感识别并打出 0 分（或极低分）。
+    *   **忠实度（Faithfulness）判定**：将 Agent 回复拆解为原子 claims，逐条检查是否能在 `retrieved_contexts` 中找到支撑；分数 = 被支撑 claims 数 / 总 claims 数（RAGAS 风格）。
+    *   **相关性（Relevance）判定**：独立 LLM Judge 探针评估回复是否切实解答用户 Query，输出 0–1 分、是否切题与缺失方面列表。
+    *   **对抗样本验证**：数字幻觉、张冠李戴、无中生有三类假回复必须打出极低 Faithfulness（≤ 0.2）；偏题回复 Relevance ≤ 0.3。
+*   **Agent 核心关联**：大模型生成可能看似通顺专业，实际上充满了编造数据（幻觉）。通过定量测量 Faithfulness 分值，能从根本上控制知识型 Agent 的回答合规性与可信度；与 Day 100 专业度、Day 101 工具 F1 正交互补。
+*   **🎯 过关验证标准**：实现 `FaithfulnessEvaluator` 与 `RelevanceEvaluator` 两个独立评测探针。传入故意编造的假回复样本，验证 Faithfulness 探针能够敏感识别并打出 ≤ 0.2 的极低分；忠实/切题样本分别达到 ≥ 0.8 / ≥ 0.7。
 
 ---
 

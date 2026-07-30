@@ -36,7 +36,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -341,3 +341,88 @@ class ToolExecutionBatchResult(BaseModel):
     mean_f1: float
     mean_param_accuracy: float
     cases: list[ToolExecutionResult] = Field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Faithfulness / Relevance 探针契约 — Day 102 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ClaimVerdict(BaseModel):
+    """
+    单条 claim 的 Context 支撑判定
+
+    Faithfulness 探针将 answer 拆解为原子声明后逐条审计。
+    """
+    claim: str = Field(..., min_length=3, description="从 answer 拆解出的原子声明")
+    supported: bool = Field(..., description="是否能在 retrieved_contexts 中找到支撑")
+    evidence_snippet: Optional[str] = Field(
+        None,
+        description="支撑该 claim 的 Context 片段摘录；不支持时为 null",
+    )
+    reason: str = Field(..., min_length=3, description="判定理由")
+
+
+class FaithfulnessJudgeResponse(BaseModel):
+    """
+    Faithfulness LLM Judge 结构化响应
+
+    强制输出 claims 数组，分数由 supported/total 确定性计算，禁止 LLM 随意给分。
+    """
+    claims: list[ClaimVerdict] = Field(..., min_length=1)
+    summary: str = Field(..., min_length=5, description="幻觉审计摘要")
+
+    @property
+    def score(self) -> float:
+        """Faithfulness = |supported claims| / |all claims|"""
+        if not self.claims:
+            return 0.0
+        supported = sum(1 for c in self.claims if c.supported)
+        return round(supported / len(self.claims), 4)
+
+    @property
+    def unsupported_claims(self) -> list[ClaimVerdict]:
+        return [c for c in self.claims if not c.supported]
+
+
+class RelevanceJudgeResponse(BaseModel):
+    """
+    Relevance LLM Judge 结构化响应
+
+    判定 answer 是否切实解答 query，输出 0-1 分与偏题诊断。
+    """
+    score: float = Field(..., ge=0.0, le=1.0, description="相关性得分 [0, 1]")
+    is_on_topic: bool = Field(..., description="是否切题回答了用户问题")
+    missing_aspects: list[str] = Field(
+        default_factory=list,
+        description="Query 中未被回答的关键方面",
+    )
+    rationale: str = Field(
+        ...,
+        min_length=5,
+        description="给分与偏题判定理由",
+        validation_alias=AliasChoices("rationale", "reason", "score_rationale"),
+    )
+
+    model_config = {"populate_by_name": True}
+
+
+class ProbeScoreResult(BaseModel):
+    """单探针评测结果 (Faithfulness 或 Relevance 统一外壳)"""
+    metric_name: Literal["faithfulness", "relevance"]
+    test_case_id: str
+    score: float = Field(..., ge=0.0, le=1.0)
+    passed: bool = Field(description="是否达到该探针的过关阈值")
+    unsupported_claims: list[str] = Field(
+        default_factory=list,
+        description="Faithfulness 未支撑声明列表；Relevance 场景为空",
+    )
+    missing_aspects: list[str] = Field(
+        default_factory=list,
+        description="Relevance 缺失方面；Faithfulness 场景为空",
+    )
+    summary: str = ""
+    raw_judge: Optional[dict[str, Any]] = Field(
+        None,
+        description="Judge 原始结构化响应摘要，供审计",
+    )
+
