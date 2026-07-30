@@ -56,11 +56,11 @@
 
 ## Day 104：评测回归测试（Regression Testing）与差异可视化报告生成
 *   **核心知识点**：
-    *   **回归测试（Regression Testing）**：每次评测结束后，对比历史版本的评测指标矩阵。
-    *   **差异分析（Diffing）**：寻找具体是哪几个 test_case 从 PASS 变为了 FAIL。
-    *   **自动化 Markdown/HTML 评测报告**的渲染生成。
+    *   **回归测试（Regression Testing）**：每次评测结束后，对比历史版本的 `EvalRunReport` 指标矩阵。
+    *   **差异分析（Diffing）**：聚合层计算 Δ（如 $\Delta F_1 = -0.05$）；Case 层定位 PASS→FAIL 的 `test_case_id`。
+    *   **EvalReporter**：加载 baseline/current JSON，输出 Markdown 差异报告与终端表格；输入报告须由真实 Evaluator 生成。
 *   **Agent 核心关联**：不仅要看总分，更要看具体哪些用例变坏了，以便开发者针对特定用例定位是 Prompt 被污染还是模型调用出现表征偏差。
-*   **🎯 过关验证标准**：编写一个 `EvalReporter`。每次评测完成后，自动比对上一次的 JSON 结果，输出 Markdown 格式的差异报告，清晰展示每一项指标的绝对变动值（如：$\Delta F_1 = -0.05$）以及发生降级的具体 Test Case ID，并在控制台漂亮输出。
+*   **🎯 过关验证标准**：实现 `EvalReporter`。用真实 Tool F1 + Faithfulness 生成 baseline/current 两份报告，比对后输出 Markdown：含聚合 Δ 与降级 Test Case ID 清单，并在控制台漂亮输出。
 
 ---
 

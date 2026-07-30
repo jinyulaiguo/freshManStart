@@ -457,3 +457,50 @@ class GateVerdict(BaseModel):
         """CI 退出码：通过 0，拦截 1"""
         return 0 if self.passed else 1
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Regression Diff 契约 — Day 104 EvalReporter 消费
+# ═══════════════════════════════════════════════════════════════════════════
+
+class MetricDelta(BaseModel):
+    """聚合指标相对 baseline 的绝对变动"""
+    metric_name: str
+    baseline: float
+    current: float
+    delta: float = Field(description="current - baseline")
+    status: Literal["improved", "regressed", "unchanged"]
+
+
+class CaseDelta(BaseModel):
+    """单条 test_case 相对 baseline 的通过态与指标变动"""
+    test_case_id: str
+    baseline_passed: Optional[bool] = None
+    current_passed: Optional[bool] = None
+    status: Literal["regressed", "improved", "unchanged", "added", "removed"]
+    metric_deltas: dict[str, float] = Field(
+        default_factory=dict,
+        description="各指标 current-baseline，如 tool_f1 / faithfulness",
+    )
+    failure_reasons: list[str] = Field(default_factory=list)
+
+
+class RegressionReport(BaseModel):
+    """两次 EvalRunReport 的完整回归差异报告"""
+    baseline_run_id: str
+    current_run_id: str
+    baseline_git_sha: Optional[str] = None
+    current_git_sha: Optional[str] = None
+    aggregate_deltas: list[MetricDelta] = Field(default_factory=list)
+    case_deltas: list[CaseDelta] = Field(default_factory=list)
+    regressed_ids: list[str] = Field(default_factory=list)
+    improved_ids: list[str] = Field(default_factory=list)
+
+    def to_markdown(self) -> str:
+        """由 EvalReporter.render_markdown 填充前的占位；完整渲染在 reporter 内实现。"""
+        return (
+            f"# Eval Regression Report\n\n"
+            f"- baseline: `{self.baseline_run_id}`\n"
+            f"- current: `{self.current_run_id}`\n"
+            f"- regressed: {len(self.regressed_ids)}\n"
+            f"- improved: {len(self.improved_ids)}\n"
+        )
